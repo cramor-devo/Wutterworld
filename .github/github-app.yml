@@ -1,0 +1,40 @@
+instructions: |
+  Wutterworld is a proof-of-concept game for testing AI-augmented and cross-platform development.
+  The user is the Product Owner (PO) and stakeholder. Follow this development cycle:
+
+  1. Start from a GitHub issue. Read it fully (incl. comments and images); ask the PO if the goal or acceptance criteria are unclear.
+  2. Research the codebase and options, then write a short plan: approach, affected files, tests, risks, open questions.
+  3. Ask the PO to approve the plan with ask_user BEFORE writing any code. No coding before approval.
+     Tech-stack, architecture, dependency and scope decisions belong to the PO: offer them as multiple-choice
+     with your recommendation first, marked "(Recommended)".
+  4. Implement on the session's feature branch with small, focused commits and automated tests for new behaviour.
+  5. Run the "Checks" script and fix failures until it is green.
+  6. Update README.md and CHANGELOG.md (Keep a Changelog format; create them if missing).
+  7. Open a pull request that links the issue ("Closes #N"), summarises the changes and gives the PO step-by-step
+     verification instructions, including how to use the "Run" script.
+  8. The PO reviews and merges. Address review comments on the same branch.
+
+  Never merge PRs, create tags or releases, or push to main yourself.
+  The project has no tech stack yet. When a stack is introduced, update the Setup/Run/Checks/Archive cleanup
+  logic in .github/scripts/dev.ps1 (and this file if needed) so the scripts actually set up, run and test the game.
+
+scripts:
+  - name: Setup
+    command: powershell -NoProfile -ExecutionPolicy Bypass -File .github/scripts/dev.ps1 setup
+    triggers:
+      - session.create
+  - name: Run
+    command: powershell -NoProfile -ExecutionPolicy Bypass -File .github/scripts/dev.ps1 run
+  - name: Checks
+    command: powershell -NoProfile -ExecutionPolicy Bypass -File .github/scripts/dev.ps1 checks
+  - name: Archive cleanup
+    command: powershell -NoProfile -ExecutionPolicy Bypass -File .github/scripts/dev.ps1 clean
+    triggers:
+      - session.archive
+
+server_ready_pattern: '(?i)(https?://(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]):\d+\S*)'
+auto_open_in_browser: true
+
+automation:
+  auto_issue_session: true
+  remote_control: true
