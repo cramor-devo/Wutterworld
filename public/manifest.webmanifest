@@ -1,0 +1,9 @@
+﻿{
+  "name": "Wutterworld",
+  "short_name": "Wutterworld",
+  "start_url": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#05080f",
+  "theme_color": "#0b1d3a"
+}

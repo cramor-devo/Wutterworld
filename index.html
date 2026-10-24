@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b1d3a" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Wutterworld" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <title>Wutterworld</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #05080f; overflow: hidden; touch-action: none; }
+      body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+      #game { width: 100vw; height: 100vh; height: 100dvh; }
+      canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+    </style>
+  </head>
+  <body>
+    <div id="game"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
