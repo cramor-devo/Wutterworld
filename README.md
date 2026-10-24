@@ -1,11 +1,13 @@
 # Wutterworld
 
+Wutterworld is a proof of concept for AI-augmented, cross-platform (game) development, made as a
+**Devoteam NL** tech demo. The title screen shows the Devoteam "AI Augmented" badge. It's a showcase for
+developing with self-built Gems in Gemini and agents in GitHub Copilot. This shows how creative insights get 
+transformed into a working programs people can use with ease. 
+
 A SNES-style pixel-art side-scroller about **Wutter**, a curious little sea cucumber from the coral reefs of
 Kenting, Taiwan. Wutter wants to see the world above the waves (beaches, night markets, temple festivals) while
 dodging every creature that thinks sea cucumbers are a snack, and finally swims safely home.
-
-Wutterworld is also a proof of concept for AI-augmented, cross-platform game development, made as a
-**Devoteam NL** tech demo. The title screen shows the Devoteam "AI Augmented" badge.
 
 ## Play
 
