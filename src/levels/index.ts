@@ -83,10 +83,13 @@ export const LEVELS: Record<string, LevelDef> = {
 
 export const FIRST_LEVEL_ID = HOME_REEF.id;
 
+export function hasLevel(id: string): boolean {
+  return Object.hasOwn(LEVELS, id);
+}
+
 export function getLevel(id: string): LevelDef {
-  const def = LEVELS[id];
-  if (!def) throw new Error(`Unknown level '${id}'`);
-  return def;
+  if (!hasLevel(id)) throw new Error(`Unknown level '${id}'`);
+  return LEVELS[id];
 }
 
 export function loadLevel(id: string): { def: LevelDef; parsed: ParsedLevel } {

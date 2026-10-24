@@ -20,6 +20,7 @@ function readStoredMute(): boolean {
 export class Chiptune {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
+  private songBus: GainNode | null = null;
   private timer: number | null = null;
   private song: SongId | null = null;
   private nextBarTime = 0;
@@ -68,7 +69,10 @@ export class Chiptune {
     if (this.song === id) return;
     this.stop();
     this.song = id;
-    if (!this.ctx) return;
+    if (!this.ctx || !this.master) return;
+    // Each song gets its own bus so stop() can silence notes that were already scheduled ahead.
+    this.songBus = this.ctx.createGain();
+    this.songBus.connect(this.master);
     this.nextBarTime = this.ctx.currentTime + 0.05;
     this.schedule();
     this.timer = window.setInterval(() => this.schedule(), 200);
@@ -78,6 +82,8 @@ export class Chiptune {
     if (this.timer !== null) window.clearInterval(this.timer);
     this.timer = null;
     this.song = null;
+    this.songBus?.disconnect();
+    this.songBus = null;
   }
 
   /** Called after unlock if a song was requested before audio was allowed. */
@@ -104,7 +110,7 @@ export class Chiptune {
   }
 
   private tone(type: OscillatorType, midi: number, start: number, dur: number, volume: number): void {
-    if (!this.ctx || !this.master) return;
+    if (!this.ctx || !this.songBus) return;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.type = type;
@@ -112,7 +118,7 @@ export class Chiptune {
     gain.gain.setValueAtTime(0, start);
     gain.gain.linearRampToValueAtTime(volume, start + 0.01);
     gain.gain.exponentialRampToValueAtTime(0.001, start + Math.max(0.05, dur));
-    osc.connect(gain).connect(this.master);
+    osc.connect(gain).connect(this.songBus);
     osc.start(start);
     osc.stop(start + dur + 0.05);
   }

@@ -43,7 +43,11 @@ export class TitleScene extends Phaser.Scene {
     pixelText(this, GAME_WIDTH + offset - 4, GAME_HEIGHT - 10, 'M: MUTE', { color: 0x7fb8d0, shadow: null, originX: 1 });
 
     this.input.once('pointerup', () => this.start());
-    this.input.keyboard?.once('keydown', () => this.start());
+    // M toggles mute (as shown bottom-right); every other key starts the game.
+    this.input.keyboard?.on('keydown', (e: KeyboardEvent) => {
+      if (e.code === 'KeyM') audio.toggleMute();
+      else this.start();
+    });
     this.input.gamepad?.once('down', () => this.start());
   }
 

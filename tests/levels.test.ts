@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { LEVEL_ROWS, TILE } from '../src/config';
 import { CHAPTERS, nextChapter } from '../src/levels/chapters';
-import { FIRST_LEVEL_ID, LEVELS, loadLevel } from '../src/levels';
+import { FIRST_LEVEL_ID, getLevel, hasLevel, LEVELS, loadLevel } from '../src/levels';
 import { parseLevel, TILE_INDEX, validateMap } from '../src/levels/parser';
 import { canReachExit, reachableCells } from '../src/levels/reachability';
 import { jumpApexHeight } from '../src/logic/movement';
@@ -116,5 +116,15 @@ describe('chapters', () => {
 
   it('every playable chapter has a level', () => {
     for (const c of CHAPTERS.filter((ch) => ch.playable)) expect(LEVELS[c.id]).toBeDefined();
+  });
+});
+
+describe('level lookup', () => {
+  it('only accepts real level ids, not inherited object properties', () => {
+    expect(hasLevel('coral-gardens')).toBe(true);
+    for (const id of ['constructor', '__proto__', 'toString', 'nope']) {
+      expect(hasLevel(id)).toBe(false);
+      expect(() => getLevel(id)).toThrow(/Unknown level/);
+    }
   });
 });

@@ -50,7 +50,7 @@ Stack: [Phaser 3](https://phaser.io/) + TypeScript, built with [Vite](https://vi
 smoke tests). All game art and music are made in code at start-up. The only image files are the home-screen icons
 and the pixelated Devoteam badge in `public/brand/` (128 × 128, shown as an overlay on the title screen).
 
-Requirements: [Node.js](https://nodejs.org/) 20 or newer.
+Requirements: [Node.js](https://nodejs.org/) 22.13 or newer (current LTS).
 
 | Task | Copilot app script | Command line |
 | --- | --- | --- |

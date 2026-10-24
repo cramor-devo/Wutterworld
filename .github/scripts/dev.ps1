@@ -30,7 +30,7 @@ if ($hasNode -and $Action -ne 'clean') {
             Where-Object { Test-Path (Join-Path $_.FullName 'npm.cmd') } | Select-Object -First 1
         if ($portable) { $env:Path = "$($portable.FullName);$env:Path" }
         else {
-            Write-Host 'Node.js 20+ is required: install it from https://nodejs.org (LTS) or unzip the Windows .zip into %LOCALAPPDATA%\node-portable.'
+            Write-Host 'Node.js 22.13+ (LTS) is required: install it from https://nodejs.org or unzip the Windows .zip into %LOCALAPPDATA%\node-portable.'
             exit 1
         }
     }

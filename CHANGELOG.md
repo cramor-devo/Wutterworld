@@ -27,3 +27,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   than the game so the curved text stays readable.
 - GitHub Pages deploy workflow and CI workflow (lint, unit tests, build, smoke tests).
 - Setup, Run, Checks and Archive cleanup scripts for the web stack.
+
+### Fixed
+
+- Switching songs no longer leaves the previous song's already-scheduled notes playing over the new one.
+- The thread cooldown bar now visibly shrinks and refills.
+- Pressing M on the title screen toggles mute instead of starting the game.
+- `?level=` ignores names that are not real levels (such as `constructor`) and falls back to the title screen.

@@ -239,7 +239,7 @@ export class LevelScene extends Phaser.Scene {
   private updateHud(): void {
     this.hearts.forEach((h, i) => h.setFrame(i < this.health.hearts ? 0 : 1));
     this.shieldIcon.setVisible(this.health.shield);
-    this.chargeBar.width = 20 * this.threads.charge;
+    this.chargeBar.scaleX = this.threads.charge;
     setPixelText(this.scoreText, formatScore(this.score.value));
   }
 

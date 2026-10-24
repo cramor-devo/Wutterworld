@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { generateTextures } from '../art/textures';
-import { LEVELS } from '../levels';
+import { hasLevel } from '../levels';
 import { fitViewWidth, setHook } from './common';
 
 export class BootScene extends Phaser.Scene {
@@ -20,7 +20,7 @@ export class BootScene extends Phaser.Scene {
     // Developer/PO shortcut: ?level=coral-gardens jumps straight into a level.
     fitViewWidth(this.game);
     const level = new URLSearchParams(window.location.search).get('level');
-    if (level && LEVELS[level]) this.scene.start('Level', { id: level });
+    if (level && hasLevel(level)) this.scene.start('Level', { id: level });
     else this.scene.start('Title');
   }
 }
