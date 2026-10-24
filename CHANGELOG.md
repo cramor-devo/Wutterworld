@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-24
+
 ### Added
 
 - Web game foundation using Phaser 3, TypeScript and Vite. It runs in any modern browser on Android, iOS,
@@ -36,3 +38,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The thread cooldown bar now visibly shrinks and refills.
 - Pressing M on the title screen toggles mute instead of starting the game.
 - `?level=` ignores names that are not real levels (such as `constructor`) and falls back to the title screen.
+
+[Unreleased]: https://github.com/cramor-devo/Wutterworld/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/cramor-devo/Wutterworld/releases/tag/v0.2.0

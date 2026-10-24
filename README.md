@@ -32,7 +32,7 @@ sideloading. It works on Android, iPhone/iPad, Chromebooks, Windows, macOS and L
 | Skip story | Esc | — | — |
 | Mute / unmute music | M | — | — |
 
-### What is playable now (v0.1.0)
+### What is playable now (v0.2.0)
 
 1. **Story intro**: four illustrated panels.
 2. **Home Reef (tutorial)**, Kenting: signs teach moving, jumping, currents, plankton, pearls, the anemone

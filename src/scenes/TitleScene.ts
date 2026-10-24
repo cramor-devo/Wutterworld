@@ -4,7 +4,7 @@ import { audio } from '../audio/chiptune';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config';
 import { addBackdrop, addBubbles, addBrandLogo, centreFixedLayout, fadeTo, setHook } from './common';
 
-export const APP_VERSION = '0.1.0';
+export const APP_VERSION = '0.2.0';
 
 export class TitleScene extends Phaser.Scene {
   private started = false;
