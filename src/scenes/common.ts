@@ -9,6 +9,9 @@ export interface WutterHook {
   score?: number;
   hearts?: number;
   touch?: boolean;
+  difficulty?: string;
+  /** Enemies spawned in the current level (more on hard). */
+  enemies?: number;
 }
 
 declare global {

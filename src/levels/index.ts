@@ -1,3 +1,5 @@
+import { TILE } from '../config';
+import type { EnemyKind } from '../logic/enemies';
 import { parseLevel, type ParsedLevel } from './parser';
 
 export type NextStep = { type: 'level'; id: string } | { type: 'story'; id: string };
@@ -11,7 +13,15 @@ export interface LevelDef {
   music: 'reef' | 'gardens';
   map: readonly string[];
   signs: readonly string[];
+  /** Extra enemies that only appear on hard difficulty (tile column/row, like the map). */
+  hardEnemies?: readonly HardEnemy[];
   next: NextStep;
+}
+
+export interface HardEnemy {
+  kind: EnemyKind;
+  col: number;
+  row: number;
 }
 
 // Home Reef, Kenting: teaches crawling, hopping, currents, threads, stomping and shields.
@@ -23,10 +33,10 @@ const HOME_REEF: LevelDef = {
   music: 'reef',
   signs: [
     'HOLD < > TO CRAWL. EAT THE GLOWING PLANKTON!',
-    'PRESS JUMP (A) TO HOP. HOLD IT TO HOP HIGHER.',
+    'PRESS JUMP ({JUMP}) TO HOP. HOLD IT TO HOP HIGHER.',
     'WARM UP-CURRENTS CARRY YOU OVER TALL CORAL.',
-    'HUNGRY CRAB! PRESS ACTION (B) TO SHOOT STICKY THREADS. HOME IS SAFE: HITS DO NOT HURT HERE.',
-    'HOP ON A RESTING PUFFERFISH TO BOUNCE. NEVER WHEN IT IS PUFFED UP!',
+    'HUNGRY CRAB! PRESS ACTION ({ACTION}) TO SHOOT STICKY THREADS. HOME IS SAFE: HITS DO NOT HURT HERE.',
+    'HOP ON A RESTING PUFFERFISH TO BOUNCE HIGH. IT SHAKES BEFORE IT PUFFS UP!',
     'SIDE CURRENTS PUSH YOU ALONG. RIDE THEM!',
     'ANEMONES SHIELD YOU FROM ONE HIT. THE LIGHT AHEAD LEADS TO NEW WATERS.',
   ],
@@ -39,8 +49,8 @@ const HOME_REEF: LevelDef = {
     '..................................^^CC.................O............................................',
     '..................................^^CC..............................................................',
     '..................................^^CC........................oooooo........oo......................',
-    '........................ooo.......^^CC.................f.....>>>>>>>>.......RR......................',
-    '.............o.........#####......^^CC....................................RRRR......................',
+    '........................ooo.......^^CC.......................>>>>>>>>.......RR......................',
+    '.............o.........#####......^^CC...................f......f.........RRRR......................',
     '.............o...##...............^^CC..................................CCRRRR......................',
     '.P..S.w.o.S..#...##...w.....g..S..^^CC...S..L..c...S........S...T.......CCRRRR...S..A.......L...E.L.',
     '====================================================================================================',
@@ -57,6 +67,14 @@ const CORAL_GARDENS: LevelDef = {
   safe: false,
   music: 'gardens',
   signs: ['GREEN ISLAND REEF. EVERY FISH HERE WANTS A CUCUMBER SNACK. STAY STICKY!'],
+  hardEnemies: [
+    { kind: 'crab', col: 13, row: 11 },
+    { kind: 'triggerfish', col: 25, row: 8 },
+    { kind: 'crab', col: 44, row: 11 },
+    { kind: 'crab', col: 66, row: 11 },
+    { kind: 'triggerfish', col: 85, row: 7 },
+    { kind: 'crab', col: 106, row: 11 },
+  ],
   map: [
     '........................................................................................................................',
     '........................................................................................................................',
@@ -64,11 +82,11 @@ const CORAL_GARDENS: LevelDef = {
     '..................................................oo.OOO................................................................',
     '..................................................^^RRRRRR................................O.............................',
     '.........................................A........^^.........................>>>>>>>>>>>>...............................',
-    '...................................O....###.......^^..............f........RR.............###...........................',
-    '............................f........t............^^.......................RR......................t....t...............',
-    '................OO................................^^..........t............RR..o.o......................................',
-    '...............CCCC...........CC.....##o.o.o.o....^^.....................CCRR.......................o..o..o....O.O......',
-    '..............................CC..................^^.....................CCRR.........f.................................',
+    '...................................O....###.......^^.......................RR.............###...........................',
+    '.....................................t............^^.....................f.RR......................t....t...............',
+    '................OO...............f................^^..........t............RR..o.o......................................',
+    '...............CCCC...........CC.....##o.o.o.o....^^.....................CCRR.........f.............o..o..o....O.O......',
+    '..............................CC..................^^.....................CCRR...........................................',
     '.P.Sw..o.o..........c.....w...CC..g.....L.........^^....c....T........w..CCRR...c...........c....L.....w......L....E..L.',
     '========================================================================================================================',
     '========================================================================================================================',
@@ -92,7 +110,18 @@ export function getLevel(id: string): LevelDef {
   return LEVELS[id];
 }
 
-export function loadLevel(id: string): { def: LevelDef; parsed: ParsedLevel } {
+export interface LoadOptions {
+  /** Add the level's hard-mode enemies. */
+  extraEnemies?: boolean;
+}
+
+export function loadLevel(id: string, { extraEnemies = false }: LoadOptions = {}): { def: LevelDef; parsed: ParsedLevel } {
   const def = getLevel(id);
-  return { def, parsed: parseLevel(def.map, def.signs) };
+  const parsed = parseLevel(def.map, def.signs);
+  if (extraEnemies) {
+    for (const e of def.hardEnemies ?? []) {
+      parsed.enemies.push({ kind: e.kind, col: e.col, row: e.row, x: e.col * TILE + TILE / 2, y: e.row * TILE + TILE / 2 });
+    }
+  }
+  return { def, parsed };
 }

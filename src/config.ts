@@ -23,6 +23,8 @@ export const PHYSICS = {
   jumpCutFactor: 0.45,
   maxFall: 150,
   stompBounce: 190,
+  /** Bouncing off a resting pufferfish launches the player much higher than a jump. */
+  pufferBounce: 270,
   coyoteMs: 110,
   jumpBufferMs: 120,
   currentUp: 900,

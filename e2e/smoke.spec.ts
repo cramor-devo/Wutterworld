@@ -6,6 +6,8 @@ interface Hook {
   player?: { x: number; y: number };
   hearts?: number;
   touch?: boolean;
+  difficulty?: string;
+  enemies?: number;
 }
 
 const hook = (page: Page) => page.evaluate(() => (window as unknown as { __wutter?: Hook }).__wutter);
@@ -56,7 +58,8 @@ test('boots, plays the intro story and starts the reef tutorial', async ({ page,
 
   await waitForScene(page, 'Level');
   const state = await hook(page);
-  expect(state?.hearts).toBe(3);
+  expect(state?.hearts).toBe(5);
+  expect(state?.difficulty).toBe('normal');
   expect(state?.touch).toBe(isMobile);
 
   if (!isMobile) {
@@ -79,5 +82,25 @@ test('level shortcut loads Coral Gardens directly', async ({ page }) => {
   await waitForScene(page, 'Level');
   expect((await hook(page))?.level).toBe('coral-gardens');
   await page.waitForTimeout(1000);
+  expect(errors).toEqual([]);
+});
+
+test('difficulty shortcut: hard adds enemies, easy gives 10 hearts', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('./?level=coral-gardens&difficulty=normal');
+  await waitForScene(page, 'Level');
+  const normal = await hook(page);
+  expect(normal?.difficulty).toBe('normal');
+
+  await page.goto('./?level=coral-gardens&difficulty=hard');
+  await waitForScene(page, 'Level');
+  const hard = await hook(page);
+  expect(hard?.difficulty).toBe('hard');
+  expect(hard?.enemies ?? 0).toBeGreaterThan(normal?.enemies ?? 0);
+
+  await page.goto('./?level=coral-gardens&difficulty=easy');
+  await waitForScene(page, 'Level');
+  expect((await hook(page))?.hearts).toBe(10);
   expect(errors).toEqual([]);
 });

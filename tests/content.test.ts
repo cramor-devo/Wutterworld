@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { FONT_CHARS, GLYPH_W, GLYPHS, toFontText } from '../src/art/font';
 import { ALL_SPRITES, validateSprite } from '../src/art/sprites';
 import { midiToFrequency, noteNameToMidi, parsePattern, SONGS } from '../src/audio/music';
+import { withButtonLabels } from '../src/input/labels';
 import { InputEdges, mergeInputs } from '../src/input/state';
 import { LEVELS } from '../src/levels';
 import { STORIES, wrapText } from '../src/story';
@@ -29,7 +30,7 @@ describe('font', () => {
 
   it('can draw all game text', () => {
     const texts = [
-      ...Object.values(LEVELS).flatMap((l) => [l.name, l.place, ...l.signs]),
+      ...Object.values(LEVELS).flatMap((l) => [l.name, l.place, ...l.signs.flatMap((t) => [withButtonLabels(t, 'keyboard'), withButtonLabels(t, 'touch')])]),
       ...Object.values(STORIES).flatMap((s) => s.panels.map((p) => p.text)),
     ];
     for (const t of texts) for (const ch of t) expect(FONT_CHARS.includes(ch), `missing glyph '${ch}' in "${t}"`).toBe(true);

@@ -4,12 +4,17 @@ import { formatScore, PICKUP_POINTS, Score } from '../src/logic/score';
 import { STUN_MS, THREAD_COOLDOWN_MS, THREAD_RANGE_PX, ThreadAbility, threadLifetimeMs, THREAD_SPEED } from '../src/logic/threads';
 
 describe('Health', () => {
-  it('loses a heart per hit and dies at zero', () => {
+  const hitAndRecover = (h: Health) => {
+    const r = h.hit();
+    h.update(INVULNERABLE_MS);
+    return r;
+  };
+
+  it('starts with 5 hearts, loses one per hit and dies at zero', () => {
     const h = new Health();
-    expect(h.hit()).toBe('hurt');
-    h.update(INVULNERABLE_MS);
-    expect(h.hit()).toBe('hurt');
-    h.update(INVULNERABLE_MS);
+    expect(h.hearts).toBe(MAX_HEARTS);
+    expect(MAX_HEARTS).toBe(5);
+    for (let i = 0; i < MAX_HEARTS - 1; i++) expect(hitAndRecover(h)).toBe('hurt');
     expect(h.hit()).toBe('dead');
     expect(h.dead).toBe(true);
   });
@@ -31,13 +36,24 @@ describe('Health', () => {
     expect(h.hit()).toBe('hurt');
   });
 
-  it('safe mode (tutorial) never costs hearts', () => {
-    const h = new Health(true);
-    for (let i = 0; i < 10; i++) {
-      expect(h.hit()).toBe('hurt');
-      h.update(INVULNERABLE_MS);
-    }
+  it('safe mode (tutorial, scenic) never costs hearts', () => {
+    const h = new Health({ safe: true });
+    for (let i = 0; i < 20; i++) expect(hitAndRecover(h)).toBe('hurt');
     expect(h.hearts).toBe(MAX_HEARTS);
+    expect(h.dead).toBe(false);
+  });
+
+  it('reduced damage removes partial hearts without rounding drift', () => {
+    const h = new Health({ maxHearts: 10, damage: 0.6 });
+    hitAndRecover(h);
+    hitAndRecover(h);
+    expect(h.hearts).toBe(8.8);
+    expect(h.heartFill(8)).toBeCloseTo(0.8);
+    expect(h.heartFill(9)).toBe(0);
+    expect(h.heartFill(0)).toBe(1);
+    // 10 / 0.6 = 16.7, so the 17th hit is the last one.
+    for (let i = 0; i < 14; i++) expect(hitAndRecover(h)).toBe('hurt');
+    expect(hitAndRecover(h)).toBe('dead');
   });
 });
 

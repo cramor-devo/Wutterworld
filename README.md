@@ -30,9 +30,30 @@ sideloading. It works on Android, iPhone/iPad, Chromebooks, Windows, macOS and L
 | Shoot sticky threads (stuns enemies) | X, J or Shift | **B** button | B / X |
 | Next story panel | Space, Enter or tap | Tap | Any button |
 | Skip story | Esc | — | — |
+| Choose difficulty (title screen) | ← → or A / D | Tap a mode | D-pad left / right |
 | Mute / unmute music | M | — | — |
 
-### What is playable now (v0.2.0)
+The tutorial signs name the buttons of the device you play on: keys such as SPACE and X on a PC, A and B on
+the touch screen or a gamepad.
+
+### Difficulty
+
+Pick a mode on the title screen. The game remembers your choice.
+
+| Mode | Hearts | Damage per hit | Enemies |
+| --- | --- | --- | --- |
+| **Scenic** | 5, never lost (you cannot die) | none, hits only push you back | calm: they never chase, puff up or hurt |
+| **Easy** | 10 | 40% less (0.6 heart) | normal |
+| **Normal** (default) | 5 | 1 heart | normal |
+| **Hard** | 5 | 1 heart | extra crabs and triggerfish in Coral Gardens |
+
+### Puffer fish
+
+Puffer fish puff up on a fixed rhythm, not when you come close. They rest for 3 seconds, shake for a moment as a
+warning, then stay puffed up (and spiky) for 1.5 seconds. Hop on a resting puffer fish to bounce high, up to pearls
+and sideways currents.
+
+### What is playable now (v0.2.1)
 
 1. **Story intro**: four illustrated panels.
 2. **Home Reef (tutorial)**, Kenting: signs teach moving, jumping, currents, plankton, pearls, the anemone
@@ -67,6 +88,8 @@ Open it on a phone on the same Wi-Fi.
 **Handy URL options:**
 
 - `?level=coral-gardens` (or `?level=reef-tutorial`) jumps straight into a level.
+- `?difficulty=scenic` (or `easy`, `normal`, `hard`) plays with that difficulty without changing the saved
+  choice. Combine options with `&`, for example `?level=coral-gardens&difficulty=hard`.
 - `?touch=1` / `?touch=0` forces the on-screen buttons on or off.
 
 ### Project layout
