@@ -20,6 +20,23 @@ $hasPyproject = Test-Path (Join-Path $root 'pyproject.toml')
 $hasPython = $hasPyproject -or $reqFiles.Count -gt 0 -or (Test-Path (Join-Path $root 'main.py'))
 $hasNode = Test-Path (Join-Path $root 'package.json')
 
+# Node/npm: prefer npm.cmd (Windows PowerShell may block the npm.ps1 shim); fall back to a portable Node
+# unpacked under %LOCALAPPDATA%\node-portable, so no admin install is needed.
+$npm = 'npm'
+$npx = 'npx'
+if ($hasNode -and $Action -ne 'clean') {
+    if (-not (Get-Command npm.cmd -ErrorAction SilentlyContinue) -and -not (Get-Command npm -ErrorAction SilentlyContinue)) {
+        $portable = Get-ChildItem (Join-Path $env:LOCALAPPDATA 'node-portable') -Directory -ErrorAction SilentlyContinue |
+            Where-Object { Test-Path (Join-Path $_.FullName 'npm.cmd') } | Select-Object -First 1
+        if ($portable) { $env:Path = "$($portable.FullName);$env:Path" }
+        else {
+            Write-Host 'Node.js 22.13+ (LTS) is required: install it from https://nodejs.org or unzip the Windows .zip into %LOCALAPPDATA%\node-portable.'
+            exit 1
+        }
+    }
+    if (Get-Command npm.cmd -ErrorAction SilentlyContinue) { $npm = 'npm.cmd'; $npx = 'npx.cmd' }
+}
+
 function Invoke-Checked([string]$exe, [string[]]$argList) {
     Write-Host "> $exe $($argList -join ' ')"
     & $exe @argList
@@ -52,14 +69,16 @@ switch ($Action) {
             if ($hasPyproject) { Invoke-Checked $venvPython @('-m', 'pip', 'install', '-e', '.') }
         }
         if ($hasNode) {
-            if (Test-Path (Join-Path $root 'package-lock.json')) { Invoke-Checked 'npm' @('ci') }
-            else { Invoke-Checked 'npm' @('install') }
+            if (Test-Path (Join-Path $root 'package-lock.json')) { Invoke-Checked $npm @('ci') }
+            else { Invoke-Checked $npm @('install') }
+            # Browser for the Playwright smoke test (one-off download, cached per user).
+            if ((Get-NpmScripts) -contains 'test:e2e') { Invoke-Checked $npx @('playwright', 'install', 'chromium') }
         }
         Write-Host 'Setup complete.'
     }
     'run' {
-        if ($hasNode -and (Get-NpmScripts) -contains 'start') { Invoke-Checked 'npm' @('start'); exit 0 }
-        if ($hasNode -and (Get-NpmScripts) -contains 'dev') { Invoke-Checked 'npm' @('run', 'dev'); exit 0 }
+        if ($hasNode -and (Get-NpmScripts) -contains 'start') { Invoke-Checked $npm @('start'); exit 0 }
+        if ($hasNode -and (Get-NpmScripts) -contains 'dev') { Invoke-Checked $npm @('run', 'dev'); exit 0 }
         if ($hasPython -and (Test-Path (Join-Path $root 'main.py'))) {
             $py = if (Test-Path $venvPython) { $venvPython } else { 'python' }
             Invoke-Checked $py @('main.py'); exit 0
@@ -77,20 +96,24 @@ switch ($Action) {
         }
         if ($hasNode) {
             $npmScripts = Get-NpmScripts
-            if ($npmScripts -contains 'lint') { Invoke-Checked 'npm' @('run', 'lint'); $ran = $true }
-            if ($npmScripts -contains 'test') { Invoke-Checked 'npm' @('test'); $ran = $true }
+            if (-not (Test-Path (Join-Path $root 'node_modules'))) { Write-Host 'Checks: node_modules missing; run the Setup script first.'; exit 1 }
+            foreach ($s in @('lint', 'test', 'build', 'test:e2e')) {
+                if ($npmScripts -contains $s) { Invoke-Checked $npm @('run', $s); $ran = $true }
+            }
         }
         if ($ran) { Write-Host 'All checks passed.' }
         else { Write-Host 'Checks: no linters/tests configured yet (ruff/pytest or npm lint/test).' }
     }
     'clean' {
-        $venv = Join-Path $root '.venv'
-        if (Test-Path $venv) {
-            Remove-Item -LiteralPath $venv -Recurse -Force -ErrorAction SilentlyContinue
-            Write-Host 'Removed .venv'
-        } else {
-            Write-Host 'Nothing to clean (.venv not present).'
+        $removed = @()
+        foreach ($dir in @('.venv', 'node_modules', 'dist', 'test-results', 'playwright-report')) {
+            $path = Join-Path $root $dir
+            if (Test-Path $path) {
+                Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction SilentlyContinue
+                $removed += $dir
+            }
         }
+        if ($removed.Count -gt 0) { Write-Host "Removed $($removed -join ', ')" } else { Write-Host 'Nothing to clean.' }
     }
 }
 exit 0

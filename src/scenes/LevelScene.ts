@@ -1,0 +1,458 @@
+import Phaser from 'phaser';
+import { pixelText, setPixelText } from '../art/text';
+import { audio } from '../audio/chiptune';
+import { PHYSICS, TILE } from '../config';
+import { createKeys, type Keys, readGamepad, readKeys } from '../input/devices';
+import { InputEdges, mergeInputs } from '../input/state';
+import { TouchControls, wantsTouchControls } from '../input/touch';
+import { type LevelDef, loadLevel } from '../levels';
+import type { ParsedLevel } from '../levels/parser';
+import { createBrain, defeatEnemy, type EnemyBrain, type EnemyIntent, stepEnemy, stunEnemy } from '../logic/enemies';
+import { Health, MAX_HEARTS } from '../logic/health';
+import { clampFall, currentAcceleration, type CurrentKind, JumpController, stepHorizontal } from '../logic/movement';
+import { formatScore, LEVEL_CLEAR_BONUS, type PickupKind, Score } from '../logic/score';
+import { THREAD_SPEED, ThreadAbility, threadLifetimeMs } from '../logic/threads';
+import { wrapText } from '../story';
+import { addBackdrop, addBubbles, type Backdrop, fadeTo, setHook } from './common';
+
+type Body = Phaser.Physics.Arcade.Body;
+type ArcadeSprite = Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
+
+interface Enemy {
+  sprite: ArcadeSprite;
+  brain: EnemyBrain;
+  intent: EnemyIntent;
+}
+
+const STOMP_POINTS = 100;
+const SIGN_RADIUS = 22;
+
+export class LevelScene extends Phaser.Scene {
+  private def!: LevelDef;
+  private level!: ParsedLevel;
+  private player!: ArcadeSprite;
+  private layer!: Phaser.Tilemaps.TilemapLayer;
+  private backdrop!: Backdrop;
+  private enemies: Enemy[] = [];
+  private enemyGroup!: Phaser.Physics.Arcade.Group;
+  private pickups!: Phaser.Physics.Arcade.Group;
+  private threadsGroup!: Phaser.Physics.Arcade.Group;
+  private currents = new Map<string, CurrentKind>();
+
+  private keys: Keys | null = null;
+  private touch: TouchControls | null = null;
+  private edges = new InputEdges();
+  private jump = new JumpController();
+  private threads = new ThreadAbility();
+  private health!: Health;
+  private score!: Score;
+  private startScore = 0;
+
+  private walkVx = 0;
+  private driftVx = 0;
+  private facing: 1 | -1 = 1;
+  private finished = false;
+
+  private hearts: Phaser.GameObjects.Image[] = [];
+  private shieldIcon!: Phaser.GameObjects.Image;
+  private scoreText!: Phaser.GameObjects.Container;
+  private chargeBar!: Phaser.GameObjects.Rectangle;
+  private signBox!: Phaser.GameObjects.Container;
+  private signLines: Phaser.GameObjects.Container[] = [];
+  private activeSign = -1;
+
+  constructor() {
+    super('Level');
+  }
+
+  create(data: { id: string }): void {
+    const loaded = loadLevel(data.id);
+    this.def = loaded.def;
+    this.level = loaded.parsed;
+    this.resetState();
+
+    const worldW = this.level.cols * TILE;
+    const worldH = this.level.rows * TILE;
+    this.physics.world.setBounds(0, 0, worldW, worldH);
+    this.cameras.main.setBounds(0, 0, worldW, worldH).fadeIn(300);
+
+    this.backdrop = addBackdrop(this);
+    addBubbles(this);
+    this.buildDecor();
+    this.buildTiles();
+    this.buildCurrents();
+    this.buildExit();
+    this.buildPickups();
+    this.buildPlayer();
+    this.buildEnemies();
+    this.threadsGroup = this.physics.add.group({ allowGravity: false });
+    this.physics.add.collider(this.threadsGroup, this.layer, (t) => (t as Phaser.GameObjects.Sprite).destroy());
+    this.physics.add.overlap(this.threadsGroup, this.enemyGroup, (t, e) => this.onThreadHit(t as ArcadeSprite, e as ArcadeSprite));
+
+    this.cameras.main.startFollow(this.player, true, 0.15, 0.15);
+    this.cameras.main.setDeadzone(24, 40);
+
+    this.keys = createKeys(this);
+    this.input.keyboard?.on('keydown-M', () => audio.toggleMute());
+    this.touch = wantsTouchControls(this.game) ? new TouchControls(this) : null;
+    this.buildHud();
+    this.showTitleCard();
+    audio.play(this.def.music);
+    setHook({ scene: 'Level', level: this.def.id, touch: !!this.touch });
+  }
+
+  private resetState(): void {
+    this.enemies = [];
+    this.currents.clear();
+    this.hearts = [];
+    this.signLines = [];
+    this.activeSign = -1;
+    this.edges = new InputEdges();
+    this.jump = new JumpController();
+    this.threads = new ThreadAbility();
+    this.health = new Health(this.def.safe);
+    this.startScore = (this.registry.get('score') as number | undefined) ?? 0;
+    this.score = new Score(this.startScore);
+    this.walkVx = 0;
+    this.driftVx = 0;
+    this.facing = 1;
+    this.finished = false;
+  }
+
+  // ---------- building the world ----------
+
+  private buildTiles(): void {
+    const map = this.make.tilemap({ data: this.level.tiles, tileWidth: TILE, tileHeight: TILE });
+    const tileset = map.addTilesetImage('tiles', 'tiles', TILE, TILE, 0, 0);
+    if (!tileset) throw new Error('tileset missing');
+    const layer = map.createLayer(0, tileset, 0, 0);
+    if (!layer) throw new Error('tile layer missing');
+    this.layer = layer.setCollisionBetween(0, 4).setDepth(0);
+  }
+
+  private buildDecor(): void {
+    for (const d of this.level.decor) {
+      const bottom = d.y + TILE / 2;
+      if (d.kind === 'seaweed') this.add.sprite(d.x, bottom, 'seaweed').setOrigin(0.5, 1).setDepth(-2).play({ key: 'seaweed-sway', startFrame: d.col % 2 });
+      else if (d.kind === 'seafan') this.add.image(d.x, bottom, 'seafan').setOrigin(0.5, 1).setDepth(-2);
+      else if (d.kind === 'lantern') this.add.image(d.x, bottom, 'lantern').setOrigin(0.5, 1).setDepth(-2);
+      else this.add.image(d.x, bottom, 'gate').setOrigin(0.5, 1).setDepth(-3);
+    }
+    this.level.signs.forEach((s, i) => {
+      this.add.image(s.x, s.y + TILE / 2, 'sign').setOrigin(0.5, 1).setDepth(-1);
+      const mark = pixelText(this, s.x, s.y - 18, '!', { color: 0xffd25e, originX: 0.5 }).setDepth(5).setName(`sign-mark-${i}`);
+      this.tweens.add({ targets: mark, y: mark.y - 3, duration: 400, yoyo: true, repeat: -1 });
+    });
+  }
+
+  private buildCurrents(): void {
+    for (const c of this.level.currents) {
+      this.currents.set(`${c.col},${c.row}`, c.kind);
+      // Drifting specks make the current visible.
+      for (let i = 0; i < 2; i++) {
+        const speck = this.add.image(c.x, c.y, 'speck').setAlpha(0.7).setDepth(-1);
+        const dx = c.kind === 'right' ? TILE : c.kind === 'left' ? -TILE : 0;
+        const dy = c.kind === 'up' ? -TILE : 0;
+        speck.setPosition(c.x - dx / 2 + Phaser.Math.Between(-4, 4), c.y - dy / 2 + Phaser.Math.Between(-4, 4));
+        this.tweens.add({ targets: speck, x: speck.x + dx, y: speck.y + dy, alpha: 0, duration: 450, delay: i * 225, repeat: -1 });
+      }
+    }
+  }
+
+  private exitZone!: Phaser.GameObjects.Zone;
+
+  private buildExit(): void {
+    const { x, y } = this.level.exit;
+    const beam = this.add.image(x, y + TILE / 2, 'exit').setOrigin(0.5, 1).setDepth(-1).setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({ targets: beam, alpha: 0.55, duration: 700, yoyo: true, repeat: -1 });
+    this.exitZone = this.add.zone(x, y, TILE, TILE * 2);
+    this.physics.add.existing(this.exitZone, true);
+  }
+
+  private buildPickups(): void {
+    this.pickups = this.physics.add.group({ allowGravity: false, immovable: true });
+    for (const p of this.level.pickups) {
+      const key = p.kind === 'plankton' ? 'plankton' : p.kind === 'pearl' ? 'pearl' : 'anemone';
+      const s = this.pickups.create(p.x, p.y, key) as ArcadeSprite;
+      s.setData('kind', p.kind);
+      if (p.kind === 'plankton') s.play('plankton-twinkle');
+      if (p.kind === 'anemone') s.setY(p.y + 2);
+      else this.tweens.add({ targets: s, y: p.y - 2, duration: 700 + (p.col % 3) * 120, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+    }
+  }
+
+  private buildPlayer(): void {
+    const { x, y } = this.level.spawn;
+    this.player = this.physics.add.sprite(x, y, 'cucumber', 0).setDepth(10);
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    body.setSize(14, 8).setOffset(1, 1).setCollideWorldBounds(true).setMaxVelocityY(PHYSICS.maxFall * 2);
+    this.physics.add.collider(this.player, this.layer);
+    this.physics.add.overlap(this.player, this.pickups, (_p, item) => this.collect(item as ArcadeSprite));
+    this.physics.add.overlap(this.player, this.exitZone, () => this.complete());
+  }
+
+  private buildEnemies(): void {
+    this.enemyGroup = this.physics.add.group();
+    for (const e of this.level.enemies) {
+      const key = e.kind === 'crab' ? 'crab' : e.kind === 'puffer' ? 'puffer' : 'triggerfish';
+      const sprite = this.enemyGroup.create(e.x, e.y, key) as ArcadeSprite;
+      sprite.setDepth(8);
+      const body = sprite.body as Body;
+      if (e.kind === 'crab') {
+        body.setSize(14, 9).setOffset(1, 3);
+        sprite.play('crab-walk');
+      } else {
+        body.setAllowGravity(false);
+        body.setSize(12, 8).setOffset(2, 2);
+      }
+      const enemy: Enemy = { sprite, brain: createBrain(e.kind, e.x, e.y), intent: { vx: 0, vy: 0, dangerous: true, stompable: false, scale: 1 } };
+      sprite.setData('enemy', enemy);
+      this.enemies.push(enemy);
+    }
+    this.physics.add.collider(this.enemyGroup, this.layer);
+    this.physics.add.overlap(this.player, this.enemyGroup, (_p, e) => this.onEnemyContact((e as ArcadeSprite).getData('enemy') as Enemy));
+  }
+
+  // ---------- HUD ----------
+
+  private buildHud(): void {
+    this.add.rectangle(0, 0, this.scale.width, 14, 0x0b1020, 0.55).setOrigin(0).setScrollFactor(0).setDepth(100);
+    for (let i = 0; i < MAX_HEARTS; i++) this.hearts.push(this.add.image(6 + i * 9, 4, 'heart', 0).setOrigin(0).setScrollFactor(0).setDepth(101));
+    this.shieldIcon = this.add.image(6 + MAX_HEARTS * 9 + 2, 4, 'shield-icon').setOrigin(0).setScrollFactor(0).setDepth(101).setVisible(false);
+    this.add.rectangle(52, 6, 22, 4, 0x1a0f1f).setOrigin(0).setScrollFactor(0).setDepth(101);
+    this.chargeBar = this.add.rectangle(53, 7, 20, 2, 0xffd6ec).setOrigin(0).setScrollFactor(0).setDepth(102);
+    pixelText(this, this.scale.width / 2, 3, this.def.name, { color: 0xbff4ff, originX: 0.5 }).setScrollFactor(0).setDepth(101);
+    this.scoreText = pixelText(this, this.scale.width - 4, 3, formatScore(this.score.value), { color: 0xffd25e, originX: 1 }).setScrollFactor(0).setDepth(101);
+
+    this.signBox = this.add.container(0, 0).setScrollFactor(0).setDepth(150).setVisible(false);
+    const box = this.add.graphics();
+    box.fillStyle(0xf2c94c).fillRect(8, 18, this.scale.width - 16, 48);
+    box.fillStyle(0x5a1a18).fillRect(9, 19, this.scale.width - 18, 46);
+    this.signBox.add(box);
+    for (let i = 0; i < 4; i++) {
+      const line = pixelText(this, 14, 24 + i * 10, '');
+      this.signLines.push(line);
+      this.signBox.add(line);
+    }
+  }
+
+  private updateHud(): void {
+    this.hearts.forEach((h, i) => h.setFrame(i < this.health.hearts ? 0 : 1));
+    this.shieldIcon.setVisible(this.health.shield);
+    this.chargeBar.scaleX = this.threads.charge;
+    setPixelText(this.scoreText, formatScore(this.score.value));
+  }
+
+  private showTitleCard(): void {
+    const card = this.add.container(this.scale.width / 2, 90).setScrollFactor(0).setDepth(160);
+    card.add(this.add.rectangle(0, 10, this.scale.width, 34, 0x0b1020, 0.7));
+    card.add(pixelText(this, 0, 0, this.def.name, { color: 0xffd25e, scale: 2, originX: 0.5 }));
+    card.add(pixelText(this, 0, 18, this.def.place, { color: 0xbff4ff, originX: 0.5 }));
+    this.tweens.add({ targets: card, alpha: 0, delay: 1800, duration: 500, onComplete: () => card.destroy() });
+  }
+
+  private updateSigns(): void {
+    let nearest = -1;
+    this.level.signs.forEach((s, i) => {
+      if (Phaser.Math.Distance.Between(s.x, s.y, this.player.x, this.player.y) < SIGN_RADIUS) nearest = i;
+    });
+    if (nearest === this.activeSign) return;
+    this.activeSign = nearest;
+    this.signBox.setVisible(nearest >= 0);
+    if (nearest >= 0) {
+      const lines = wrapText(this.level.signs[nearest].text, 38);
+      this.signLines.forEach((l, i) => setPixelText(l, lines[i] ?? ''));
+      this.children.getByName(`sign-mark-${nearest}`)?.destroy();
+    }
+  }
+
+  // ---------- gameplay ----------
+
+  update(_time: number, deltaMs: number): void {
+    const dtMs = Math.min(deltaMs, 50);
+    const dt = dtMs / 1000;
+    this.backdrop.scroll(this.cameras.main.scrollX);
+
+    const input = mergeInputs(readKeys(this.keys), readGamepad(this), this.touch?.update() ?? {});
+    this.edges.update(input);
+    this.health.update(dtMs);
+    this.threads.update(dtMs);
+    this.updateEnemies(dtMs);
+    setHook({ player: { x: Math.round(this.player.x), y: Math.round(this.player.y) }, score: this.score.value, hearts: this.health.hearts });
+
+    if (this.finished) return;
+    this.updatePlayer(input, dtMs, dt);
+    this.updateSigns();
+    this.updateHud();
+  }
+
+  private updatePlayer(input: ReturnType<typeof mergeInputs>, dtMs: number, dt: number): void {
+    const body = this.player.body;
+    const grounded = body.blocked.down || body.touching.down;
+
+    if (body.blocked.left || body.blocked.right) this.walkVx = 0;
+    this.walkVx = stepHorizontal(this.walkVx, input, dt);
+
+    const current = this.currentAt(this.player.x, this.player.y);
+    let vy = body.velocity.y;
+    if (current === 'up') {
+      vy = Math.max(-PHYSICS.currentMaxRise, vy + currentAcceleration('up').ay * dt);
+    } else if (current) {
+      this.driftVx = Phaser.Math.Clamp(this.driftVx + currentAcceleration(current).ax * dt, -80, 80);
+    }
+    if (current !== 'left' && current !== 'right') this.driftVx *= 0.92;
+    body.setVelocityX(this.walkVx + this.driftVx);
+
+    const jumpVy = this.jump.update(dtMs, grounded, this.edges.pressed.jump, input.jump, vy);
+    if (jumpVy !== null) {
+      if (jumpVy === -PHYSICS.jumpVelocity) audio.sfx('jump');
+      vy = jumpVy;
+    }
+    body.setVelocityY(clampFall(vy));
+
+    if (input.left !== input.right) this.facing = input.right ? 1 : -1;
+    this.player.setFlipX(this.facing < 0);
+    if (Math.abs(this.walkVx) > 5 && grounded) this.player.play('cucumber-crawl', true);
+    else this.player.anims.stop();
+
+    if (this.edges.pressed.action && this.threads.tryFire()) this.fireThread();
+
+    // Blink while invulnerable.
+    this.player.setAlpha(this.health.invulnerable && Math.floor(this.time.now / 80) % 2 === 0 ? 0.3 : 1);
+  }
+
+  private currentAt(x: number, y: number): CurrentKind | undefined {
+    return this.currents.get(`${Math.floor(x / TILE)},${Math.floor(y / TILE)}`);
+  }
+
+  private fireThread(): void {
+    audio.sfx('thread');
+    for (const dy of [-3, 0, 3]) {
+      const t = this.threadsGroup.create(this.player.x + this.facing * 8, this.player.y + dy, 'thread') as ArcadeSprite;
+      t.setFlipX(this.facing < 0).setDepth(9);
+      t.body.setVelocityX(this.facing * THREAD_SPEED).setVelocityY(dy * 12);
+      this.time.delayedCall(threadLifetimeMs(), () => t.destroy());
+    }
+  }
+
+  private updateEnemies(dtMs: number): void {
+    for (const e of this.enemies) {
+      if (!e.sprite.active) continue;
+      const body = e.sprite.body as Body;
+      e.intent = stepEnemy(e.brain, {
+        x: e.sprite.x,
+        y: e.sprite.y,
+        playerX: this.player.x,
+        playerY: this.player.y,
+        dtMs,
+        blocked: body.blocked.left || body.blocked.right,
+      });
+      body.setVelocityX(e.intent.vx);
+      if (e.brain.kind !== 'crab') body.setVelocityY(e.intent.vy);
+      if (Math.abs(e.intent.vx) > 1) e.sprite.setFlipX(e.brain.kind === 'crab' ? false : e.intent.vx > 0);
+
+      const stunned = e.brain.state === 'stunned';
+      if (stunned) {
+        e.sprite.setTint(0xb0b0d0).setAngle(Math.sin(this.time.now / 60) * 10);
+        e.sprite.anims.pause();
+      } else {
+        e.sprite.clearTint().setAngle(0);
+        e.sprite.anims.resume();
+      }
+      if (e.brain.kind === 'puffer') {
+        const inflated = e.brain.state === 'inflated';
+        e.sprite.setTexture(inflated ? 'puffer-inflated' : 'puffer').setScale(inflated ? 1.4 : 1);
+        if (inflated) body.setSize(14, 12).setOffset(1, 1);
+        else body.setSize(12, 8).setOffset(2, 2);
+      }
+    }
+  }
+
+  private onThreadHit(thread: ArcadeSprite, enemySprite: ArcadeSprite): void {
+    const enemy = enemySprite.getData('enemy') as Enemy;
+    if (enemy.brain.state === 'defeated') return;
+    thread.destroy();
+    if (enemy.brain.state !== 'stunned') audio.sfx('stomp');
+    stunEnemy(enemy.brain);
+    if (enemy.brain.kind === 'puffer') enemy.sprite.setTexture('puffer').setScale(1);
+  }
+
+  private onEnemyContact(enemy: Enemy): void {
+    if (this.finished || enemy.brain.state === 'defeated') return;
+    const pBody = this.player.body;
+    const eBody = enemy.sprite.body as Body;
+    const fromAbove = pBody.velocity.y > 0 && pBody.bottom <= eBody.top + 6;
+
+    if (fromAbove && enemy.intent.stompable) {
+      pBody.setVelocityY(-PHYSICS.stompBounce);
+      this.jump.markAirborneBounce();
+      audio.sfx('stomp');
+      // Resting pufferfish are bouncy stepping stones; everything else is defeated.
+      if (enemy.brain.kind === 'puffer' && enemy.brain.state !== 'stunned') return;
+      defeatEnemy(enemy.brain);
+      this.score.add(STOMP_POINTS);
+      this.popScore(enemy.sprite.x, enemy.sprite.y, STOMP_POINTS);
+      (enemy.sprite.body as Body).enable = false;
+      this.tweens.add({ targets: enemy.sprite, y: enemy.sprite.y - 24, alpha: 0, angle: 180, duration: 500, onComplete: () => enemy.sprite.destroy() });
+      return;
+    }
+    if (!enemy.intent.dangerous) return;
+
+    const result = this.health.hit();
+    if (result === 'ignored') return;
+    audio.sfx(result === 'shield' ? 'shield' : 'hit');
+    this.cameras.main.shake(120, 0.01);
+    const away = this.player.x < enemy.sprite.x ? -1 : 1;
+    this.walkVx = away * PHYSICS.walkSpeed * 1.5;
+    pBody.setVelocityY(-120);
+    if (result === 'dead') this.die();
+  }
+
+  private collect(item: ArcadeSprite): void {
+    const kind = item.getData('kind') as PickupKind;
+    const points = this.score.collect(kind);
+    if (kind === 'anemone') {
+      this.health.giveShield();
+      audio.sfx('shield');
+    } else {
+      audio.sfx(kind === 'pearl' ? 'pearl' : 'pickup');
+    }
+    if (kind !== 'plankton') this.popScore(item.x, item.y, points);
+    item.destroy();
+  }
+
+  private popScore(x: number, y: number, points: number): void {
+    const t = pixelText(this, x, y - 8, String(points), { color: 0xffd25e, originX: 0.5 }).setDepth(50);
+    this.tweens.add({ targets: t, y: y - 24, alpha: 0, duration: 700, onComplete: () => t.destroy() });
+  }
+
+  private complete(): void {
+    if (this.finished) return;
+    this.finished = true;
+    this.score.add(LEVEL_CLEAR_BONUS);
+    this.registry.set('score', this.score.value);
+    this.updateHud();
+    audio.sfx('clear');
+    this.player.body.setVelocity(0, -40).setAllowGravity(false);
+    this.tweens.add({ targets: this.player, y: this.player.y - 40, alpha: 0, duration: 1400 });
+    const banner = this.add.container(this.scale.width / 2, 92).setScrollFactor(0).setDepth(160);
+    banner.add(this.add.rectangle(0, 8, this.scale.width, 32, 0x0b1020, 0.7));
+    banner.add(pixelText(this, 0, 0, 'REEF CLEAR!', { color: 0xffd25e, scale: 2, originX: 0.5 }));
+    setHook({ scene: 'LevelClear' });
+    this.time.delayedCall(2200, () => {
+      const next = this.def.next;
+      fadeTo(this, next.type === 'level' ? 'Level' : 'Story', { id: next.id });
+    });
+  }
+
+  private die(): void {
+    this.finished = true;
+    this.player.body.setVelocity(0, -60).setAllowGravity(false);
+    this.player.setTint(0x8080a0);
+    this.tweens.add({ targets: this.player, angle: 180, alpha: 0, y: this.player.y - 30, duration: 1000 });
+    pixelText(this, this.scale.width / 2, 96, 'GULP! TRY AGAIN', { color: 0xff9aa8, scale: 2, originX: 0.5 }).setScrollFactor(0).setDepth(160);
+    this.registry.set('score', this.startScore);
+    this.time.delayedCall(1500, () => fadeTo(this, 'Level', { id: this.def.id }));
+  }
+}
+
