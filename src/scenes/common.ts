@@ -62,6 +62,25 @@ export function addBubbles(scene: Phaser.Scene, count = 10): void {
   }
 }
 
+/** Size of the partner logo in game pixels; the image itself has 128 px for a finer pixel-art look. */
+export const BRAND_LOGO_SIZE = 76;
+const BRAND_LOGO_PX = 128;
+
+/**
+ * Devoteam "AI Augmented" badge (this is a Devoteam NL tech demo). Shown as a DOM image so its pixels can be
+ * finer than the 256x224 game canvas, which keeps the curved text readable.
+ */
+export function addBrandLogo(scene: Phaser.Scene, x: number, y: number): Phaser.GameObjects.DOMElement {
+  const img = document.createElement('img');
+  img.src = `${import.meta.env.BASE_URL}brand/devoteam-ai-augmented.png`;
+  img.alt = 'Devoteam AI Augmented';
+  img.className = 'brand-logo';
+  img.draggable = false;
+  // Taps must reach the canvas so tapping the logo still starts the game.
+  img.style.cssText = `width:${BRAND_LOGO_PX}px;height:${BRAND_LOGO_PX}px;image-rendering:pixelated;pointer-events:none;`;
+  return scene.add.dom(x, y, img).setScale(BRAND_LOGO_SIZE / BRAND_LOGO_PX);
+}
+
 export function fadeTo(scene: Phaser.Scene, key: string, data?: object): void {
   scene.cameras.main.fadeOut(300, 0, 0, 0);
   scene.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {

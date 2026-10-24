@@ -23,5 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - On wide screens, such as phones held sideways, the view grows to fill the screen. Phones held upright get a hint
   to turn sideways.
 - Home-screen icons and a web app manifest for "Add to Home Screen".
+- Pixel-art Devoteam "AI Augmented" badge at the bottom of the title screen. It is drawn at a finer pixel size
+  than the game so the curved text stays readable.
 - GitHub Pages deploy workflow and CI workflow (lint, unit tests, build, smoke tests).
 - Setup, Run, Checks and Archive cleanup scripts for the web stack.

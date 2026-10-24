@@ -33,8 +33,13 @@ test('boots, plays the intro story and starts the reef tutorial', async ({ page,
 
   await page.goto('./');
   await waitForScene(page, 'Title');
+  // Devoteam AI Augmented badge is shown and actually loaded on the title screen.
+  const logo = page.locator('img.brand-logo');
+  await expect(logo).toBeVisible();
+  await expect.poll(() => logo.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth)).toBe(128);
   await tapCanvas(page, isMobile);
   await waitForScene(page, 'Story');
+  await expect(logo).toHaveCount(0);
 
   // Advance the intro panels until the first level starts.
   await expect

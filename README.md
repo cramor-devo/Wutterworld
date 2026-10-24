@@ -4,7 +4,8 @@ A SNES-style pixel-art side-scroller about **Wutter**, a curious little sea cucu
 Kenting, Taiwan. Wutter wants to see the world above the waves (beaches, night markets, temple festivals) while
 dodging every creature that thinks sea cucumbers are a snack, and finally swims safely home.
 
-Wutterworld is also a proof of concept for AI-augmented, cross-platform game development.
+Wutterworld is also a proof of concept for AI-augmented, cross-platform game development, made as a
+**Devoteam NL** tech demo. The title screen shows the Devoteam "AI Augmented" badge.
 
 ## Play
 
@@ -46,7 +47,8 @@ finale.
 
 Stack: [Phaser 3](https://phaser.io/) + TypeScript, built with [Vite](https://vite.dev/), tested with
 [Vitest](https://vitest.dev/) (logic and level data) and [Playwright](https://playwright.dev/) (desktop and mobile
-smoke tests). All art and music are made in code at start-up, so there are no asset files to manage.
+smoke tests). All game art and music are made in code at start-up. The only image files are the home-screen icons
+and the pixelated Devoteam badge in `public/brand/` (128 × 128, shown as an overlay on the title screen).
 
 Requirements: [Node.js](https://nodejs.org/) 20 or newer.
 
@@ -99,4 +101,5 @@ The unit tests check that every level parses and that its exit can be reached.
 
 ## License
 
-See [LICENSE](LICENSE).
+See [LICENSE](LICENSE). The Devoteam name and "AI Augmented" badge (`public/brand/`) are Devoteam trademarks and
+are not covered by that license.

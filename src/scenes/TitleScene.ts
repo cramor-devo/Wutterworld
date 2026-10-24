@@ -2,12 +2,13 @@ import Phaser from 'phaser';
 import { pixelText } from '../art/text';
 import { audio } from '../audio/chiptune';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config';
-import { addBackdrop, addBubbles, centreFixedLayout, fadeTo, setHook } from './common';
+import { addBackdrop, addBubbles, addBrandLogo, centreFixedLayout, fadeTo, setHook } from './common';
 
 export const APP_VERSION = '0.1.0';
 
 export class TitleScene extends Phaser.Scene {
   private started = false;
+  private logo?: Phaser.GameObjects.DOMElement;
 
   constructor() {
     super('Title');
@@ -27,16 +28,17 @@ export class TitleScene extends Phaser.Scene {
       this.tweens.add({ targets: l, y: l.y + 3, duration: 1200 + i * 150, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
     }
 
-    pixelText(this, GAME_WIDTH / 2, 50, 'WUTTERWORLD', { color: 0xffd25e, shadow: 0xb8332e, scale: 3, originX: 0.5 });
-    pixelText(this, GAME_WIDTH / 2, 82, "A SEA CUCUMBER'S JOURNEY", { color: 0xbff4ff, originX: 0.5 });
+    pixelText(this, GAME_WIDTH / 2, 30, 'WUTTERWORLD', { color: 0xffd25e, shadow: 0xb8332e, scale: 3, originX: 0.5 });
+    pixelText(this, GAME_WIDTH / 2, 60, "A SEA CUCUMBER'S JOURNEY", { color: 0xbff4ff, originX: 0.5 });
 
-    const hero = this.add.sprite(GAME_WIDTH / 2, 140, 'cucumber').setScale(3).play('cucumber-crawl');
-    this.tweens.add({ targets: hero, y: 136, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
-    this.add.image(GAME_WIDTH / 2 - 70, 160, 'anemone').setScale(2);
-    this.add.sprite(GAME_WIDTH / 2 + 72, 164, 'seaweed').setScale(2).play('seaweed-sway');
+    const hero = this.add.sprite(GAME_WIDTH / 2, 98, 'cucumber').setScale(3).play('cucumber-crawl');
+    this.tweens.add({ targets: hero, y: 94, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+    this.add.image(GAME_WIDTH / 2 - 70, 112, 'anemone').setScale(2);
+    this.add.sprite(GAME_WIDTH / 2 + 96, 108, 'seaweed').setScale(2).play('seaweed-sway');
 
-    const prompt = pixelText(this, GAME_WIDTH / 2, 182, 'TAP OR PRESS SPACE TO START', { originX: 0.5 });
+    const prompt = pixelText(this, GAME_WIDTH / 2, 132, 'TAP OR PRESS SPACE TO START', { originX: 0.5 });
     this.tweens.add({ targets: prompt, alpha: 0.2, duration: 600, yoyo: true, repeat: -1 });
+    this.logo = addBrandLogo(this, GAME_WIDTH / 2, 184);
     pixelText(this, -offset + 4, GAME_HEIGHT - 10, `V${APP_VERSION}`, { color: 0x7fb8d0, shadow: null });
     pixelText(this, GAME_WIDTH + offset - 4, GAME_HEIGHT - 10, 'M: MUTE', { color: 0x7fb8d0, shadow: null, originX: 1 });
 
@@ -51,6 +53,8 @@ export class TitleScene extends Phaser.Scene {
     this.registry.set('score', 0);
     audio.unlock();
     audio.play('title');
+    // DOM elements ignore the camera fade, so fade the logo alongside it.
+    if (this.logo) this.tweens.add({ targets: this.logo, alpha: 0, duration: 300 });
     fadeTo(this, 'Story', { id: 'intro' });
   }
 }

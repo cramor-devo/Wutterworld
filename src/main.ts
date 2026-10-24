@@ -30,6 +30,8 @@ const game = new Phaser.Game({
     gamepad: true,
     activePointers: 4,
   },
+  // DOM layer for the partner logo on the title screen; it scales with the canvas but keeps its own finer pixels.
+  dom: { createContainer: true },
   physics: {
     default: 'arcade',
     arcade: { gravity: { x: 0, y: PHYSICS.gravity }, debug: false },
