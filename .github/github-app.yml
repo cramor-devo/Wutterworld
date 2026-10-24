@@ -15,8 +15,9 @@ instructions: |
   8. The PO reviews and merges. Address review comments on the same branch.
 
   Never merge PRs, create tags or releases, or push to main yourself.
-  The project has no tech stack yet. When a stack is introduced, update the Setup/Run/Checks/Archive cleanup
-  logic in .github/scripts/dev.ps1 (and this file if needed) so the scripts actually set up, run and test the game.
+  Tech stack: Phaser 3 + TypeScript + Vite web game (PWA), deployed to GitHub Pages; Vitest unit tests and
+  Playwright smoke tests. Keep the Setup/Run/Checks/Archive cleanup logic in .github/scripts/dev.ps1 in sync
+  when the stack changes.
 
 scripts:
   - name: Setup
