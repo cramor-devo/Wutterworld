@@ -2,6 +2,16 @@ import { midiToFrequency, parsePattern, SONGS, type SongId } from './music';
 
 export type Sfx = 'jump' | 'pickup' | 'pearl' | 'hit' | 'thread' | 'stomp' | 'shield' | 'clear';
 
+const MUTE_KEY = 'wutter-muted';
+
+function readStoredMute(): boolean {
+  try {
+    return typeof localStorage !== 'undefined' && localStorage.getItem(MUTE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Minimal Web Audio chiptune engine: a square-wave lead and a triangle bass,
  * scheduled ahead of time so the loop stays steady. Audio only starts after a user
@@ -13,7 +23,13 @@ export class Chiptune {
   private timer: number | null = null;
   private song: SongId | null = null;
   private nextBarTime = 0;
-  muted = false;
+  private hidden = false;
+  /** The player's own mute choice, remembered between visits. */
+  userMuted = readStoredMute();
+
+  get muted(): boolean {
+    return this.userMuted || this.hidden;
+  }
 
   unlock(): void {
     if (!this.ctx) {
@@ -27,14 +43,25 @@ export class Chiptune {
     if (this.ctx.state === 'suspended') void this.ctx.resume();
   }
 
-  setMuted(muted: boolean): void {
-    this.muted = muted;
-    if (this.master) this.master.gain.value = muted ? 0 : 0.18;
+  private applyVolume(): void {
+    if (this.master) this.master.gain.value = this.muted ? 0 : 0.18;
+  }
+
+  /** Silences audio while the page is hidden (e.g. phone screen locked). */
+  setHidden(hidden: boolean): void {
+    this.hidden = hidden;
+    this.applyVolume();
   }
 
   toggleMute(): boolean {
-    this.setMuted(!this.muted);
-    return this.muted;
+    this.userMuted = !this.userMuted;
+    try {
+      localStorage.setItem(MUTE_KEY, this.userMuted ? '1' : '0');
+    } catch {
+      // Private browsing may block storage; muting still works for this session.
+    }
+    this.applyVolume();
+    return this.userMuted;
   }
 
   play(id: SongId): void {

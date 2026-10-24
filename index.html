@@ -15,10 +15,17 @@
       body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
       #game { width: 100vw; height: 100vh; height: 100dvh; }
       canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+      #rotate-hint {
+        display: none; position: fixed; left: 0; right: 0; bottom: 12%; text-align: center; pointer-events: none;
+        font: bold 16px monospace; color: #ffd25e; letter-spacing: 1px;
+      }
+      /* Phones held upright: the game still works, but sideways gives a much bigger view. */
+      @media (orientation: portrait) and (pointer: coarse) { #rotate-hint { display: block; } }
     </style>
   </head>
   <body>
     <div id="game"></div>
+    <div id="rotate-hint">↻ Turn your phone sideways for a bigger view</div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

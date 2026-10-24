@@ -10,7 +10,7 @@ describe('stepHorizontal', () => {
   });
 
   it('applies friction to a full stop without overshooting', () => {
-    let vx = PHYSICS.walkSpeed;
+    let vx: number = PHYSICS.walkSpeed;
     for (let i = 0; i < 60; i++) vx = stepHorizontal(vx, { left: false, right: false }, 1 / 60);
     expect(vx).toBe(0);
   });
