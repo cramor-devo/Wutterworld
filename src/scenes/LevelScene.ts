@@ -3,12 +3,14 @@ import { pixelText, setPixelText } from '../art/text';
 import { audio } from '../audio/chiptune';
 import { PHYSICS, TILE } from '../config';
 import { createKeys, type Keys, readGamepad, readKeys } from '../input/devices';
+import { controlScheme, withButtonLabels } from '../input/labels';
 import { InputEdges, mergeInputs } from '../input/state';
 import { TouchControls, wantsTouchControls } from '../input/touch';
 import { type LevelDef, loadLevel } from '../levels';
 import type { ParsedLevel } from '../levels/parser';
-import { createBrain, defeatEnemy, type EnemyBrain, type EnemyIntent, stepEnemy, stunEnemy } from '../logic/enemies';
-import { Health, MAX_HEARTS } from '../logic/health';
+import { DIFFICULTIES, type DifficultySettings, isDifficulty, loadDifficulty } from '../logic/difficulty';
+import { createBrain, defeatEnemy, type EnemyBrain, type EnemyIntent, pufferPhaseForColumn, stepEnemy, stunEnemy } from '../logic/enemies';
+import { Health } from '../logic/health';
 import { clampFall, currentAcceleration, type CurrentKind, JumpController, stepHorizontal } from '../logic/movement';
 import { formatScore, LEVEL_CLEAR_BONUS, type PickupKind, Score } from '../logic/score';
 import { THREAD_SPEED, ThreadAbility, threadLifetimeMs } from '../logic/threads';
@@ -26,9 +28,13 @@ interface Enemy {
 
 const STOMP_POINTS = 100;
 const SIGN_RADIUS = 22;
+const HEARTS_PER_ROW = 5;
+const HEART_W = 7;
+const HEART_STEP = 8;
 
 export class LevelScene extends Phaser.Scene {
   private def!: LevelDef;
+  private difficulty!: DifficultySettings;
   private level!: ParsedLevel;
   private player!: ArcadeSprite;
   private layer!: Phaser.Tilemaps.TilemapLayer;
@@ -53,6 +59,7 @@ export class LevelScene extends Phaser.Scene {
   private facing: 1 | -1 = 1;
   private finished = false;
 
+  /** Full-heart images on top of empty ones; cropped to show partial hearts. */
   private hearts: Phaser.GameObjects.Image[] = [];
   private shieldIcon!: Phaser.GameObjects.Image;
   private scoreText!: Phaser.GameObjects.Container;
@@ -60,13 +67,16 @@ export class LevelScene extends Phaser.Scene {
   private signBox!: Phaser.GameObjects.Container;
   private signLines: Phaser.GameObjects.Container[] = [];
   private activeSign = -1;
+  private signScheme = '';
 
   constructor() {
     super('Level');
   }
 
   create(data: { id: string }): void {
-    const loaded = loadLevel(data.id);
+    const chosen: unknown = this.registry.get('difficulty');
+    this.difficulty = DIFFICULTIES[isDifficulty(chosen) ? chosen : loadDifficulty()];
+    const loaded = loadLevel(data.id, { extraEnemies: this.difficulty.extraEnemies });
     this.def = loaded.def;
     this.level = loaded.parsed;
     this.resetState();
@@ -98,7 +108,7 @@ export class LevelScene extends Phaser.Scene {
     this.buildHud();
     this.showTitleCard();
     audio.play(this.def.music);
-    setHook({ scene: 'Level', level: this.def.id, touch: !!this.touch });
+    setHook({ scene: 'Level', level: this.def.id, touch: !!this.touch, difficulty: this.difficulty.id, enemies: this.enemies.length });
   }
 
   private resetState(): void {
@@ -107,10 +117,12 @@ export class LevelScene extends Phaser.Scene {
     this.hearts = [];
     this.signLines = [];
     this.activeSign = -1;
+    this.signScheme = '';
     this.edges = new InputEdges();
     this.jump = new JumpController();
     this.threads = new ThreadAbility();
-    this.health = new Health(this.def.safe);
+    const d = this.difficulty;
+    this.health = new Health({ maxHearts: d.maxHearts, damage: d.damage, safe: this.def.safe || d.immortal });
     this.startScore = (this.registry.get('score') as number | undefined) ?? 0;
     this.score = new Score(this.startScore);
     this.walkVx = 0;
@@ -205,7 +217,8 @@ export class LevelScene extends Phaser.Scene {
         body.setAllowGravity(false);
         body.setSize(12, 8).setOffset(2, 2);
       }
-      const enemy: Enemy = { sprite, brain: createBrain(e.kind, e.x, e.y), intent: { vx: 0, vy: 0, dangerous: true, stompable: false, scale: 1 } };
+      const phase = e.kind === 'puffer' ? pufferPhaseForColumn(e.col) : 0;
+      const enemy: Enemy = { sprite, brain: createBrain(e.kind, e.x, e.y, phase), intent: { vx: 0, vy: 0, dangerous: true, stompable: false, scale: 1 } };
       sprite.setData('enemy', enemy);
       this.enemies.push(enemy);
     }
@@ -217,10 +230,20 @@ export class LevelScene extends Phaser.Scene {
 
   private buildHud(): void {
     this.add.rectangle(0, 0, this.scale.width, 14, 0x0b1020, 0.55).setOrigin(0).setScrollFactor(0).setDepth(100);
-    for (let i = 0; i < MAX_HEARTS; i++) this.hearts.push(this.add.image(6 + i * 9, 4, 'heart', 0).setOrigin(0).setScrollFactor(0).setDepth(101));
-    this.shieldIcon = this.add.image(6 + MAX_HEARTS * 9 + 2, 4, 'shield-icon').setOrigin(0).setScrollFactor(0).setDepth(101).setVisible(false);
-    this.add.rectangle(52, 6, 22, 4, 0x1a0f1f).setOrigin(0).setScrollFactor(0).setDepth(101);
-    this.chargeBar = this.add.rectangle(53, 7, 20, 2, 0xffd6ec).setOrigin(0).setScrollFactor(0).setDepth(102);
+    // Up to 5 hearts per row; easy mode's 10 hearts use two rows inside the 14 px bar.
+    const max = this.health.maxHearts;
+    const twoRows = max > HEARTS_PER_ROW;
+    for (let i = 0; i < max; i++) {
+      const x = 6 + (i % HEARTS_PER_ROW) * HEART_STEP;
+      const y = twoRows ? 1 + Math.floor(i / HEARTS_PER_ROW) * 7 : 4;
+      this.add.image(x, y, 'heart', 1).setOrigin(0).setScrollFactor(0).setDepth(101);
+      this.hearts.push(this.add.image(x, y, 'heart', 0).setOrigin(0).setScrollFactor(0).setDepth(102));
+    }
+    const shieldX = 6 + Math.min(max, HEARTS_PER_ROW) * HEART_STEP + 1;
+    this.shieldIcon = this.add.image(shieldX, 4, 'shield-icon').setOrigin(0).setScrollFactor(0).setDepth(101).setVisible(false);
+    const barX = shieldX + 9;
+    this.add.rectangle(barX, 6, 22, 4, 0x1a0f1f).setOrigin(0).setScrollFactor(0).setDepth(101);
+    this.chargeBar = this.add.rectangle(barX + 1, 7, 20, 2, 0xffd6ec).setOrigin(0).setScrollFactor(0).setDepth(102);
     pixelText(this, this.scale.width / 2, 3, this.def.name, { color: 0xbff4ff, originX: 0.5 }).setScrollFactor(0).setDepth(101);
     this.scoreText = pixelText(this, this.scale.width - 4, 3, formatScore(this.score.value), { color: 0xffd25e, originX: 1 }).setScrollFactor(0).setDepth(101);
 
@@ -237,7 +260,10 @@ export class LevelScene extends Phaser.Scene {
   }
 
   private updateHud(): void {
-    this.hearts.forEach((h, i) => h.setFrame(i < this.health.hearts ? 0 : 1));
+    this.hearts.forEach((h, i) => {
+      const fill = this.health.heartFill(i);
+      h.setVisible(fill > 0).setCrop(0, 0, Math.ceil(HEART_W * fill), 6);
+    });
     this.shieldIcon.setVisible(this.health.shield);
     this.chargeBar.scaleX = this.threads.charge;
     setPixelText(this.scoreText, formatScore(this.score.value));
@@ -256,11 +282,14 @@ export class LevelScene extends Phaser.Scene {
     this.level.signs.forEach((s, i) => {
       if (Phaser.Math.Distance.Between(s.x, s.y, this.player.x, this.player.y) < SIGN_RADIUS) nearest = i;
     });
-    if (nearest === this.activeSign) return;
+    // Re-render when a gamepad is plugged in while a sign is open, so the button names stay right.
+    const scheme = controlScheme({ gamepad: !!this.input.gamepad?.pad1, touch: !!this.touch });
+    if (nearest === this.activeSign && scheme === this.signScheme) return;
     this.activeSign = nearest;
+    this.signScheme = scheme;
     this.signBox.setVisible(nearest >= 0);
     if (nearest >= 0) {
-      const lines = wrapText(this.level.signs[nearest].text, 38);
+      const lines = wrapText(withButtonLabels(this.level.signs[nearest].text, scheme), 38);
       this.signLines.forEach((l, i) => setPixelText(l, lines[i] ?? ''));
       this.children.getByName(`sign-mark-${nearest}`)?.destroy();
     }
@@ -346,6 +375,7 @@ export class LevelScene extends Phaser.Scene {
         playerY: this.player.y,
         dtMs,
         blocked: body.blocked.left || body.blocked.right,
+        passive: this.difficulty.passiveEnemies,
       });
       body.setVelocityX(e.intent.vx);
       if (e.brain.kind !== 'crab') body.setVelocityY(e.intent.vy);
@@ -355,6 +385,11 @@ export class LevelScene extends Phaser.Scene {
       if (stunned) {
         e.sprite.setTint(0xb0b0d0).setAngle(Math.sin(this.time.now / 60) * 10);
         e.sprite.anims.pause();
+      } else if (e.brain.state === 'warning') {
+        // About to puff up: shake and flash so the player can get off in time.
+        e.sprite.setAngle(Math.sin(this.time.now / 25) * 12);
+        if (Math.floor(this.time.now / 120) % 2 === 0) e.sprite.setTint(0xff9a7a);
+        else e.sprite.clearTint();
       } else {
         e.sprite.clearTint().setAngle(0);
         e.sprite.anims.resume();
@@ -384,11 +419,12 @@ export class LevelScene extends Phaser.Scene {
     const fromAbove = pBody.velocity.y > 0 && pBody.bottom <= eBody.top + 6;
 
     if (fromAbove && enemy.intent.stompable) {
-      pBody.setVelocityY(-PHYSICS.stompBounce);
+      // Resting pufferfish are bouncy stepping stones that launch you high; everything else is defeated.
+      const springy = enemy.brain.kind === 'puffer' && enemy.brain.state !== 'stunned';
+      pBody.setVelocityY(-(springy ? PHYSICS.pufferBounce : PHYSICS.stompBounce));
       this.jump.markAirborneBounce();
-      audio.sfx('stomp');
-      // Resting pufferfish are bouncy stepping stones; everything else is defeated.
-      if (enemy.brain.kind === 'puffer' && enemy.brain.state !== 'stunned') return;
+      audio.sfx(springy ? 'jump' : 'stomp');
+      if (springy) return;
       defeatEnemy(enemy.brain);
       this.score.add(STOMP_POINTS);
       this.popScore(enemy.sprite.x, enemy.sprite.y, STOMP_POINTS);
