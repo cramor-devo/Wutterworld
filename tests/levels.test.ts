@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { LEVEL_ROWS, TILE } from '../src/config';
+import { LEVEL_ROWS, PHYSICS, TILE } from '../src/config';
 import { CHAPTERS, nextChapter } from '../src/levels/chapters';
 import { FIRST_LEVEL_ID, getLevel, hasLevel, LEVELS, loadLevel } from '../src/levels';
 import { parseLevel, TILE_INDEX, validateMap } from '../src/levels/parser';
-import { canReachExit, reachableCells } from '../src/levels/reachability';
+import { canMountPuffer, pufferArcCells, pufferTargets } from '../src/levels/puffers';
+import { canReachExit, reachableCells, unreachableThings } from '../src/levels/reachability';
 import { jumpApexHeight } from '../src/logic/movement';
 import { STORIES } from '../src/story';
 
@@ -125,6 +126,70 @@ describe('level lookup', () => {
     for (const id of ['constructor', '__proto__', 'toString', 'nope']) {
       expect(hasLevel(id)).toBe(false);
       expect(() => getLevel(id)).toThrow(/Unknown level/);
+    }
+  });
+});
+
+describe('pufferfish placement (issue #3)', () => {
+  const levels = Object.keys(LEVELS).map((id) => [id, loadLevel(id).parsed] as const);
+
+  it('the stronger puffer bounce rises well above a normal jump', () => {
+    const apex = (PHYSICS.pufferBounce * PHYSICS.pufferBounce) / (2 * PHYSICS.gravity);
+    expect(apex).toBeGreaterThan(jumpApexHeight() * 1.5);
+  });
+
+  it.each(levels)('every puffer in %s can be mounted from reachable ground', (_id, lvl) => {
+    for (const p of lvl.enemies.filter((e) => e.kind === 'puffer')) {
+      expect(canMountPuffer(lvl, p, REACH), `puffer at ${p.col},${p.row}`).toBe(true);
+    }
+  });
+
+  it.each(levels)('every puffer in %s bounces the player to a pearl or a sideways current', (_id, lvl) => {
+    for (const p of lvl.enemies.filter((e) => e.kind === 'puffer')) {
+      expect(pufferTargets(lvl, p).length, `puffer at ${p.col},${p.row}`).toBeGreaterThan(0);
+    }
+  });
+
+  it('the old weak bounce could not reach the tutorial pearl, the new one can', () => {
+    const lvl = loadLevel('reef-tutorial').parsed;
+    const p = lvl.enemies.find((e) => e.kind === 'puffer')!;
+    expect(pufferTargets(lvl, p, 190).some((t) => t.kind === 'pearl')).toBe(false);
+    expect(pufferTargets(lvl, p).some((t) => t.kind === 'pearl')).toBe(true);
+  });
+});
+
+describe('everything can be reached', () => {
+  const cases = Object.keys(LEVELS).flatMap((id) => [
+    [id, false],
+    [id, true],
+  ]) as [string, boolean][];
+
+  it.each(cases)('every pickup and enemy in %s (hard extras: %s) can be reached', (id, extraEnemies) => {
+    const lvl = loadLevel(id, { extraEnemies }).parsed;
+    const viaPuffers = lvl.enemies.filter((e) => e.kind === 'puffer').flatMap((p) => [...pufferArcCells(lvl, p)]);
+    expect(unreachableThings(lvl, REACH, viaPuffers)).toEqual([]);
+  });
+
+  it('reports a pickup locked behind a wall', () => {
+    const map = blank(12, { 7: '.........o..', 8: '........###.', 9: '........#.#.', 10: '........#.#.', 11: 'P.......#c#E' });
+    const lvl = parseLevel(map);
+    const lost = unreachableThings(lvl, REACH);
+    expect(lost.some((t) => t.includes('crab'))).toBe(true);
+  });
+});
+
+describe('hard mode (issue #4)', () => {
+  it('adds extra enemies to Coral Gardens only', () => {
+    const coral = loadLevel('coral-gardens').parsed.enemies.length;
+    expect(loadLevel('coral-gardens', { extraEnemies: true }).parsed.enemies.length).toBeGreaterThan(coral);
+    expect(loadLevel('reef-tutorial', { extraEnemies: true }).parsed.enemies).toEqual(loadLevel('reef-tutorial').parsed.enemies);
+  });
+
+  it('places extra enemies in open water, with crabs standing on the ground', () => {
+    const lvl = loadLevel('coral-gardens', { extraEnemies: true }).parsed;
+    for (const e of LEVELS['coral-gardens'].hardEnemies ?? []) {
+      expect(lvl.solid[e.row][e.col], `${e.kind} at ${e.col},${e.row}`).toBe(false);
+      if (e.kind === 'crab') expect(lvl.solid[e.row + 1][e.col], `crab at ${e.col},${e.row}`).toBe(true);
     }
   });
 });
