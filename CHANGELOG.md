@@ -7,6 +7,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-24
+
+### Added
+
+- Difficulty selection on the title screen, remembered between visits ([#4](https://github.com/cramor-devo/Wutterworld/issues/4)):
+  - **Scenic**: calm enemies that never chase, puff up or hurt; you cannot die.
+  - **Easy**: 10 hearts, and hits cost 40% less (0.6 heart).
+  - **Normal** (default): 5 hearts, a full heart per hit.
+  - **Hard**: 5 hearts and extra crabs and triggerfish in Coral Gardens.
+- Hearts can be partly filled, and 10 hearts are shown in two rows.
+- `?difficulty=` URL option for testing a mode without changing the saved choice.
+
+### Changed
+
+- You start with 5 hearts instead of 3 (Normal and Hard).
+
+### Fixed
+
+- Puffer fish were very hard to mount and did not bounce high enough to reach currents or pearls
+  ([#3](https://github.com/cramor-devo/Wutterworld/issues/3)):
+  - They now puff up on a fixed timer (3 s rest, a short warning shake, 1.5 s puffed up) instead of as soon as
+    you come close.
+  - Bouncing on a resting puffer fish launches you much higher.
+  - Puffer fish were moved so that each one can be mounted and leads to a pearl or a sideways current.
+- On a PC the tutorial signs now name the real keys (SPACE to jump, X for threads) instead of the A and B
+  buttons. Touch screens and gamepads still show A and B ([#5](https://github.com/cramor-devo/Wutterworld/issues/5)).
+- Six plankton above the tutorial's sideways current could not be reached. A second puffer fish now bounces you
+  up to them. Automated tests now check that every pickup and enemy in every level (also on Hard) can be reached.
+
 ## [0.2.0] - 2026-10-24
 
 ### Added
@@ -39,5 +68,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Pressing M on the title screen toggles mute instead of starting the game.
 - `?level=` ignores names that are not real levels (such as `constructor`) and falls back to the title screen.
 
-[Unreleased]: https://github.com/cramor-devo/Wutterworld/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/cramor-devo/Wutterworld/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/cramor-devo/Wutterworld/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/cramor-devo/Wutterworld/releases/tag/v0.2.0
