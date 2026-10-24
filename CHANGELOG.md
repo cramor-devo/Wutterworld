@@ -31,6 +31,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 - Switching songs no longer leaves the previous song's already-scheduled notes playing over the new one.
+- Returning to the game after its tab was in the background for a long time no longer plays a burst of
+  catch-up music.
 - The thread cooldown bar now visibly shrinks and refills.
 - Pressing M on the title screen toggles mute instead of starting the game.
 - `?level=` ignores names that are not real levels (such as `constructor`) and falls back to the title screen.

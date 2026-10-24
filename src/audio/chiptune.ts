@@ -102,6 +102,9 @@ export class Chiptune {
     const lead = parsePattern(song.lead);
     const bass = parsePattern(song.bass);
     const loopDur = lead.steps * stepDur;
+    // Browsers throttle timers in background tabs while the audio clock keeps running; skip missed loops
+    // instead of scheduling them all at once when the tab comes back.
+    if (this.nextBarTime < this.ctx.currentTime) this.nextBarTime = this.ctx.currentTime + 0.05;
     while (this.nextBarTime < this.ctx.currentTime + 1.0) {
       for (const e of lead.events) this.tone('square', e.midi, this.nextBarTime + e.step * stepDur, e.length * stepDur * 0.9, 0.5);
       for (const e of bass.events) this.tone('triangle', e.midi, this.nextBarTime + e.step * stepDur, e.length * stepDur * 0.95, 0.9);
