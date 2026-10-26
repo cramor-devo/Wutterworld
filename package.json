@@ -1,7 +1,7 @@
 {
   "name": "wutterworld",
   "private": true,
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Wutterworld – a SNES-style pixel-art side-scroller about a curious sea cucumber.",
   "type": "module",
   "scripts": {
