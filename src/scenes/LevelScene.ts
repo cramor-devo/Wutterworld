@@ -17,6 +17,7 @@ import { THREAD_SPEED, ThreadAbility, threadLifetimeMs } from '../logic/threads'
 import { WaterTank } from '../logic/water';
 import { wrapText } from '../story';
 import { addBackdrop, addBubbles, type Backdrop, fadeTo, setHook } from './common';
+import { hudTitleX, pixelTextWidth } from './hud';
 
 type Body = Phaser.Physics.Arcade.Body;
 type ArcadeSprite = Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
@@ -288,14 +289,19 @@ export class LevelScene extends Phaser.Scene {
     const barX = shieldX + 9;
     this.add.rectangle(barX, 6, 22, 4, 0x1a0f1f).setOrigin(0).setScrollFactor(0).setDepth(101);
     this.chargeBar = this.add.rectangle(barX + 1, 7, 20, 2, 0xffd6ec).setOrigin(0).setScrollFactor(0).setDepth(102);
+    let leftEnd = barX + 22;
     if (this.tank) {
       const tankX = barX + 26;
       this.add.image(tankX, 3, 'drop-icon').setOrigin(0).setScrollFactor(0).setDepth(101);
       this.add.rectangle(tankX + 7, 6, 22, 4, 0x1a0f1f).setOrigin(0).setScrollFactor(0).setDepth(101);
       this.tankBar = this.add.rectangle(tankX + 8, 7, 20, 2, 0x5bc8ff).setOrigin(0).setScrollFactor(0).setDepth(102);
+      leftEnd = tankX + 29;
     }
-    pixelText(this, this.scale.width / 2, 3, this.def.name, { color: 0xbff4ff, originX: 0.5 }).setScrollFactor(0).setDepth(101);
-    this.scoreText = pixelText(this, this.scale.width - 4, 3, formatScore(this.score.value), { color: 0xffd25e, originX: 1 }).setScrollFactor(0).setDepth(101);
+    const scoreRight = this.scale.width - 4;
+    const scoreLabel = formatScore(this.score.value);
+    const titleX = hudTitleX(this.scale.width, leftEnd, scoreRight - pixelTextWidth(scoreLabel), pixelTextWidth(this.def.name));
+    pixelText(this, titleX, 3, this.def.name, { color: 0xbff4ff, originX: 0.5 }).setScrollFactor(0).setDepth(101);
+    this.scoreText = pixelText(this, scoreRight, 3, scoreLabel, { color: 0xffd25e, originX: 1 }).setScrollFactor(0).setDepth(101);
 
     this.signBox = this.add.container(0, 0).setScrollFactor(0).setDepth(150).setVisible(false);
     const box = this.add.graphics();
