@@ -181,5 +181,27 @@ function drawPanel(scene: Phaser.Scene, c: Phaser.GameObjects.Container, art: Pa
       img(cx - 30, y + h - 22, 'cucumber', 3);
       img(cx + 20, y + h - 18, 'crab', 2);
       break;
+    case 'market-lights': {
+      bands([0x0d1030, 0x161a48, 0x23245a]);
+      // Distant city skyline with lit windows.
+      for (let i = 0; i < w; i += 18) {
+        const bh = 20 + ((i * 13) % 27);
+        g.fillStyle(0x0a0c22).fillRect(x + i, y + h - 30 - bh, 16, bh + 30);
+        g.fillStyle(0xffd25e, 0.7).fillRect(x + i + 4, y + h - 24 - bh, 2, 2).fillRect(x + i + 10, y + h - 16 - bh, 2, 2);
+      }
+      // A string of red lanterns over the market street.
+      g.lineStyle(1, 0x5a4a3a).lineBetween(x, y + 10, x + w, y + 18);
+      for (let i = 0; i < 7; i++) {
+        const lx = x + 16 + i * 32;
+        g.fillStyle(0xff6a3d, 0.25).fillCircle(lx, y + 18 + i, 9);
+        img(lx, y + 18 + i, 'paper-lantern', 1);
+      }
+      g.fillStyle(0x3b2a20).fillRect(x, y + h - 12, w, 12);
+      // Wutter peeks out of a bucket of seawater.
+      g.fillStyle(0x7a8a99).fillRect(cx - 18, y + h - 34, 36, 24);
+      g.fillStyle(0x4fc3d9).fillRect(cx - 16, y + h - 34, 32, 4);
+      img(cx, y + h - 38, 'cucumber', 2);
+      break;
+    }
   }
 }

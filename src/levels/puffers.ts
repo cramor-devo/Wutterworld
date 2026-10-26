@@ -1,16 +1,33 @@
 import { PHYSICS, TILE } from '../config';
-import { PUFFER_BOB_PX } from '../logic/enemies';
+import { type EnemyKind, PUFFER_BOB_PX } from '../logic/enemies';
 import type { ParsedLevel, Spot } from './parser';
 import { reachableCells } from './reachability';
 
 /**
  * Body geometry used in LevelScene (sprite centre to body edge, in px).
  * Player: 16x10 sprite, 14x8 body at offset (1,1). Puffer: 16x12 sprite, 12x8 body at offset (2,2).
+ * Jellyfish: 16x10 sprite placed 3 px below the tile centre (resting on the ground), 14x6 body at offset (1,4).
  */
 export const PLAYER_HALF_W = 7;
 export const PLAYER_HALF_H = 4;
 const PUFFER_TOP = 4;
 const PUFFER_HALF_W = 6;
+/** A beached jellyfish's body top sits this far below its tile centre; it does not bob. */
+export const JELLYFISH_TOP_OFFSET = 2;
+const JELLYFISH_HALF_W = 7;
+
+/** A pufferfish or beached jellyfish to bounce on. */
+export type Bouncer = Spot & { kind?: EnemyKind };
+
+/** Top of the bouncer's body at the highest or lowest point of its bob. */
+function bouncerTop(b: Bouncer, at: 'high' | 'low'): number {
+  if (b.kind === 'jellyfish') return b.y + JELLYFISH_TOP_OFFSET;
+  return b.y + (at === 'high' ? -PUFFER_BOB_PX : PUFFER_BOB_PX) - PUFFER_TOP;
+}
+
+function bouncerHalfW(b: Bouncer): number {
+  return b.kind === 'jellyfish' ? JELLYFISH_HALF_W : PUFFER_HALF_W;
+}
 const PEARL_HALF = 4;
 /** Pearls bob up to 2 px above their tile centre. */
 const PEARL_BOB = 2;
@@ -59,11 +76,12 @@ function overlapsSolid(level: ParsedLevel, x: number, y: number): boolean {
 }
 
 /**
- * Can the player land on this puffer with a normal jump from the ground? Checked with the puffer at the top of its
- * bob (hardest case): some arc must come down onto the puffer's back from above.
+ * Can the player land on this puffer (or jellyfish) with a normal jump from the ground? Checked with the puffer at
+ * the top of its bob (hardest case): some arc must come down onto the bouncer's back from above.
  */
-export function canMountPuffer(level: ParsedLevel, puffer: Spot, reach = { up: 3, across: 3 }): boolean {
-  const top = puffer.y - PUFFER_BOB_PX - PUFFER_TOP;
+export function canMountPuffer(level: ParsedLevel, puffer: Bouncer, reach = { up: 3, across: 3 }): boolean {
+  const top = bouncerTop(puffer, 'high');
+  const halfW = bouncerHalfW(puffer);
   const cells = reachableCells(level, reach);
   for (const k of cells) {
     const [c, r] = k.split(',').map(Number);
@@ -77,7 +95,7 @@ export function canMountPuffer(level: ParsedLevel, puffer: Spot, reach = { up: 3
       for (let i = 1; i < arc.length; i++) {
         const prevBottom = arc[i - 1].y + PLAYER_HALF_H;
         const bottom = arc[i].y + PLAYER_HALF_H;
-        const overlapX = Math.abs(arc[i].x - puffer.x) < PLAYER_HALF_W + PUFFER_HALF_W;
+        const overlapX = Math.abs(arc[i].x - puffer.x) < PLAYER_HALF_W + halfW;
         if (arc[i].vy > 0 && prevBottom <= top && bottom >= top && overlapX) return true;
       }
     }
@@ -91,10 +109,10 @@ export type PufferTarget = { kind: 'pearl' | 'current'; col: number; row: number
  * Pearls and sideways currents the player can reach by bouncing off this puffer, with the puffer at the bottom
  * of its bob (hardest case) and the jump button held.
  */
-export function pufferTargets(level: ParsedLevel, puffer: Spot, bounce: number = PHYSICS.pufferBounce): PufferTarget[] {
+export function pufferTargets(level: ParsedLevel, puffer: Bouncer, bounce: number = PHYSICS.pufferBounce): PufferTarget[] {
   const found = new Map<string, PufferTarget>();
   const x0 = puffer.x;
-  const y0 = puffer.y + PUFFER_BOB_PX - PUFFER_TOP - PLAYER_HALF_H;
+  const y0 = bouncerTop(puffer, 'low') - PLAYER_HALF_H;
   const pearls = level.pickups.filter((p) => p.kind === 'pearl');
   const currents = level.currents.filter((k) => k.kind !== 'up');
   for (const vx of STEER_SPEEDS) {
@@ -116,9 +134,9 @@ export function pufferTargets(level: ParsedLevel, puffer: Spot, bounce: number =
 }
 
 /** Every tile the player's centre passes through while bouncing off this puffer (for pickup reachability). */
-export function pufferArcCells(level: ParsedLevel, puffer: Spot, bounce: number = PHYSICS.pufferBounce): Set<string> {
+export function pufferArcCells(level: ParsedLevel, puffer: Bouncer, bounce: number = PHYSICS.pufferBounce): Set<string> {
   const cells = new Set<string>();
-  const y0 = puffer.y + PUFFER_BOB_PX - PUFFER_TOP - PLAYER_HALF_H;
+  const y0 = bouncerTop(puffer, 'low') - PLAYER_HALF_H;
   for (const vx of STEER_SPEEDS) {
     for (const p of jumpArc(level, puffer.x, y0, -bounce, vx)) cells.add(`${Math.floor(p.x / TILE)},${Math.floor(p.y / TILE)}`);
   }

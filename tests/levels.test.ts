@@ -1,14 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { LEVEL_ROWS, PHYSICS, TILE } from '../src/config';
+import { LEVEL_ROWS, PHYSICS, PHYSICS_DRY, TILE } from '../src/config';
 import { CHAPTERS, nextChapter } from '../src/levels/chapters';
 import { FIRST_LEVEL_ID, getLevel, hasLevel, LEVELS, loadLevel } from '../src/levels';
 import { parseLevel, TILE_INDEX, validateMap } from '../src/levels/parser';
 import { canMountPuffer, pufferArcCells, pufferTargets } from '../src/levels/puffers';
 import { canReachExit, reachableCells, unreachableThings } from '../src/levels/reachability';
+import { isBouncer } from '../src/logic/enemies';
 import { jumpApexHeight } from '../src/logic/movement';
 import { STORIES } from '../src/story';
 
 const REACH = { up: Math.floor(jumpApexHeight() / TILE), across: 3 };
+/** Reach once Wutter's water tank is empty on the beach. */
+const DRY_REACH = { up: Math.floor(jumpApexHeight(PHYSICS_DRY.jumpVelocity, PHYSICS_DRY.gravity) / TILE), across: 3 };
 
 const blank = (width: number, override: Record<number, string> = {}) =>
   Array.from({ length: LEVEL_ROWS }, (_, r) => override[r] ?? (r >= 12 ? '='.repeat(width) : '.'.repeat(width)));
@@ -25,6 +28,16 @@ describe('parser', () => {
     expect(lvl.pickups.map((p) => p.kind)).toEqual(['plankton', 'pearl', 'anemone']);
     expect(lvl.enemies.map((e) => e.kind)).toEqual(['puffer', 'crab']);
     expect(lvl.currents).toEqual([expect.objectContaining({ kind: 'up', col: 2 })]);
+  });
+
+  it('parses beach chars: jellyfish, seagulls, puddles, palms and umbrellas', () => {
+    const map = blank(8, { 4: '...G....', 11: 'P.j.YU.E', 12: '==~=====' });
+    const lvl = parseLevel(map);
+    expect(lvl.enemies.map((e) => e.kind)).toEqual(['seagull', 'jellyfish']);
+    expect(lvl.decor.map((d) => d.kind)).toEqual(['palm', 'umbrella']);
+    expect(lvl.puddles).toEqual([expect.objectContaining({ col: 2, row: 12 })]);
+    expect(lvl.solid[12][2]).toBe(false);
+    expect(lvl.tiles[13][2]).toBe(TILE_INDEX.sandTop);
   });
 
   it('uses a sand-top tile only where nothing solid is above', () => {
@@ -95,14 +108,26 @@ describe('game levels', () => {
     expect(LEVELS['coral-gardens'].safe).toBe(false);
   });
 
-  it('the tutorial has no triggerfish and Coral Gardens has all three enemy types', () => {
+  it('the tutorial has no triggerfish, Coral Gardens has the three reef enemies, the beach has its own', () => {
     const kinds = (id: string) => new Set(loadLevel(id).parsed.enemies.map((e) => e.kind));
     expect(kinds('reef-tutorial').has('triggerfish')).toBe(false);
     expect([...kinds('coral-gardens')].sort()).toEqual(['crab', 'puffer', 'triggerfish']);
+    expect([...kinds('beach')].sort()).toEqual(['crab', 'jellyfish', 'seagull']);
+  });
+
+  it('only the beach is a beach level', () => {
+    expect(Object.values(LEVELS).filter((l) => l.setting === 'beach').map((l) => l.id)).toEqual(['beach']);
   });
 
   it('the story starts in the tutorial', () => {
     expect(STORIES.intro.next).toEqual({ type: 'level', id: FIRST_LEVEL_ID });
+  });
+
+  it('chapter 1 leads to the beach, and the beach ends on the thank-you story', () => {
+    expect(STORIES['chapter-1-end'].next).toEqual({ type: 'level', id: 'beach' });
+    expect(LEVELS.beach.next).toEqual({ type: 'story', id: 'chapter-2-end' });
+    expect(STORIES['chapter-2-end'].next).toEqual({ type: 'title' });
+    expect(STORIES['chapter-2-end'].panels.at(-1)?.text).toContain('THANK YOU FOR PLAYING');
   });
 });
 
@@ -130,6 +155,41 @@ describe('level lookup', () => {
   });
 });
 
+describe('beach water tank (issue #7)', () => {
+  const beach = (extraEnemies: boolean) => loadLevel('beach', { extraEnemies }).parsed;
+
+  it('a dry Wutter jumps two tiles, a wet one three', () => {
+    expect(DRY_REACH.up).toBe(2);
+    expect(REACH.up).toBe(3);
+  });
+
+  it.each([false, true])('the exit can be reached with dry jumps only (hard extras: %s)', (extra) => {
+    expect(canReachExit(beach(extra), DRY_REACH)).toBe(true);
+  });
+
+  it('has a wet-only ledge: some pickups need water', () => {
+    const lvl = beach(false);
+    expect(unreachableThings(lvl, DRY_REACH).length).toBeGreaterThan(0);
+  });
+
+  it('puddles sit in the sand row, at most 25 tiles apart, starting near the spawn', () => {
+    const lvl = beach(false);
+    const cols = lvl.puddles.map((p) => p.col);
+    expect(cols.length).toBeGreaterThanOrEqual(4);
+    for (const p of lvl.puddles) {
+      expect(p.row).toBe(12);
+      expect(lvl.solid[p.row + 1][p.col]).toBe(true);
+    }
+    expect(cols[0] - lvl.spawn.col).toBeLessThanOrEqual(15);
+    for (let i = 1; i < cols.length; i++) expect(cols[i] - cols[i - 1]).toBeLessThanOrEqual(25);
+  });
+
+  it('every puddle can be reached', () => {
+    const cells = reachableCells(beach(false), DRY_REACH);
+    for (const p of beach(false).puddles) expect(cells.has(`${p.col},${p.row}`), `puddle at ${p.col}`).toBe(true);
+  });
+});
+
 describe('pufferfish placement (issue #3)', () => {
   const levels = Object.keys(LEVELS).map((id) => [id, loadLevel(id).parsed] as const);
 
@@ -138,14 +198,14 @@ describe('pufferfish placement (issue #3)', () => {
     expect(apex).toBeGreaterThan(jumpApexHeight() * 1.5);
   });
 
-  it.each(levels)('every puffer in %s can be mounted from reachable ground', (_id, lvl) => {
-    for (const p of lvl.enemies.filter((e) => e.kind === 'puffer')) {
+  it.each(levels)('every puffer and jellyfish in %s can be mounted from reachable ground', (_id, lvl) => {
+    for (const p of lvl.enemies.filter((e) => isBouncer(e.kind))) {
       expect(canMountPuffer(lvl, p, REACH), `puffer at ${p.col},${p.row}`).toBe(true);
     }
   });
 
-  it.each(levels)('every puffer in %s bounces the player to a pearl or a sideways current', (_id, lvl) => {
-    for (const p of lvl.enemies.filter((e) => e.kind === 'puffer')) {
+  it.each(levels)('every puffer and jellyfish in %s bounces the player to a pearl or a sideways current', (_id, lvl) => {
+    for (const p of lvl.enemies.filter((e) => isBouncer(e.kind))) {
       expect(pufferTargets(lvl, p).length, `puffer at ${p.col},${p.row}`).toBeGreaterThan(0);
     }
   });
@@ -166,7 +226,7 @@ describe('everything can be reached', () => {
 
   it.each(cases)('every pickup and enemy in %s (hard extras: %s) can be reached', (id, extraEnemies) => {
     const lvl = loadLevel(id, { extraEnemies }).parsed;
-    const viaPuffers = lvl.enemies.filter((e) => e.kind === 'puffer').flatMap((p) => [...pufferArcCells(lvl, p)]);
+    const viaPuffers = lvl.enemies.filter((e) => isBouncer(e.kind)).flatMap((p) => [...pufferArcCells(lvl, p)]);
     expect(unreachableThings(lvl, REACH, viaPuffers)).toEqual([]);
   });
 
@@ -179,15 +239,17 @@ describe('everything can be reached', () => {
 });
 
 describe('hard mode (issue #4)', () => {
-  it('adds extra enemies to Coral Gardens only', () => {
-    const coral = loadLevel('coral-gardens').parsed.enemies.length;
-    expect(loadLevel('coral-gardens', { extraEnemies: true }).parsed.enemies.length).toBeGreaterThan(coral);
+  it('adds extra enemies to Coral Gardens and the beach, not the tutorial', () => {
+    for (const id of ['coral-gardens', 'beach']) {
+      const base = loadLevel(id).parsed.enemies.length;
+      expect(loadLevel(id, { extraEnemies: true }).parsed.enemies.length).toBeGreaterThan(base);
+    }
     expect(loadLevel('reef-tutorial', { extraEnemies: true }).parsed.enemies).toEqual(loadLevel('reef-tutorial').parsed.enemies);
   });
 
-  it('places extra enemies in open water, with crabs standing on the ground', () => {
-    const lvl = loadLevel('coral-gardens', { extraEnemies: true }).parsed;
-    for (const e of LEVELS['coral-gardens'].hardEnemies ?? []) {
+  it.each(['coral-gardens', 'beach'])('places extra enemies in %s in open space, with crabs standing on the ground', (id) => {
+    const lvl = loadLevel(id, { extraEnemies: true }).parsed;
+    for (const e of LEVELS[id].hardEnemies ?? []) {
       expect(lvl.solid[e.row][e.col], `${e.kind} at ${e.col},${e.row}`).toBe(false);
       if (e.kind === 'crab') expect(lvl.solid[e.row + 1][e.col], `crab at ${e.col},${e.row}`).toBe(true);
     }

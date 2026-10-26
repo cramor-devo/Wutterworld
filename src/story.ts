@@ -1,7 +1,7 @@
 import type { NextStep } from './levels';
 
 /** Which illustration the story scene draws behind the text. */
-export type PanelArt = 'reef-night' | 'surface-lights' | 'hungry-mouths' | 'threads' | 'tide-pool' | 'beach-ahead';
+export type PanelArt = 'reef-night' | 'surface-lights' | 'hungry-mouths' | 'threads' | 'tide-pool' | 'beach-ahead' | 'market-lights';
 
 export interface StoryPanel {
   art: PanelArt;
@@ -30,7 +30,16 @@ export const STORIES: Record<string, Story> = {
     panels: [
       { art: 'tide-pool', text: 'WUTTER SLIPPED INTO A SUNNY TIDE POOL AND FELT WARM LIGHT FOR THE VERY FIRST TIME.' },
       { art: 'beach-ahead', text: 'A WIDE BEACH STRETCHED AHEAD... AND THE TIDE WAS ALREADY RISING.' },
-      { art: 'beach-ahead', text: 'TO BE CONTINUED: CHAPTER 2 - BEACH ESCAPE. THANK YOU FOR PLAYING!' },
+      { art: 'beach-ahead', text: 'WUTTER FILLED UP ON COOL SEAWATER. TIME FOR CHAPTER 2: BEACH ESCAPE!' },
+    ],
+    next: { type: 'level', id: 'beach' },
+  },
+  'chapter-2-end': {
+    id: 'chapter-2-end',
+    panels: [
+      { art: 'beach-ahead', text: 'PAST THE LAST PAIFANG GATE, WUTTER HOPPED INTO A BUCKET OF SEAWATER ON A FISHING TRUCK.' },
+      { art: 'market-lights', text: 'THE TRUCK RATTLED NORTH ALL NIGHT. FAR AHEAD, THE LANTERNS OF A BIG NIGHT MARKET GLOWED.' },
+      { art: 'market-lights', text: 'TO BE CONTINUED: CHAPTER 3 - LANTERNS & LINES. THANK YOU FOR PLAYING!' },
     ],
     next: { type: 'title' },
   },
