@@ -73,7 +73,7 @@ Hard, and never on Scenic.
   sticky threads.
 - **Crabs** scuttle along the sand, just like on the reef.
 
-### What is playable now (v0.2.1)
+### What is playable now (v0.3.0)
 
 1. **Story intro**: four illustrated panels.
 2. **Home Reef (tutorial)**, Kenting: signs teach moving, jumping, currents, plankton, pearls, the anemone

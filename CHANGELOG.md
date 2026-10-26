@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-26
+
 ### Added
 
 - **Beach Escape**, the second level, on Kenting Beach ([#7](https://github.com/cramor-devo/Wutterworld/issues/7)):
@@ -97,6 +99,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Pressing M on the title screen toggles mute instead of starting the game.
 - `?level=` ignores names that are not real levels (such as `constructor`) and falls back to the title screen.
 
-[Unreleased]: https://github.com/cramor-devo/Wutterworld/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/cramor-devo/Wutterworld/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/cramor-devo/Wutterworld/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/cramor-devo/Wutterworld/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/cramor-devo/Wutterworld/releases/tag/v0.2.0
