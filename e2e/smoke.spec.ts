@@ -104,3 +104,20 @@ test('difficulty shortcut: hard adds enemies, easy gives 10 hearts', async ({ pa
   expect((await hook(page))?.hearts).toBe(10);
   expect(errors).toEqual([]);
 });
+
+test('level shortcut loads Beach Escape and Wutter can walk (issue #7)', async ({ page, isMobile }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('./?level=beach');
+  await waitForScene(page, 'Level');
+  expect((await hook(page))?.level).toBe('beach');
+  if (!isMobile) {
+    await page.waitForTimeout(600);
+    const startX = (await hook(page))?.player?.x ?? 0;
+    await page.keyboard.down('ArrowRight');
+    await page.waitForTimeout(800);
+    await page.keyboard.up('ArrowRight');
+    expect((await hook(page))?.player?.x ?? 0).toBeGreaterThan(startX + 20);
+  }
+  expect(errors).toEqual([]);
+});

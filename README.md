@@ -47,13 +47,26 @@ Pick a mode on the title screen. The game remembers your choice.
 | **Scenic** | 5, never lost (you cannot die) | none, hits only push you back | calm: they never chase, puff up or hurt |
 | **Easy** | 10 | 40% less (0.6 heart) | normal |
 | **Normal** (default) | 5 | 1 heart | normal |
-| **Hard** | 5 | 1 heart | extra crabs and triggerfish in Coral Gardens |
+| **Hard** | 5 | 1 heart | extra crabs and triggerfish in Coral Gardens, extra crabs and seagulls on the beach |
 
 ### Puffer fish
 
 Puffer fish puff up on a fixed rhythm, not when you come close. They rest for 3 seconds, shake for a moment as a
 warning, then stay puffed up (and spiky) for 1.5 seconds. Hop on a resting puffer fish to bounce high, up to pearls
 and sideways currents.
+
+### The beach: water tank, jellyfish and seagulls
+
+On the beach Wutter is out of the water. The **water tank** (blue bar with a drop, top left) slowly drains. When it
+is empty, Wutter dries out: it turns sandy, gets heavier and jumps only about two tiles high instead of three. Slide
+into a seawater **puddle** to fill the tank again. The tank drains in 18 seconds on Easy, 12 seconds on Normal and
+Hard, and never on Scenic.
+
+- **Beached jellyfish** are the beach's bouncers. Like puffer fish they follow a fixed rhythm: rest for 3 seconds
+  (hop on to bounce high), wobble as a warning, then sting for 1.5 seconds.
+- **Seagulls** circle overhead. When Wutter walks below one, it squawks, then swoops down. Stomp it or stun it with
+  sticky threads.
+- **Crabs** scuttle along the sand, just like on the reef.
 
 ### What is playable now (v0.2.1)
 
@@ -62,8 +75,10 @@ and sideways currents.
    shield and sticky threads. You cannot lose hearts here.
 3. **Coral Gardens**, Green Island: the first real level, with crabs, puffer fish and triggerfish.
 4. **Chapter end** story panels.
+5. **Beach Escape**, Kenting Beach: a dry level with the water tank, crabs, seagulls and beached jellyfish.
+6. **Thank-you** story panels, then back to the title screen.
 
-Planned route: Beach → Night Market → Temple Festival (Jiufen) → Typhoon → Abyss → a festive **Home Reef**
+Planned route: Night Market → Temple Festival (Jiufen) → Typhoon → Abyss → a festive **Home Reef**
 finale.
 
 ## Development
@@ -89,7 +104,7 @@ Open it on a phone on the same Wi-Fi.
 
 **Handy URL options:**
 
-- `?level=coral-gardens` (or `?level=reef-tutorial`) jumps straight into a level.
+- `?level=coral-gardens` (or `?level=reef-tutorial`, `?level=beach`) jumps straight into a level.
 - `?difficulty=scenic` (or `easy`, `normal`, `hard`) plays with that difficulty without changing the saved
   choice. Combine options with `&`, for example `?level=coral-gardens&difficulty=hard`.
 - `?touch=1` / `?touch=0` forces the on-screen buttons on or off.
@@ -120,7 +135,9 @@ Levels are ASCII maps in `src/levels/index.ts`. Every map is 14 rows of 16 px ti
 | `#` `=` `C` `R` | rock, sand, coral, red brick (solid) | `P` / `E` | player start / exit |
 | `o` `O` `A` | plankton, pearl, anemone shield | `c` `f` `t` | crab, puffer fish, triggerfish |
 | `^` `>` `<` | water currents | `S` | tutorial sign |
-| `w` `g` `L` `T` | seaweed, sea fan, stone lantern, paifang gate (decoration) | `.` | water |
+| `w` `g` `L` `T` | seaweed, sea fan, stone lantern, paifang gate (decoration) | `.` | water (air on the beach) |
+| `Y` `U` | palm tree, beach umbrella (decoration) | `j` `G` | beached jellyfish, seagull |
+| `~` | seawater puddle (refills the water tank) | | |
 
 The unit tests check that every level parses and that its exit can be reached.
 

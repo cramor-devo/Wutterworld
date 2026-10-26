@@ -7,8 +7,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Beach Escape**, the second level, on Kenting Beach ([#7](https://github.com/cramor-devo/Wutterworld/issues/7)):
+  - A sunny sky, sea and dunes backdrop with palm trees, beach umbrellas and its own chiptune song.
+  - A **water tank**: out of the water Wutter slowly dries out. Dry, it is heavier and jumps lower. Seawater
+    puddles fill the tank again. It drains in 18 s on Easy, 12 s on Normal and Hard, and never on Scenic.
+  - **Beached jellyfish**: bouncy while resting, then they wobble and sting on a fixed rhythm, like puffer fish.
+  - **Seagulls** that squawk, then swoop down when Wutter walks below them.
+  - Crabs on the sand. Hard mode adds extra crabs and seagulls.
+  - `?level=beach` URL shortcut and level characters `j`, `G`, `~`, `Y` and `U`.
+- New story panels after the beach that end with "Thank you for playing!" and return to the title screen.
+
 ### Changed
 
+- Clearing Coral Gardens now leads, via the chapter-end story, to the beach instead of straight to the thank-you.
 - The sunken torii-style gates are now Chinese **paifang** gates: three bays, red pillars, green tiled roofs, gold
   ridges and a gold plaque. The gate in the "beach ahead" story panel is a paifang too
   ([#8](https://github.com/cramor-devo/Wutterworld/issues/8)).
