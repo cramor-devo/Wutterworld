@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_HEIGHT } from '../config';
 import { pixelText } from '../art/text';
+import { touchOverride } from '../platform/fullscreen';
 import { type InputState, NO_INPUT } from './state';
 
 interface Button {
@@ -13,10 +14,7 @@ interface Button {
 
 /** Whether to show on-screen buttons: touch devices, or forced with ?touch=1. */
 export function wantsTouchControls(game: Phaser.Game): boolean {
-  const forced = new URLSearchParams(window.location.search).get('touch');
-  if (forced === '1') return true;
-  if (forced === '0') return false;
-  return game.device.input.touch;
+  return touchOverride(window.location.search) ?? game.device.input.touch;
 }
 
 /**
