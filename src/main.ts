@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { audio } from './audio/chiptune';
 import { GAME_HEIGHT, PHYSICS } from './config';
+import { setupFullscreen } from './platform/fullscreenUi';
 import { BootScene } from './scenes/BootScene';
 import { desiredViewWidth } from './scenes/common';
 import { LevelScene } from './scenes/LevelScene';
@@ -13,6 +14,7 @@ const unlock = () => {
   audio.resume();
 };
 for (const evt of ['pointerup', 'touchend', 'keydown']) window.addEventListener(evt, unlock, { passive: true });
+setupFullscreen();
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,

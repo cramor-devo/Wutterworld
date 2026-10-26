@@ -22,6 +22,8 @@ declare global {
 
 export function setHook(patch: Partial<WutterHook>): void {
   window.__wutter = { ...(window.__wutter ?? { scene: '' }), ...patch };
+  // Lets the page CSS place DOM overlays (the full-screen button) per screen.
+  if (patch.scene) document.body.dataset.scene = patch.scene;
 }
 
 export interface Backdrop {

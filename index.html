@@ -23,11 +23,41 @@
       }
       /* Phones held upright: the game still works, but sideways gives a much bigger view. */
       @media (orientation: portrait) and (pointer: coarse) { #rotate-hint { display: block; } }
+      /* Full-screen toggle: bottom centre, between the touch pads; top-right on the title screen, clear of the logo. */
+      #fs-toggle {
+        position: fixed; left: 50%; bottom: max(6px, env(safe-area-inset-bottom)); transform: translateX(-50%);
+        width: 34px; height: 34px; padding: 0; border: 1px solid rgba(255, 255, 255, 0.6); border-radius: 8px;
+        background: rgba(11, 16, 32, 0.45); color: #fff; opacity: 0.75; touch-action: manipulation; cursor: pointer;
+      }
+      #fs-toggle:not([hidden]) { display: flex; align-items: center; justify-content: center; }
+      #fs-toggle svg { width: 20px; height: 20px; }
+      #fs-toggle .fs-exit, #fs-toggle.is-full .fs-enter { display: none; }
+      #fs-toggle.is-full .fs-exit { display: inline; }
+      body[data-scene="Title"] #fs-toggle {
+        left: auto; transform: none; bottom: auto;
+        top: max(6px, env(safe-area-inset-top)); right: max(6px, env(safe-area-inset-right));
+      }
+      /* iPhone: Safari cannot show a web page full screen, so explain "Add to Home Screen". */
+      #install-hint {
+        position: fixed; left: 50%; top: max(8px, env(safe-area-inset-top)); transform: translateX(-50%);
+        max-width: 90vw; padding: 6px 8px 6px 12px; border: 1px solid #f2c94c; border-radius: 6px;
+        background: rgba(11, 16, 32, 0.9); color: #ffd25e; font: bold 13px monospace; touch-action: manipulation;
+      }
+      #install-hint:not([hidden]) { display: flex; align-items: center; gap: 8px; }
+      #install-hint button { border: 0; background: none; color: #fff; font: bold 18px monospace; padding: 0 4px; cursor: pointer; }
     </style>
   </head>
   <body>
     <div id="game"></div>
     <div id="rotate-hint">↻ Turn your phone sideways for a bigger view</div>
+    <button id="fs-toggle" type="button" aria-label="Full screen" title="Full screen" hidden>
+      <svg class="fs-enter" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 7V2h5M13 2h5v5M18 13v5h-5M7 18H2v-5" /></svg>
+      <svg class="fs-exit" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 2v5H2M18 7h-5V2M13 18v-5h5M2 13h5v5" /></svg>
+    </button>
+    <div id="install-hint" role="note" hidden>
+      <span>For full screen: tap Share, then 'Add to Home Screen'</span>
+      <button type="button" aria-label="Close">×</button>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
