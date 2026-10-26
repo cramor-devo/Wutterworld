@@ -31,9 +31,12 @@ function readHintClosed(): boolean {
   }
 }
 
-/** Keeps taps on DOM overlays away from the game (which listens on window) and the first-tap handler. */
+/**
+ * Keeps taps and keys on DOM overlays away from the game (which listens on window) and the first-tap handler.
+ * Only propagation is stopped, so Enter/Space still activate the focused button.
+ */
 function shieldFromGame(el: HTMLElement): void {
-  for (const evt of ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'mouseup']) {
+  for (const evt of ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'mouseup', 'keydown', 'keyup']) {
     el.addEventListener(evt, (e) => e.stopPropagation());
   }
 }
@@ -47,13 +50,16 @@ export function setupFullscreen(): void {
   const toggle = document.getElementById('fs-toggle');
   const hint = document.getElementById('install-hint');
 
+  // Only once per visit: if the player leaves full screen, it is not forced on them again.
+  const disarmFirstTap = () => {
+    window.removeEventListener('pointerup', onFirstTap);
+    window.removeEventListener('touchend', onFirstTap);
+  };
+  const onFirstTap = () => {
+    disarmFirstTap();
+    void enterFullscreen();
+  };
   if (plan.autoOnFirstTap) {
-    // Only once per visit: if the player leaves full screen, it is not forced on them again.
-    const onFirstTap = () => {
-      window.removeEventListener('pointerup', onFirstTap);
-      window.removeEventListener('touchend', onFirstTap);
-      void enterFullscreen();
-    };
     window.addEventListener('pointerup', onFirstTap, { passive: true });
     window.addEventListener('touchend', onFirstTap, { passive: true });
   }
@@ -63,6 +69,8 @@ export function setupFullscreen(): void {
     toggle.hidden = false;
     shieldFromGame(toggle);
     toggle.addEventListener('click', () => {
+      // Using the toggle is a deliberate choice, so the automatic first-tap entry must not override it.
+      disarmFirstTap();
       if (document.fullscreenElement) void exitFullscreen();
       else void enterFullscreen();
     });

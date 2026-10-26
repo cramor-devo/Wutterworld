@@ -122,6 +122,18 @@ test('full-screen button shows on phones only, and tapping it does not start the
     await toggle.tap();
     await page.waitForTimeout(500);
     expect((await hook(page))?.scene).toBe('Title');
+    // Keyboard activation of the button must not reach the game either.
+    await toggle.focus();
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('Space');
+    await page.waitForTimeout(500);
+    expect((await hook(page))?.scene).toBe('Title');
+    // After leaving full screen with the button, a later game tap must not force it back on.
+    if (await page.evaluate(() => !!document.fullscreenElement)) await toggle.tap();
+    await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(false);
+    await page.locator('canvas').tap();
+    await page.waitForTimeout(500);
+    expect(await page.evaluate(() => !!document.fullscreenElement)).toBe(false);
   }
   // Only iPhones without the Fullscreen API get the Add to Home Screen hint.
   await expect(page.locator('#install-hint')).toBeHidden();
