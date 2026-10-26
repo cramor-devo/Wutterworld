@@ -32,4 +32,15 @@ export const PHYSICS = {
   currentMaxRise: 170,
 } as const;
 
-export type Physics = typeof PHYSICS;
+export type Physics = { readonly [K in keyof typeof PHYSICS]: number };
+
+/**
+ * On the beach, once Wutter's water tank runs dry: heavier, land-like gravity and shorter hops
+ * (about 2.5 tiles instead of 3.4). Everything else stays the same.
+ */
+export const PHYSICS_DRY: Physics = {
+  ...PHYSICS,
+  gravity: 760,
+  jumpVelocity: 250,
+  maxFall: 220,
+};

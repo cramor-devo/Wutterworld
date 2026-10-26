@@ -51,7 +51,12 @@ export class JumpController {
   private bufferMs = Number.POSITIVE_INFINITY;
   private jumping = false;
 
-  constructor(private readonly p: Physics = PHYSICS) {}
+  constructor(private p: Physics = PHYSICS) {}
+
+  /** Swaps the physics, e.g. when Wutter dries out on the beach. */
+  setPhysics(p: Physics): void {
+    this.p = p;
+  }
 
   /** Returns the new vertical velocity, or null when it should not change. */
   update(dtMs: number, grounded: boolean, jumpPressed: boolean, jumpHeld: boolean, vy: number): number | null {
