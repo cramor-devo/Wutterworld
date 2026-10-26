@@ -18,6 +18,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - Crabs on the sand. Hard mode adds extra crabs and seagulls.
   - `?level=beach` URL shortcut and level characters `j`, `G`, `~`, `Y` and `U`.
 - New story panels after the beach that end with "Thank you for playing!" and return to the title screen.
+- Full screen on mobile phones ([#10](https://github.com/cramor-devo/Wutterworld/issues/10)):
+  - On Android (and iPad), the first tap switches to full screen and locks landscape.
+  - A small full-screen button enters and leaves full screen. It is only shown on touch devices that support full
+    screen, and not when the game is installed as an app.
+  - On iPhone, a hint explains **Add to Home Screen** (Safari cannot show a web page full screen). It can be closed
+    and is not shown when the game is installed.
 
 ### Changed
 
@@ -25,6 +31,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The sunken torii-style gates are now Chinese **paifang** gates: three bays, red pillars, green tiled roofs, gold
   ridges and a gold plaque. The gate in the "beach ahead" story panel is a paifang too
   ([#8](https://github.com/cramor-devo/Wutterworld/issues/8)).
+- Rotating the phone, resizing the window or entering/leaving full screen re-fits the game straight away, with no
+  black bars and no reload. A level keeps running; the title and story screens re-centre.
+- The view can now grow to 512 px wide (was 400), so 19.5:9 and 20:9 phones fill the screen.
+- Desktop behaviour is unchanged: no automatic full screen.
 
 ## [0.2.1] - 2026-10-24
 

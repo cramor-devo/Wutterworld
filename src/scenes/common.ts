@@ -13,6 +13,8 @@ export interface WutterHook {
   difficulty?: string;
   /** Enemies spawned in the current level (more on hard). */
   enemies?: number;
+  /** Current view width in game pixels (height is always 224). */
+  viewWidth?: number;
 }
 
 declare global {
@@ -23,12 +25,16 @@ declare global {
 
 export function setHook(patch: Partial<WutterHook>): void {
   window.__wutter = { ...(window.__wutter ?? { scene: '' }), ...patch };
+  // Lets the page CSS place DOM overlays (the full-screen button) per screen.
+  if (patch.scene) document.body.dataset.scene = patch.scene;
 }
 
 export interface Backdrop {
   far: Phaser.GameObjects.TileSprite;
   mid: Phaser.GameObjects.TileSprite;
   scroll(x: number): void;
+  /** Stretches the layers to a new view width. */
+  resize(width: number): void;
 }
 
 const BACKDROP_KEYS: Record<LevelSetting, { base: string; far: string; mid: string }> = {
@@ -40,7 +46,7 @@ const BACKDROP_KEYS: Record<LevelSetting, { base: string; far: string; mid: stri
 export function addBackdrop(scene: Phaser.Scene, setting: LevelSetting = 'reef'): Backdrop {
   const w = scene.scale.width;
   const keys = BACKDROP_KEYS[setting];
-  scene.add.image(0, 0, keys.base).setOrigin(0).setScrollFactor(0).setDepth(-30).setDisplaySize(w, GAME_HEIGHT);
+  const base = scene.add.image(0, 0, keys.base).setOrigin(0).setScrollFactor(0).setDepth(-30).setDisplaySize(w, GAME_HEIGHT);
   const far = scene.add.tileSprite(0, GAME_HEIGHT - 120, w, 120, keys.far).setOrigin(0).setScrollFactor(0).setDepth(-20);
   const mid = scene.add.tileSprite(0, GAME_HEIGHT - 90, w, 90, keys.mid).setOrigin(0).setScrollFactor(0).setDepth(-15);
   return {
@@ -49,6 +55,11 @@ export function addBackdrop(scene: Phaser.Scene, setting: LevelSetting = 'reef')
     scroll(x: number) {
       far.tilePositionX = x * 0.2;
       mid.tilePositionX = x * 0.45;
+    },
+    resize(width: number) {
+      base.setDisplaySize(width, GAME_HEIGHT);
+      far.setSize(width, 120);
+      mid.setSize(width, 90);
     },
   };
 }
@@ -104,10 +115,35 @@ export function desiredViewWidth(): number {
   return viewWidthFor(window.innerWidth / window.innerHeight);
 }
 
-/** Applies the desired view width between scenes, so rotating a phone takes effect at the next screen. */
+/** Applies the desired view width now; scenes that listen with `onViewResize` re-layout straight away. */
 export function fitViewWidth(game: Phaser.Game): void {
   const w = desiredViewWidth();
   if (w !== game.scale.gameSize.width) game.scale.setGameSize(w, GAME_HEIGHT);
+}
+
+/** Calls `cb` with the new view width whenever it changes, until the scene shuts down. */
+export function onViewResize(scene: Phaser.Scene, cb: (width: number) => void): void {
+  const handler = (gameSize: Phaser.Structs.Size) => cb(gameSize.width);
+  scene.scale.on(Phaser.Scale.Events.RESIZE, handler);
+  scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => scene.scale.off(Phaser.Scale.Events.RESIZE, handler));
+}
+
+/**
+ * Re-fits the game when the phone rotates, the window resizes or full screen starts/ends. Waits until the
+ * size settles, because mobile browsers send several resize events while rotating.
+ */
+export function watchViewSize(game: Phaser.Game, settleMs = 150): void {
+  let timer: number | undefined;
+  const schedule = () => {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(() => fitViewWidth(game), settleMs);
+  };
+  window.addEventListener('resize', schedule);
+  window.addEventListener('orientationchange', schedule);
+  document.addEventListener('fullscreenchange', schedule);
+  const report = () => setHook({ viewWidth: game.scale.gameSize.width });
+  game.scale.on(Phaser.Scale.Events.RESIZE, report);
+  report();
 }
 
 /** Centres a fixed 256-wide layout (title, story) in a wider view by shifting the camera. */

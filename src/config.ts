@@ -1,8 +1,11 @@
 /** Native SNES resolution; the canvas is scaled up with nearest-neighbour filtering. */
 export const GAME_WIDTH = 256;
 export const GAME_HEIGHT = 224;
-/** On wide screens (landscape phones) the view grows sideways up to this width instead of showing black bars. */
-export const MAX_GAME_WIDTH = 400;
+/**
+ * On wide screens (landscape phones) the view grows sideways up to this width instead of showing black bars.
+ * 512 covers phones up to about 20.5:9 in full screen (224 * 20.5 / 9 = 510).
+ */
+export const MAX_GAME_WIDTH = 512;
 export const TILE = 16;
 export const LEVEL_ROWS = GAME_HEIGHT / TILE; // 14
 
