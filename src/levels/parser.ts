@@ -10,7 +10,10 @@ import type { PickupKind } from '../logic/score';
  *   o  plankton       O  bubble pearl              A  anemone (shield)
  *   c  crab           f  pufferfish                t  triggerfish
  *   ^  up-current     >  right-current             <  left-current
- *   S  sign (texts in order)  w  seaweed  g  sea fan  L  stone lantern  T  sunken torii-style gate
+ *   S  sign (texts in order)  w  seaweed  g  sea fan  L  stone lantern  T  paifang gate
+ * Beach:
+ *   j  beached jellyfish (bouncer)  G  seagull     ~  seawater puddle (refills the water tank; put it in the sand row)
+ *   Y  palm tree      U  beach umbrella
  */
 export const SOLID_CHARS = ['#', '=', 'C', 'R'] as const;
 
@@ -23,7 +26,7 @@ export const TILE_INDEX = {
   brick: 4,
 } as const;
 
-export type DecorKind = 'seaweed' | 'seafan' | 'lantern' | 'gate';
+export type DecorKind = 'seaweed' | 'seafan' | 'lantern' | 'gate' | 'palm' | 'umbrella';
 
 export interface Spot {
   col: number;
@@ -45,13 +48,15 @@ export interface ParsedLevel {
   currents: (Spot & { kind: CurrentKind })[];
   signs: (Spot & { text: string })[];
   decor: (Spot & { kind: DecorKind })[];
+  /** Seawater puddles that refill the water tank on the beach. */
+  puddles: Spot[];
 }
 
 const PICKUPS: Record<string, PickupKind> = { o: 'plankton', O: 'pearl', A: 'anemone' };
-const ENEMIES: Record<string, EnemyKind> = { c: 'crab', f: 'puffer', t: 'triggerfish' };
+const ENEMIES: Record<string, EnemyKind> = { c: 'crab', f: 'puffer', t: 'triggerfish', j: 'jellyfish', G: 'seagull' };
 const CURRENTS: Record<string, CurrentKind> = { '^': 'up', '>': 'right', '<': 'left' };
-const DECOR: Record<string, DecorKind> = { w: 'seaweed', g: 'seafan', L: 'lantern', T: 'gate' };
-const KNOWN = new Set(['.', 'P', 'E', 'S', ...SOLID_CHARS, ...Object.keys(PICKUPS), ...Object.keys(ENEMIES), ...Object.keys(CURRENTS), ...Object.keys(DECOR)]);
+const DECOR: Record<string, DecorKind> = { w: 'seaweed', g: 'seafan', L: 'lantern', T: 'gate', Y: 'palm', U: 'umbrella' };
+const KNOWN = new Set(['.', 'P', 'E', 'S', '~', ...SOLID_CHARS, ...Object.keys(PICKUPS), ...Object.keys(ENEMIES), ...Object.keys(CURRENTS), ...Object.keys(DECOR)]);
 
 function spot(col: number, row: number): Spot {
   return { col, row, x: col * TILE + TILE / 2, y: row * TILE + TILE / 2 };
@@ -97,6 +102,7 @@ export function parseLevel(map: readonly string[], signTexts: readonly string[] 
     currents: [],
     signs: [],
     decor: [],
+    puddles: [],
   };
   let signIndex = 0;
 
@@ -127,6 +133,7 @@ export function parseLevel(map: readonly string[], signTexts: readonly string[] 
       if (ch === 'P') level.spawn = s;
       else if (ch === 'E') level.exit = s;
       else if (ch === 'S') level.signs.push({ ...s, text: signTexts[signIndex++] });
+      else if (ch === '~') level.puddles.push(s);
       else if (PICKUPS[ch]) level.pickups.push({ ...s, kind: PICKUPS[ch] });
       else if (ENEMIES[ch]) level.enemies.push({ ...s, kind: ENEMIES[ch] });
       else if (CURRENTS[ch]) level.currents.push({ ...s, kind: CURRENTS[ch] });

@@ -14,6 +14,8 @@ export interface DifficultySettings {
   passiveEnemies: boolean;
   /** Levels add their hard-mode enemies. */
   extraEnemies: boolean;
+  /** Beach levels: how long a full water tank lasts in ms (0 = it never drains). */
+  waterDrainMs: number;
 }
 
 export const DIFFICULTIES: Record<Difficulty, DifficultySettings> = {
@@ -26,6 +28,7 @@ export const DIFFICULTIES: Record<Difficulty, DifficultySettings> = {
     immortal: true,
     passiveEnemies: true,
     extraEnemies: false,
+    waterDrainMs: 0,
   },
   easy: {
     id: 'easy',
@@ -36,6 +39,7 @@ export const DIFFICULTIES: Record<Difficulty, DifficultySettings> = {
     immortal: false,
     passiveEnemies: false,
     extraEnemies: false,
+    waterDrainMs: 18000,
   },
   normal: {
     id: 'normal',
@@ -46,6 +50,7 @@ export const DIFFICULTIES: Record<Difficulty, DifficultySettings> = {
     immortal: false,
     passiveEnemies: false,
     extraEnemies: false,
+    waterDrainMs: 12000,
   },
   hard: {
     id: 'hard',
@@ -56,6 +61,7 @@ export const DIFFICULTIES: Record<Difficulty, DifficultySettings> = {
     immortal: false,
     passiveEnemies: false,
     extraEnemies: true,
+    waterDrainMs: 12000,
   },
 };
 

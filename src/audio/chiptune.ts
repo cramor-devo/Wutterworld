@@ -1,6 +1,6 @@
 import { midiToFrequency, parsePattern, SONGS, type SongId } from './music';
 
-export type Sfx = 'jump' | 'pickup' | 'pearl' | 'hit' | 'thread' | 'stomp' | 'shield' | 'clear';
+export type Sfx = 'jump' | 'pickup' | 'pearl' | 'hit' | 'thread' | 'stomp' | 'shield' | 'clear' | 'squawk' | 'splash';
 
 const MUTE_KEY = 'wutter-muted';
 
@@ -158,6 +158,10 @@ export class Chiptune {
         return sweep(500, 1500, 0.35, 'triangle', 0.8);
       case 'clear':
         return sweep(523, 1046, 0.6, 'square', 0.4);
+      case 'squawk':
+        return sweep(1500, 650, 0.2, 'sawtooth', 0.35);
+      case 'splash':
+        return sweep(1300, 220, 0.25, 'triangle', 0.6);
     }
   }
 }

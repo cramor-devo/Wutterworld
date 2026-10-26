@@ -4,6 +4,8 @@ import {
   defeatEnemy,
   ENEMY_TUNING,
   type EnemyContext,
+  isBouncer,
+  JELLYFISH_CYCLE_MS,
   PUFFER_CYCLE_MS,
   pufferPhaseForColumn,
   stepEnemy,
@@ -172,5 +174,89 @@ describe('stun and defeat', () => {
     stunEnemy(b);
     expect(b.state).toBe('defeated');
     expect(stepEnemy(b, ctx()).dangerous).toBe(false);
+  });
+});
+
+describe('beached jellyfish', () => {
+  const T = ENEMY_TUNING.jellyfish;
+
+  it('rests (bouncy and safe), wobbles as a warning, then stings', () => {
+    const b = createBrain('jellyfish', 100, 100);
+    const rest = stepEnemy(b, ctx());
+    expect(rest).toMatchObject({ vx: 0, vy: 0, dangerous: false, stompable: true });
+    stepEnemy(b, ctx({ dtMs: T.restMs }));
+    expect(b.state).toBe('warning');
+    expect(stepEnemy(b, ctx({ dtMs: 1 })).dangerous).toBe(false);
+    const sting = stepEnemy(b, ctx({ dtMs: T.warnMs }));
+    expect(b.state).toBe('sting');
+    expect(sting).toMatchObject({ dangerous: true, stompable: false });
+    stepEnemy(b, ctx({ dtMs: T.stingMs }));
+    expect(b.state).toBe('patrol');
+    expect(JELLYFISH_CYCLE_MS).toBe(T.restMs + T.warnMs + T.stingMs);
+  });
+
+  it('never stings in scenic mode', () => {
+    const b = createBrain('jellyfish', 100, 100);
+    for (let i = 0; i < 20; i++) expect(stepEnemy(b, ctx({ dtMs: 500, passive: true })).dangerous).toBe(false);
+  });
+
+  it('stays put when stunned', () => {
+    const b = createBrain('jellyfish', 100, 100);
+    stunEnemy(b);
+    expect(stepEnemy(b, ctx()).vy).toBe(0);
+    expect(isBouncer('jellyfish')).toBe(true);
+    expect(isBouncer('seagull')).toBe(false);
+  });
+});
+
+describe('seagull', () => {
+  const T = ENEMY_TUNING.seagull;
+  const below = { playerX: 110, playerY: 180 };
+
+  it('patrols high and ignores a player who is far away', () => {
+    const b = createBrain('seagull', 100, 60);
+    const i = stepEnemy(b, ctx({ y: 60, dtMs: T.cooldownMs }));
+    expect(b.state).toBe('patrol');
+    expect(i.dangerous).toBe(true);
+    expect(i.stompable).toBe(true);
+  });
+
+  it('squawks, dives at where the player was, then climbs back', () => {
+    const b = createBrain('seagull', 100, 60);
+    stepEnemy(b, ctx({ y: 60, ...below }));
+    expect(b.state).toBe('warning');
+    expect(stepEnemy(b, ctx({ y: 60, ...below, dtMs: 10 })).vx).toBe(0);
+    stepEnemy(b, ctx({ y: 60, ...below, dtMs: T.warnMs }));
+    expect(b.state).toBe('dive');
+    expect(b.targetY).toBe(180);
+    const dive = stepEnemy(b, ctx({ y: 60, playerX: 500, playerY: 0 }));
+    expect(dive.vy).toBeGreaterThan(0);
+    expect(dive.vx).toBeGreaterThan(0);
+    stepEnemy(b, ctx({ x: 110, y: 179 }));
+    expect(b.state).toBe('climb');
+    expect(stepEnemy(b, ctx({ y: 150 })).vy).toBeLessThan(0);
+    stepEnemy(b, ctx({ y: 60 }));
+    expect(b.state).toBe('patrol');
+    // Cooldown: no immediate second dive.
+    stepEnemy(b, ctx({ y: 60, ...below }));
+    expect(b.state).toBe('patrol');
+  });
+
+  it('gives up a dive after a timeout or when it hits something', () => {
+    const b = createBrain('seagull', 100, 60);
+    b.state = 'dive';
+    b.timer = T.maxDiveMs;
+    b.targetY = 500;
+    stepEnemy(b, ctx({ y: 60, blocked: true }));
+    expect(b.state).toBe('climb');
+  });
+
+  it('never dives in scenic mode and climbs back if it was diving', () => {
+    const b = createBrain('seagull', 100, 60);
+    for (let i = 0; i < 10; i++) stepEnemy(b, ctx({ y: 60, ...below, dtMs: 500, passive: true }));
+    expect(b.state).toBe('patrol');
+    b.state = 'dive';
+    expect(stepEnemy(b, ctx({ y: 120, passive: true })).dangerous).toBe(false);
+    expect(b.state).toBe('climb');
   });
 });

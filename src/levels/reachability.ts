@@ -90,6 +90,9 @@ export function unreachableThings(level: ParsedLevel, reach: JumpReach, extraCel
   };
   const problems: string[] = [];
   for (const p of level.pickups) if (!cells.has(key(p.col, p.row))) problems.push(`${p.kind} at ${p.col},${p.row}`);
-  for (const e of level.enemies) if (!near(e.col, e.row)) problems.push(`${e.kind} at ${e.col},${e.row}`);
+  for (const e of level.enemies) {
+    // Seagulls dive at the player, so they always come within reach.
+    if (e.kind !== 'seagull' && !near(e.col, e.row)) problems.push(`${e.kind} at ${e.col},${e.row}`);
+  }
   return problems;
 }

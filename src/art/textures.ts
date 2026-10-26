@@ -174,6 +174,54 @@ function backgroundTextures(scene: Phaser.Scene): void {
   });
 }
 
+export const PAIFANG_W = 48;
+export const PAIFANG_H = 40;
+
+/** One tiled roof with a gold ridge and upturned gold eave tips. */
+function paifangRoof(ctx: CanvasRenderingContext2D, x: number, y: number, w: number): void {
+  px(ctx, '#f2c94c', x + 2, y, w - 4, 1);
+  px(ctx, '#2f8f5b', x + 1, y + 1, w - 2, 3);
+  for (let i = x + 2; i < x + w - 2; i += 3) px(ctx, '#1d5e3b', i, y + 1, 1, 3);
+  px(ctx, '#1d5e3b', x, y + 4, w, 1);
+  px(ctx, '#f2c94c', x, y - 1, 1, 2);
+  px(ctx, '#f2c94c', x + w - 1, y - 1, 1, 2);
+}
+
+/** Three-bay paifang: red pillars, green tiled roofs, gold ridges and a gold centre plaque. */
+function drawPaifang(ctx: CanvasRenderingContext2D, mossy: boolean): void {
+  const red = '#c8432f';
+  const shade = '#7a2418';
+  const gold = '#f2c94c';
+  // Pillars on stone bases: the centre pair is taller than the outer pair.
+  for (const [x, top] of [[2, 22], [14, 7], [31, 7], [43, 22]]) {
+    px(ctx, red, x, top, 3, 38 - top);
+    px(ctx, shade, x + 2, top, 1, 38 - top);
+    px(ctx, '#8a96a3', x - 1, 37, 5, 3);
+  }
+  // Red lintels with gold trim.
+  px(ctx, red, 14, 14, 20, 3);
+  px(ctx, gold, 14, 17, 20, 1);
+  px(ctx, red, 2, 24, 13, 2);
+  px(ctx, red, 33, 24, 13, 2);
+  px(ctx, gold, 2, 26, 13, 1);
+  px(ctx, gold, 33, 26, 13, 1);
+  // Roofs: a high centre roof and two lower side roofs.
+  paifangRoof(ctx, 0, 19, 17);
+  paifangRoof(ctx, 31, 19, 17);
+  paifangRoof(ctx, 10, 2, 28);
+  // Gold-framed plaque under the centre roof.
+  px(ctx, gold, 18, 7, 12, 7);
+  px(ctx, shade, 19, 8, 10, 5);
+  px(ctx, gold, 21, 10, 2, 1);
+  px(ctx, gold, 25, 10, 2, 1);
+  if (mossy) {
+    px(ctx, '#4f8a5b', 3, 28, 2, 6);
+    px(ctx, '#4f8a5b', 32, 26, 2, 8);
+    px(ctx, '#4f8a5b', 14, 6, 6, 1);
+    px(ctx, '#4f8a5b', 40, 19, 3, 1);
+  }
+}
+
 function decorTextures(scene: Phaser.Scene): void {
   canvasTexture(scene, 'seaweed', 10, 32, 2, (ctx, f) => {
     for (let y = 0; y < 32; y++) {
@@ -193,20 +241,9 @@ function decorTextures(scene: Phaser.Scene): void {
     px(ctx, '#6b2d8c', 7, 12, 2, 4);
   });
 
-  // Sunken vermilion gate, overgrown with algae.
-  canvasTexture(scene, 'gate', 40, 40, 1, (ctx) => {
-    px(ctx, '#c8432f', 0, 2, 40, 4);
-    px(ctx, '#7a2418', 0, 6, 40, 1);
-    px(ctx, '#c8432f', 4, 11, 32, 3);
-    px(ctx, '#c8432f', 7, 6, 4, 34);
-    px(ctx, '#c8432f', 29, 6, 4, 34);
-    px(ctx, '#7a2418', 10, 6, 1, 34);
-    px(ctx, '#7a2418', 32, 6, 1, 34);
-    px(ctx, '#1a0f1f', 0, 0, 40, 2);
-    px(ctx, '#4f8a5b', 8, 20, 3, 6);
-    px(ctx, '#4f8a5b', 30, 28, 2, 8);
-    px(ctx, '#4f8a5b', 14, 5, 6, 1);
-  });
+  // Chinese paifang gate: sunken and algae-covered on the reef, clean on the beach.
+  canvasTexture(scene, 'gate', PAIFANG_W, PAIFANG_H, 1, (ctx) => drawPaifang(ctx, true));
+  canvasTexture(scene, 'gate-clean', PAIFANG_W, PAIFANG_H, 1, (ctx) => drawPaifang(ctx, false));
 
   // Exit: a column of warm light shining down into the reef (a tide pool above).
   canvasTexture(scene, 'exit', 24, 64, 1, (ctx) => {
@@ -254,5 +291,122 @@ export function generateTextures(scene: Phaser.Scene): void {
   fontTexture(scene);
   tilesTexture(scene);
   backgroundTextures(scene);
+  beachTextures(scene);
   decorTextures(scene);
+}
+
+/** Kenting beach: sunny sky over the sea, Big Pointed Mountain far away, dunes, palms and puddles. */
+function beachTextures(scene: Phaser.Scene): void {
+  canvasTexture(scene, 'bg-sky', 256, 224, 1, (ctx) => {
+    bandedGradient(ctx, 256, 128, ['#5bb8f0', '#73c6f5', '#8cd3f8', '#a6defb', '#c2e9fc', '#dcf3fd']);
+    // Sun with a soft halo.
+    ctx.fillStyle = '#fff6c9';
+    ctx.globalAlpha = 0.35;
+    ctx.beginPath();
+    ctx.arc(204, 36, 20, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#fff3a8';
+    ctx.beginPath();
+    ctx.arc(204, 36, 12, 0, Math.PI * 2);
+    ctx.fill();
+    // Small pixel clouds.
+    for (const [x, y] of [[30, 30], [110, 18], [150, 52]]) {
+      px(ctx, '#ffffff', x, y, 24, 4);
+      px(ctx, '#ffffff', x + 4, y - 3, 12, 3);
+      px(ctx, '#e4f4ff', x, y + 4, 24, 1);
+    }
+    // The sea, from the horizon down, with sparkles and the sun's reflection.
+    ctx.save();
+    ctx.translate(0, 128);
+    bandedGradient(ctx, 256, 96, ['#2ec4c6', '#24b2c0', '#1d9fb6', '#178cab']);
+    ctx.restore();
+    const rnd = mulberry32(31);
+    for (let i = 0; i < 40; i++) px(ctx, '#bff4ff', Math.floor(rnd() * 250), 130 + Math.floor(rnd() * 90), 3 + Math.floor(rnd() * 4), 1);
+    px(ctx, '#fff6c9', 196, 132, 16, 1);
+    px(ctx, '#fff6c9', 199, 136, 10, 1);
+  });
+  // Far layer: Kenting's Big Pointed Mountain and green hills on the horizon (the bottom stays see-through).
+  canvasTexture(scene, 'bg-beach-far', 512, 120, 1, (ctx) => {
+    const rnd = mulberry32(41);
+    ctx.fillStyle = '#5e9a7a';
+    for (let x = -20; x < 512; x += 48) {
+      const h = 6 + Math.floor(rnd() * 10);
+      ctx.beginPath();
+      ctx.ellipse(x + 24, 24, 34, h, 0, Math.PI, 0);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#4c8468';
+    ctx.beginPath();
+    ctx.moveTo(150, 24);
+    ctx.lineTo(178, 6);
+    ctx.lineTo(186, 0);
+    ctx.lineTo(194, 8);
+    ctx.lineTo(226, 24);
+    ctx.fill();
+    // A little white lighthouse on a far cape.
+    px(ctx, '#5e9a7a', 400, 18, 40, 6);
+    px(ctx, '#ffffff', 418, 8, 4, 10);
+    px(ctx, '#e63946', 418, 6, 4, 2);
+  });
+
+  // Mid layer: dunes with beach grass; the waves wash up in front of them.
+  canvasTexture(scene, 'bg-beach-mid', 512, 90, 1, (ctx) => {
+    const rnd = mulberry32(53);
+    for (let x = 0; x < 512; x += 2) px(ctx, '#e9f9ff', x, 52 + Math.round(Math.sin(x / 9) * 1.5), 2, 2);
+    for (let x = -30; x < 512; x += 70) {
+      const h = 16 + Math.floor(rnd() * 16);
+      ctx.fillStyle = '#efd49a';
+      ctx.beginPath();
+      ctx.ellipse(x + 35, 90, 52, h + 30, 0, Math.PI, 0);
+      ctx.fill();
+      for (let i = 0; i < 6; i++) {
+        const gx = x + 15 + Math.floor(rnd() * 40);
+        const gy = 90 - h - 26 + Math.floor(rnd() * 10);
+        px(ctx, '#6aa84f', gx, gy, 1, 5);
+        px(ctx, '#6aa84f', gx + 2, gy + 1, 1, 4);
+      }
+    }
+    px(ctx, '#efd49a', 0, 74, 512, 16);
+  });
+
+  // A seawater puddle sunk into the sand (fills one tile in the sand row).
+  canvasTexture(scene, 'puddle', 16, 16, 1, (ctx) => {
+    px(ctx, '#c9a66a', 0, 0, 16, 16);
+    px(ctx, '#3fb6d3', 1, 5, 14, 11);
+    px(ctx, '#2a8fb0', 1, 12, 14, 4);
+    px(ctx, '#bff4ff', 2, 5, 12, 1);
+    px(ctx, '#ffffff', 4, 7, 3, 1);
+    px(ctx, '#ffffff', 10, 9, 2, 1);
+  });
+
+  canvasTexture(scene, 'palm', 32, 56, 1, (ctx) => {
+    // Gently curved trunk with ring marks.
+    for (let y = 14; y < 56; y++) {
+      const x = 14 + Math.round(Math.sin((56 - y) / 18) * 4);
+      px(ctx, y % 4 === 0 ? '#7a5230' : '#a0703f', x, y, 4, 1);
+    }
+    const fronds: [number, number, number, number][] = [[0, 10, 1, 1], [2, 4, 1, -1], [16, 2, -1, 1], [28, 9, -1, 1], [24, 3, -1, -1]];
+    for (const [fx, fy, dx] of fronds) {
+      for (let i = 0; i < 12; i++) {
+        const x = 17 + Math.round(((fx - 17) * i) / 12);
+        const y = 12 + Math.round(((fy - 12) * i) / 12 + (i * i) / 30);
+        px(ctx, '#3f8f3a', x, y, 2, 2);
+        if (i % 2 === 0) px(ctx, '#2d6b2a', x + dx, y + 2, 1, 2);
+      }
+    }
+    px(ctx, '#5a3a20', 15, 13, 3, 3);
+    px(ctx, '#5a3a20', 19, 14, 3, 3);
+  });
+
+  canvasTexture(scene, 'umbrella', 28, 36, 1, (ctx) => {
+    px(ctx, '#e8e2d0', 13, 8, 2, 28);
+    const stripes = ['#e63946', '#ffffff', '#f2c94c', '#ffffff'];
+    for (let y = 0; y < 8; y++) {
+      const half = Math.min(14, 4 + y * 2);
+      for (let x = 14 - half; x < 14 + half; x++) px(ctx, stripes[Math.floor((x + 1) / 4) % 4], x, y + 2);
+    }
+    px(ctx, '#1a0f1f', 13, 0, 2, 2);
+    for (let x = 0; x < 28; x += 4) px(ctx, '#b52a36', x, 10, 3, 1);
+  });
 }

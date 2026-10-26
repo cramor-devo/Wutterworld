@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { pixelText, setPixelText } from '../art/text';
 import { audio } from '../audio/chiptune';
-import { PHYSICS, TILE } from '../config';
+import { type Physics, PHYSICS, PHYSICS_DRY, TILE } from '../config';
 import { createKeys, type Keys, readGamepad, readKeys } from '../input/devices';
 import { controlScheme, withButtonLabels } from '../input/labels';
 import { InputEdges, mergeInputs } from '../input/state';
@@ -9,13 +9,15 @@ import { TouchControls, wantsTouchControls } from '../input/touch';
 import { type LevelDef, loadLevel } from '../levels';
 import type { ParsedLevel } from '../levels/parser';
 import { DIFFICULTIES, type DifficultySettings, isDifficulty, loadDifficulty } from '../logic/difficulty';
-import { createBrain, defeatEnemy, type EnemyBrain, type EnemyIntent, pufferPhaseForColumn, stepEnemy, stunEnemy } from '../logic/enemies';
+import { createBrain, defeatEnemy, type EnemyBrain, type EnemyIntent, type EnemyKind, isBouncer, pufferPhaseForColumn, stepEnemy, stunEnemy } from '../logic/enemies';
 import { Health } from '../logic/health';
 import { clampFall, currentAcceleration, type CurrentKind, JumpController, stepHorizontal } from '../logic/movement';
 import { formatScore, LEVEL_CLEAR_BONUS, type PickupKind, Score } from '../logic/score';
 import { THREAD_SPEED, ThreadAbility, threadLifetimeMs } from '../logic/threads';
+import { WaterTank } from '../logic/water';
 import { wrapText } from '../story';
 import { addBackdrop, addBubbles, type Backdrop, fadeTo, onViewResize, setHook } from './common';
+import { hudTitleX, pixelTextWidth } from './hud';
 
 type Body = Phaser.Physics.Arcade.Body;
 type ArcadeSprite = Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
@@ -31,6 +33,15 @@ const SIGN_RADIUS = 22;
 const HEARTS_PER_ROW = 5;
 const HEART_W = 7;
 const HEART_STEP = 8;
+const TANK_LOW = 0.25;
+
+const ENEMY_TEXTURE: Record<EnemyKind, string> = {
+  crab: 'crab',
+  puffer: 'puffer',
+  triggerfish: 'triggerfish',
+  jellyfish: 'jellyfish',
+  seagull: 'seagull',
+};
 
 export class LevelScene extends Phaser.Scene {
   private def!: LevelDef;
@@ -51,6 +62,9 @@ export class LevelScene extends Phaser.Scene {
   private jump = new JumpController();
   private threads = new ThreadAbility();
   private health!: Health;
+  /** Only on dry levels (the beach); null underwater. */
+  private tank: WaterTank | null = null;
+  private physicsNow: Physics = PHYSICS;
   private score!: Score;
   private startScore = 0;
 
@@ -65,8 +79,11 @@ export class LevelScene extends Phaser.Scene {
   private scoreText!: Phaser.GameObjects.Container;
   private hudBar!: Phaser.GameObjects.Rectangle;
   private levelName!: Phaser.GameObjects.Container;
+  /** Right edge of the left HUD items (hearts, charge bar and, on the beach, the water tank). */
+  private hudLeftEnd = 0;
   private signFrame!: Phaser.GameObjects.Graphics;
   private chargeBar!: Phaser.GameObjects.Rectangle;
+  private tankBar: Phaser.GameObjects.Rectangle | null = null;
   private signBox!: Phaser.GameObjects.Container;
   private signLines: Phaser.GameObjects.Container[] = [];
   private activeSign = -1;
@@ -89,10 +106,11 @@ export class LevelScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, worldW, worldH);
     this.cameras.main.setBounds(0, 0, worldW, worldH).fadeIn(300);
 
-    this.backdrop = addBackdrop(this);
-    addBubbles(this);
+    this.backdrop = addBackdrop(this, this.def.setting);
+    if (this.def.setting === 'reef') addBubbles(this);
     this.buildDecor();
     this.buildTiles();
+    this.buildPuddles();
     this.buildCurrents();
     this.buildExit();
     this.buildPickups();
@@ -129,6 +147,9 @@ export class LevelScene extends Phaser.Scene {
     this.health = new Health({ maxHearts: d.maxHearts, damage: d.damage, safe: this.def.safe || d.immortal });
     this.startScore = (this.registry.get('score') as number | undefined) ?? 0;
     this.score = new Score(this.startScore);
+    this.tank = this.def.setting === 'beach' ? new WaterTank(d.waterDrainMs) : null;
+    this.physicsNow = PHYSICS;
+    this.tankBar = null;
     this.walkVx = 0;
     this.driftVx = 0;
     this.facing = 1;
@@ -152,13 +173,28 @@ export class LevelScene extends Phaser.Scene {
       if (d.kind === 'seaweed') this.add.sprite(d.x, bottom, 'seaweed').setOrigin(0.5, 1).setDepth(-2).play({ key: 'seaweed-sway', startFrame: d.col % 2 });
       else if (d.kind === 'seafan') this.add.image(d.x, bottom, 'seafan').setOrigin(0.5, 1).setDepth(-2);
       else if (d.kind === 'lantern') this.add.image(d.x, bottom, 'lantern').setOrigin(0.5, 1).setDepth(-2);
-      else this.add.image(d.x, bottom, 'gate').setOrigin(0.5, 1).setDepth(-3);
+      else if (d.kind === 'palm' || d.kind === 'umbrella') this.add.image(d.x, bottom, d.kind).setOrigin(0.5, 1).setDepth(-2);
+      // Underwater gates are overgrown; on dry land they are clean.
+      else this.add.image(d.x, bottom, this.def.setting === 'reef' ? 'gate' : 'gate-clean').setOrigin(0.5, 1).setDepth(-3);
     }
     this.level.signs.forEach((s, i) => {
       this.add.image(s.x, s.y + TILE / 2, 'sign').setOrigin(0.5, 1).setDepth(-1);
       const mark = pixelText(this, s.x, s.y - 18, '!', { color: 0xffd25e, originX: 0.5 }).setDepth(5).setName(`sign-mark-${i}`);
       this.tweens.add({ targets: mark, y: mark.y - 3, duration: 400, yoyo: true, repeat: -1 });
     });
+  }
+
+  private puddleGroup: Phaser.GameObjects.Zone[] = [];
+
+  /** Seawater puddles sunk into the sand; walking through one refills the water tank. */
+  private buildPuddles(): void {
+    this.puddleGroup = [];
+    for (const p of this.level.puddles) {
+      this.add.image(p.x, p.y, 'puddle').setDepth(1);
+      const zone = this.add.zone(p.x, p.y - TILE / 2, TILE, TILE * 1.5);
+      this.physics.add.existing(zone, true);
+      this.puddleGroup.push(zone);
+    }
   }
 
   private buildCurrents(): void {
@@ -205,23 +241,34 @@ export class LevelScene extends Phaser.Scene {
     this.physics.add.collider(this.player, this.layer);
     this.physics.add.overlap(this.player, this.pickups, (_p, item) => this.collect(item as ArcadeSprite));
     this.physics.add.overlap(this.player, this.exitZone, () => this.complete());
+    this.physics.add.overlap(this.player, this.puddleGroup, () => {
+      if (this.tank?.refill()) audio.sfx('splash');
+    });
   }
 
   private buildEnemies(): void {
     this.enemyGroup = this.physics.add.group();
     for (const e of this.level.enemies) {
-      const key = e.kind === 'crab' ? 'crab' : e.kind === 'puffer' ? 'puffer' : 'triggerfish';
-      const sprite = this.enemyGroup.create(e.x, e.y, key) as ArcadeSprite;
+      // Jellyfish lie flat on the sand, so they sit a little lower than their tile centre.
+      const y = e.kind === 'jellyfish' ? e.y + 3 : e.y;
+      const sprite = this.enemyGroup.create(e.x, y, ENEMY_TEXTURE[e.kind]) as ArcadeSprite;
       sprite.setDepth(8);
       const body = sprite.body as Body;
       if (e.kind === 'crab') {
         body.setSize(14, 9).setOffset(1, 3);
         sprite.play('crab-walk');
+      } else if (e.kind === 'jellyfish') {
+        body.setAllowGravity(false).setImmovable(true);
+        body.setSize(14, 6).setOffset(1, 4);
+      } else if (e.kind === 'seagull') {
+        body.setAllowGravity(false);
+        body.setSize(12, 8).setOffset(2, 3);
+        sprite.play({ key: 'seagull-flap', startFrame: e.col % 2 });
       } else {
         body.setAllowGravity(false);
         body.setSize(12, 8).setOffset(2, 2);
       }
-      const phase = e.kind === 'puffer' ? pufferPhaseForColumn(e.col) : 0;
+      const phase = isBouncer(e.kind) ? pufferPhaseForColumn(e.col) : 0;
       const enemy: Enemy = { sprite, brain: createBrain(e.kind, e.x, e.y, phase), intent: { vx: 0, vy: 0, dangerous: true, stompable: false, scale: 1 } };
       sprite.setData('enemy', enemy);
       this.enemies.push(enemy);
@@ -248,8 +295,17 @@ export class LevelScene extends Phaser.Scene {
     const barX = shieldX + 9;
     this.add.rectangle(barX, 6, 22, 4, 0x1a0f1f).setOrigin(0).setScrollFactor(0).setDepth(101);
     this.chargeBar = this.add.rectangle(barX + 1, 7, 20, 2, 0xffd6ec).setOrigin(0).setScrollFactor(0).setDepth(102);
-    this.levelName = pixelText(this, this.scale.width / 2, 3, this.def.name, { color: 0xbff4ff, originX: 0.5 }).setScrollFactor(0).setDepth(101);
-    this.scoreText = pixelText(this, this.scale.width - 4, 3, formatScore(this.score.value), { color: 0xffd25e, originX: 1 }).setScrollFactor(0).setDepth(101);
+    this.hudLeftEnd = barX + 22;
+    if (this.tank) {
+      const tankX = barX + 26;
+      this.add.image(tankX, 3, 'drop-icon').setOrigin(0).setScrollFactor(0).setDepth(101);
+      this.add.rectangle(tankX + 7, 6, 22, 4, 0x1a0f1f).setOrigin(0).setScrollFactor(0).setDepth(101);
+      this.tankBar = this.add.rectangle(tankX + 8, 7, 20, 2, 0x5bc8ff).setOrigin(0).setScrollFactor(0).setDepth(102);
+      this.hudLeftEnd = tankX + 29;
+    }
+    const width = this.scale.width;
+    this.levelName = pixelText(this, this.levelNameX(width), 3, this.def.name, { color: 0xbff4ff, originX: 0.5 }).setScrollFactor(0).setDepth(101);
+    this.scoreText = pixelText(this, width - 4, 3, formatScore(this.score.value), { color: 0xffd25e, originX: 1 }).setScrollFactor(0).setDepth(101);
 
     this.signBox = this.add.container(0, 0).setScrollFactor(0).setDepth(150).setVisible(false);
     this.signFrame = this.add.graphics();
@@ -262,6 +318,12 @@ export class LevelScene extends Phaser.Scene {
     }
   }
 
+  /** Keeps the level name clear of the left HUD items (hearts, bars) and the score at any view width. */
+  private levelNameX(width: number): number {
+    const scoreLeft = width - 4 - pixelTextWidth(formatScore(this.score.value));
+    return hudTitleX(width, this.hudLeftEnd, scoreLeft, pixelTextWidth(this.def.name));
+  }
+
   private drawSignFrame(width: number): void {
     this.signFrame.clear();
     this.signFrame.fillStyle(0xf2c94c).fillRect(8, 18, width - 16, 48);
@@ -272,7 +334,7 @@ export class LevelScene extends Phaser.Scene {
   private relayout(width: number): void {
     this.backdrop.resize(width);
     this.hudBar.setSize(width, 14);
-    this.levelName.setX(width / 2);
+    this.levelName.setX(this.levelNameX(width));
     this.scoreText.setX(width - 4);
     this.drawSignFrame(width);
     this.touch?.relayout(width);
@@ -285,6 +347,12 @@ export class LevelScene extends Phaser.Scene {
     });
     this.shieldIcon.setVisible(this.health.shield);
     this.chargeBar.scaleX = this.threads.charge;
+    if (this.tank && this.tankBar) {
+      const low = this.tank.level < TANK_LOW;
+      // Blink red when nearly empty so the player heads for a puddle.
+      this.tankBar.scaleX = this.tank.level;
+      this.tankBar.setFillStyle(low ? 0xff5a5a : 0x5bc8ff, low && Math.floor(this.time.now / 200) % 2 === 0 ? 0.4 : 1);
+    }
     setPixelText(this.scoreText, formatScore(this.score.value));
   }
 
@@ -337,6 +405,8 @@ export class LevelScene extends Phaser.Scene {
   private updatePlayer(input: ReturnType<typeof mergeInputs>, dtMs: number, dt: number): void {
     const body = this.player.body;
     const grounded = body.blocked.down || body.touching.down;
+    this.updateTank(dtMs);
+    const p = this.physicsNow;
 
     if (body.blocked.left || body.blocked.right) this.walkVx = 0;
     this.walkVx = stepHorizontal(this.walkVx, input, dt);
@@ -353,10 +423,10 @@ export class LevelScene extends Phaser.Scene {
 
     const jumpVy = this.jump.update(dtMs, grounded, this.edges.pressed.jump, input.jump, vy);
     if (jumpVy !== null) {
-      if (jumpVy === -PHYSICS.jumpVelocity) audio.sfx('jump');
+      if (jumpVy === -p.jumpVelocity) audio.sfx('jump');
       vy = jumpVy;
     }
-    body.setVelocityY(clampFall(vy));
+    body.setVelocityY(clampFall(vy, p.maxFall));
 
     if (input.left !== input.right) this.facing = input.right ? 1 : -1;
     this.player.setFlipX(this.facing < 0);
@@ -367,6 +437,20 @@ export class LevelScene extends Phaser.Scene {
 
     // Blink while invulnerable.
     this.player.setAlpha(this.health.invulnerable && Math.floor(this.time.now / 80) % 2 === 0 ? 0.3 : 1);
+  }
+
+  /** Drains the beach water tank; a dry Wutter is heavier and jumps lower. */
+  private updateTank(dtMs: number): void {
+    if (!this.tank) return;
+    this.tank.update(dtMs);
+    const next = this.tank.dry ? PHYSICS_DRY : PHYSICS;
+    if (next === this.physicsNow) return;
+    this.physicsNow = next;
+    this.jump.setPhysics(next);
+    // World gravity is the underwater value; add the difference on the body.
+    this.player.body.setGravityY(next.gravity - PHYSICS.gravity);
+    if (this.tank.dry) this.player.setTint(0xd8b48a);
+    else this.player.clearTint();
   }
 
   private currentAt(x: number, y: number): CurrentKind | undefined {
@@ -387,6 +471,7 @@ export class LevelScene extends Phaser.Scene {
     for (const e of this.enemies) {
       if (!e.sprite.active) continue;
       const body = e.sprite.body as Body;
+      const before = e.brain.state;
       e.intent = stepEnemy(e.brain, {
         x: e.sprite.x,
         y: e.sprite.y,
@@ -399,14 +484,15 @@ export class LevelScene extends Phaser.Scene {
       body.setVelocityX(e.intent.vx);
       if (e.brain.kind !== 'crab') body.setVelocityY(e.intent.vy);
       if (Math.abs(e.intent.vx) > 1) e.sprite.setFlipX(e.brain.kind === 'crab' ? false : e.intent.vx > 0);
+      if (e.brain.kind === 'seagull' && e.brain.state === 'warning' && before !== 'warning') audio.sfx('squawk');
 
       const stunned = e.brain.state === 'stunned';
       if (stunned) {
         e.sprite.setTint(0xb0b0d0).setAngle(Math.sin(this.time.now / 60) * 10);
         e.sprite.anims.pause();
       } else if (e.brain.state === 'warning') {
-        // About to puff up: shake and flash so the player can get off in time.
-        e.sprite.setAngle(Math.sin(this.time.now / 25) * 12);
+        // About to puff up, sting or dive: shake and flash so the player can react in time.
+        e.sprite.setAngle(e.brain.kind === 'seagull' ? 0 : Math.sin(this.time.now / 25) * 12);
         if (Math.floor(this.time.now / 120) % 2 === 0) e.sprite.setTint(0xff9a7a);
         else e.sprite.clearTint();
       } else {
@@ -418,6 +504,8 @@ export class LevelScene extends Phaser.Scene {
         e.sprite.setTexture(inflated ? 'puffer-inflated' : 'puffer').setScale(inflated ? 1.4 : 1);
         if (inflated) body.setSize(14, 12).setOffset(1, 1);
         else body.setSize(12, 8).setOffset(2, 2);
+      } else if (e.brain.kind === 'jellyfish') {
+        e.sprite.setTexture(e.brain.state === 'sting' ? 'jellyfish-sting' : 'jellyfish');
       }
     }
   }
@@ -429,6 +517,7 @@ export class LevelScene extends Phaser.Scene {
     if (enemy.brain.state !== 'stunned') audio.sfx('stomp');
     stunEnemy(enemy.brain);
     if (enemy.brain.kind === 'puffer') enemy.sprite.setTexture('puffer').setScale(1);
+    if (enemy.brain.kind === 'jellyfish') enemy.sprite.setTexture('jellyfish');
   }
 
   private onEnemyContact(enemy: Enemy): void {
@@ -438,8 +527,8 @@ export class LevelScene extends Phaser.Scene {
     const fromAbove = pBody.velocity.y > 0 && pBody.bottom <= eBody.top + 6;
 
     if (fromAbove && enemy.intent.stompable) {
-      // Resting pufferfish are bouncy stepping stones that launch you high; everything else is defeated.
-      const springy = enemy.brain.kind === 'puffer' && enemy.brain.state !== 'stunned';
+      // Resting pufferfish and jellyfish are bouncy stepping stones that launch you high; everything else is defeated.
+      const springy = isBouncer(enemy.brain.kind) && enemy.brain.state !== 'stunned';
       pBody.setVelocityY(-(springy ? PHYSICS.pufferBounce : PHYSICS.stompBounce));
       this.jump.markAirborneBounce();
       audio.sfx(springy ? 'jump' : 'stomp');
@@ -492,7 +581,7 @@ export class LevelScene extends Phaser.Scene {
     this.tweens.add({ targets: this.player, y: this.player.y - 40, alpha: 0, duration: 1400 });
     const banner = this.add.container(this.scale.width / 2, 92).setScrollFactor(0).setDepth(160);
     banner.add(this.add.rectangle(0, 8, this.scale.width, 32, 0x0b1020, 0.7));
-    banner.add(pixelText(this, 0, 0, 'REEF CLEAR!', { color: 0xffd25e, scale: 2, originX: 0.5 }));
+    banner.add(pixelText(this, 0, 0, this.def.setting === 'beach' ? 'BEACH CLEAR!' : 'REEF CLEAR!', { color: 0xffd25e, scale: 2, originX: 0.5 }));
     setHook({ scene: 'LevelClear' });
     this.time.delayedCall(2200, () => {
       const next = this.def.next;

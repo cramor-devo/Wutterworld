@@ -15,6 +15,7 @@ export class BootScene extends Phaser.Scene {
 
     this.anims.create({ key: 'cucumber-crawl', frames: this.anims.generateFrameNumbers('cucumber', { start: 0, end: 1 }), frameRate: 6, repeat: -1 });
     this.anims.create({ key: 'crab-walk', frames: this.anims.generateFrameNumbers('crab', { start: 0, end: 1 }), frameRate: 6, repeat: -1 });
+    this.anims.create({ key: 'seagull-flap', frames: this.anims.generateFrameNumbers('seagull', { start: 0, end: 1 }), frameRate: 5, repeat: -1 });
     this.anims.create({ key: 'plankton-twinkle', frames: this.anims.generateFrameNumbers('plankton', { start: 0, end: 1 }), frameRate: 3, repeat: -1 });
     this.anims.create({ key: 'seaweed-sway', frames: this.anims.generateFrameNumbers('seaweed', { start: 0, end: 1 }), frameRate: 2, repeat: -1 });
 

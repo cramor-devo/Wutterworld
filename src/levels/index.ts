@@ -2,6 +2,8 @@ import { TILE } from '../config';
 import type { EnemyKind } from '../logic/enemies';
 import { parseLevel, type ParsedLevel } from './parser';
 
+export type LevelSetting = 'reef' | 'beach';
+
 export type NextStep = { type: 'level'; id: string } | { type: 'story'; id: string };
 
 export interface LevelDef {
@@ -10,7 +12,9 @@ export interface LevelDef {
   place: string;
   /** Hits never cost hearts (tutorial). */
   safe: boolean;
-  music: 'reef' | 'gardens';
+  /** Underwater reef, or the dry beach with its water tank, sky backdrop and land gravity when dry. */
+  setting: LevelSetting;
+  music: 'reef' | 'gardens' | 'beach';
   map: readonly string[];
   signs: readonly string[];
   /** Extra enemies that only appear on hard difficulty (tile column/row, like the map). */
@@ -30,6 +34,7 @@ const HOME_REEF: LevelDef = {
   name: 'HOME REEF',
   place: 'KENTING, TAIWAN',
   safe: true,
+  setting: 'reef',
   music: 'reef',
   signs: [
     'HOLD < > TO CRAWL. EAT THE GLOWING PLANKTON!',
@@ -65,6 +70,7 @@ const CORAL_GARDENS: LevelDef = {
   name: 'CORAL GARDENS',
   place: 'GREEN ISLAND, TAIWAN',
   safe: false,
+  setting: 'reef',
   music: 'gardens',
   signs: ['GREEN ISLAND REEF. EVERY FISH HERE WANTS A CUCUMBER SNACK. STAY STICKY!'],
   hardEnemies: [
@@ -94,11 +100,49 @@ const CORAL_GARDENS: LevelDef = {
   next: { type: 'story', id: 'chapter-1-end' },
 };
 
+// Beach Escape, Kenting: out of the water. A water tank keeps Wutter floaty; puddles refill it.
+const BEACH: LevelDef = {
+  id: 'beach',
+  name: 'BEACH ESCAPE',
+  place: 'KENTING BEACH, TAIWAN',
+  safe: false,
+  setting: 'beach',
+  music: 'beach',
+  signs: [
+    'NO SEA UP HERE! THE TANK AT THE TOP SHOWS YOUR WATER. DRY CUCUMBERS HOP LOWER. DIP IN SEAWATER PUDDLES TO REFILL.',
+    'BEACHED JELLYFISH ARE BOUNCY WHILE THEY REST. WHEN ONE WOBBLES, HOP OFF: ITS STING HURTS!',
+    'SEAGULLS SQUAWK BEFORE THEY DIVE. DODGE, THEN STOMP THEM OR SHOOT THREADS ({ACTION}).',
+  ],
+  hardEnemies: [
+    { kind: 'seagull', col: 30, row: 4 },
+    { kind: 'crab', col: 60, row: 11 },
+    { kind: 'seagull', col: 80, row: 5 },
+    { kind: 'crab', col: 97, row: 11 },
+  ],
+  map: [
+    '........................................................................................................................',
+    '........................................................................................................................',
+    '........................................................................................................................',
+    '........................................................................................................................',
+    '..........................................G......................................................G......................',
+    '..................................................................G.....................................................',
+    '...........................O.........................O..............................O...................................',
+    '..........................o.o.......................o.o............................o.o..................................',
+    '........................................................oOoo............................................................',
+    '................................................oo......####............................................................',
+    '................##......................oo......................##.........ooo.##..................##...................',
+    '.P.S.Y..oo....U.##.c..ooS..j...T....S.Y.##....c......j........U.##......Y.....###...j...Tc.....Y...##..c..A...U.Y..E.Y..',
+    '===========~======================~===============~===================~======================~=============~============',
+    '========================================================================================================================',
+  ],
+  next: { type: 'story', id: 'chapter-2-end' },
+};
+
 export const LEVELS: Record<string, LevelDef> = {
   [HOME_REEF.id]: HOME_REEF,
   [CORAL_GARDENS.id]: CORAL_GARDENS,
+  [BEACH.id]: BEACH,
 };
-
 export const FIRST_LEVEL_ID = HOME_REEF.id;
 
 export function hasLevel(id: string): boolean {

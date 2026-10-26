@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH, viewWidthFor } from '../config';
+import type { LevelSetting } from '../levels';
 
 /** State exposed for the Playwright smoke test and for debugging in the browser console. */
 export interface WutterHook {
@@ -36,12 +37,18 @@ export interface Backdrop {
   resize(width: number): void;
 }
 
-/** Underwater backdrop with two parallax layers, fixed to the camera. */
-export function addBackdrop(scene: Phaser.Scene): Backdrop {
+const BACKDROP_KEYS: Record<LevelSetting, { base: string; far: string; mid: string }> = {
+  reef: { base: 'bg-water', far: 'bg-far', mid: 'bg-mid' },
+  beach: { base: 'bg-sky', far: 'bg-beach-far', mid: 'bg-beach-mid' },
+};
+
+/** Underwater (or sunny beach) backdrop with two parallax layers, fixed to the camera. */
+export function addBackdrop(scene: Phaser.Scene, setting: LevelSetting = 'reef'): Backdrop {
   const w = scene.scale.width;
-  const water = scene.add.image(0, 0, 'bg-water').setOrigin(0).setScrollFactor(0).setDepth(-30).setDisplaySize(w, GAME_HEIGHT);
-  const far = scene.add.tileSprite(0, GAME_HEIGHT - 120, w, 120, 'bg-far').setOrigin(0).setScrollFactor(0).setDepth(-20);
-  const mid = scene.add.tileSprite(0, GAME_HEIGHT - 90, w, 90, 'bg-mid').setOrigin(0).setScrollFactor(0).setDepth(-15);
+  const keys = BACKDROP_KEYS[setting];
+  const base = scene.add.image(0, 0, keys.base).setOrigin(0).setScrollFactor(0).setDepth(-30).setDisplaySize(w, GAME_HEIGHT);
+  const far = scene.add.tileSprite(0, GAME_HEIGHT - 120, w, 120, keys.far).setOrigin(0).setScrollFactor(0).setDepth(-20);
+  const mid = scene.add.tileSprite(0, GAME_HEIGHT - 90, w, 90, keys.mid).setOrigin(0).setScrollFactor(0).setDepth(-15);
   return {
     far,
     mid,
@@ -50,7 +57,7 @@ export function addBackdrop(scene: Phaser.Scene): Backdrop {
       mid.tilePositionX = x * 0.45;
     },
     resize(width: number) {
-      water.setDisplaySize(width, GAME_HEIGHT);
+      base.setDisplaySize(width, GAME_HEIGHT);
       far.setSize(width, 120);
       mid.setSize(width, 90);
     },
