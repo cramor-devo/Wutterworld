@@ -8,6 +8,7 @@ interface Hook {
   touch?: boolean;
   difficulty?: string;
   enemies?: number;
+  viewWidth?: number;
 }
 
 const hook = (page: Page) => page.evaluate(() => (window as unknown as { __wutter?: Hook }).__wutter);
@@ -102,5 +103,53 @@ test('difficulty shortcut: hard adds enemies, easy gives 10 hearts', async ({ pa
   await page.goto('./?level=coral-gardens&difficulty=easy');
   await waitForScene(page, 'Level');
   expect((await hook(page))?.hearts).toBe(10);
+  expect(errors).toEqual([]);
+});
+
+/** View width the game should pick for a window size (mirrors viewWidthFor in src/config.ts). */
+const expectedViewWidth = (w: number, h: number) => Math.min(512, Math.max(256, Math.round((224 * (w / h)) / 2) * 2));
+
+test('full-screen button shows on phones only, and tapping it does not start the game', async ({ page, isMobile }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('./');
+  await waitForScene(page, 'Title');
+  const toggle = page.locator('#fs-toggle');
+  if (!isMobile) {
+    await expect(toggle).toBeHidden();
+  } else {
+    await expect(toggle).toBeVisible();
+    await toggle.tap();
+    await page.waitForTimeout(500);
+    expect((await hook(page))?.scene).toBe('Title');
+  }
+  // Only iPhones without the Fullscreen API get the Add to Home Screen hint.
+  await expect(page.locator('#install-hint')).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
+test('rotating re-fits the view without a reload, on the title and during a level', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  const viewWidth = async () => (await hook(page))?.viewWidth;
+  const size = page.viewportSize();
+  if (!size) throw new Error('no viewport');
+  const turned = { width: size.height, height: size.width };
+
+  await page.goto('./');
+  await waitForScene(page, 'Title');
+  await expect.poll(viewWidth).toBe(expectedViewWidth(size.width, size.height));
+  await page.setViewportSize(turned);
+  await expect.poll(viewWidth).toBe(expectedViewWidth(turned.width, turned.height));
+  await waitForScene(page, 'Title');
+  await expect(page.locator('img.brand-logo')).toHaveCount(1);
+
+  await page.goto('./?level=coral-gardens');
+  await waitForScene(page, 'Level');
+  await expect.poll(viewWidth).toBe(expectedViewWidth(turned.width, turned.height));
+  await page.setViewportSize(size);
+  await expect.poll(viewWidth).toBe(expectedViewWidth(size.width, size.height));
+  await page.waitForTimeout(500);
+  expect((await hook(page))?.level).toBe('coral-gardens');
   expect(errors).toEqual([]);
 });
