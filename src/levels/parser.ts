@@ -10,7 +10,7 @@ import type { PickupKind } from '../logic/score';
  *   o  plankton       O  bubble pearl              A  anemone (shield)
  *   c  crab           f  pufferfish                t  triggerfish
  *   ^  up-current     >  right-current             <  left-current
- *   S  sign (texts in order)  w  seaweed  g  sea fan  L  stone lantern  T  sunken torii-style gate
+ *   S  sign (texts in order)  w  seaweed  g  sea fan  L  stone lantern  T  paifang gate
  */
 export const SOLID_CHARS = ['#', '=', 'C', 'R'] as const;
 

@@ -176,8 +176,7 @@ function drawPanel(scene: Phaser.Scene, c: Phaser.GameObjects.Container, art: Pa
       bands([0xffcf8a, 0xffdca3, 0xffe9c7], y, 60);
       g.fillStyle(0x2ec4c6).fillRect(x, y + 60, w, 20);
       g.fillStyle(0xe3c283).fillRect(x, y + 80, w, h - 80);
-      g.fillStyle(0xc0392b).fillRect(x + w - 40, y + 34, 3, 46).fillRect(x + w - 24, y + 34, 3, 46);
-      g.fillStyle(0xe74c3c).fillRect(x + w - 44, y + 26, 28, 10);
+      img(x + w - 32, y + 86, 'gate-clean', 1).setOrigin(0.5, 1);
       g.fillStyle(0xfff3b0).fillCircle(x + 30, y + 22, 10);
       img(cx - 30, y + h - 22, 'cucumber', 3);
       img(cx + 20, y + h - 18, 'crab', 2);

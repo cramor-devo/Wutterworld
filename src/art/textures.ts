@@ -174,6 +174,54 @@ function backgroundTextures(scene: Phaser.Scene): void {
   });
 }
 
+export const PAIFANG_W = 48;
+export const PAIFANG_H = 40;
+
+/** One tiled roof with a gold ridge and upturned gold eave tips. */
+function paifangRoof(ctx: CanvasRenderingContext2D, x: number, y: number, w: number): void {
+  px(ctx, '#f2c94c', x + 2, y, w - 4, 1);
+  px(ctx, '#2f8f5b', x + 1, y + 1, w - 2, 3);
+  for (let i = x + 2; i < x + w - 2; i += 3) px(ctx, '#1d5e3b', i, y + 1, 1, 3);
+  px(ctx, '#1d5e3b', x, y + 4, w, 1);
+  px(ctx, '#f2c94c', x, y - 1, 1, 2);
+  px(ctx, '#f2c94c', x + w - 1, y - 1, 1, 2);
+}
+
+/** Three-bay paifang: red pillars, green tiled roofs, gold ridges and a gold centre plaque. */
+function drawPaifang(ctx: CanvasRenderingContext2D, mossy: boolean): void {
+  const red = '#c8432f';
+  const shade = '#7a2418';
+  const gold = '#f2c94c';
+  // Pillars on stone bases: the centre pair is taller than the outer pair.
+  for (const [x, top] of [[2, 22], [14, 7], [31, 7], [43, 22]]) {
+    px(ctx, red, x, top, 3, 38 - top);
+    px(ctx, shade, x + 2, top, 1, 38 - top);
+    px(ctx, '#8a96a3', x - 1, 37, 5, 3);
+  }
+  // Red lintels with gold trim.
+  px(ctx, red, 14, 14, 20, 3);
+  px(ctx, gold, 14, 17, 20, 1);
+  px(ctx, red, 2, 24, 13, 2);
+  px(ctx, red, 33, 24, 13, 2);
+  px(ctx, gold, 2, 26, 13, 1);
+  px(ctx, gold, 33, 26, 13, 1);
+  // Roofs: a high centre roof and two lower side roofs.
+  paifangRoof(ctx, 0, 19, 17);
+  paifangRoof(ctx, 31, 19, 17);
+  paifangRoof(ctx, 10, 2, 28);
+  // Gold-framed plaque under the centre roof.
+  px(ctx, gold, 18, 7, 12, 7);
+  px(ctx, shade, 19, 8, 10, 5);
+  px(ctx, gold, 21, 10, 2, 1);
+  px(ctx, gold, 25, 10, 2, 1);
+  if (mossy) {
+    px(ctx, '#4f8a5b', 3, 28, 2, 6);
+    px(ctx, '#4f8a5b', 32, 26, 2, 8);
+    px(ctx, '#4f8a5b', 14, 6, 6, 1);
+    px(ctx, '#4f8a5b', 40, 19, 3, 1);
+  }
+}
+
 function decorTextures(scene: Phaser.Scene): void {
   canvasTexture(scene, 'seaweed', 10, 32, 2, (ctx, f) => {
     for (let y = 0; y < 32; y++) {
@@ -193,20 +241,9 @@ function decorTextures(scene: Phaser.Scene): void {
     px(ctx, '#6b2d8c', 7, 12, 2, 4);
   });
 
-  // Sunken vermilion gate, overgrown with algae.
-  canvasTexture(scene, 'gate', 40, 40, 1, (ctx) => {
-    px(ctx, '#c8432f', 0, 2, 40, 4);
-    px(ctx, '#7a2418', 0, 6, 40, 1);
-    px(ctx, '#c8432f', 4, 11, 32, 3);
-    px(ctx, '#c8432f', 7, 6, 4, 34);
-    px(ctx, '#c8432f', 29, 6, 4, 34);
-    px(ctx, '#7a2418', 10, 6, 1, 34);
-    px(ctx, '#7a2418', 32, 6, 1, 34);
-    px(ctx, '#1a0f1f', 0, 0, 40, 2);
-    px(ctx, '#4f8a5b', 8, 20, 3, 6);
-    px(ctx, '#4f8a5b', 30, 28, 2, 8);
-    px(ctx, '#4f8a5b', 14, 5, 6, 1);
-  });
+  // Chinese paifang gate: sunken and algae-covered on the reef, clean on the beach.
+  canvasTexture(scene, 'gate', PAIFANG_W, PAIFANG_H, 1, (ctx) => drawPaifang(ctx, true));
+  canvasTexture(scene, 'gate-clean', PAIFANG_W, PAIFANG_H, 1, (ctx) => drawPaifang(ctx, false));
 
   // Exit: a column of warm light shining down into the reef (a tide pool above).
   canvasTexture(scene, 'exit', 24, 64, 1, (ctx) => {

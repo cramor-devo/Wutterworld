@@ -7,6 +7,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- The sunken torii-style gates are now Chinese **paifang** gates: three bays, red pillars, green tiled roofs, gold
+  ridges and a gold plaque. The gate in the "beach ahead" story panel is a paifang too
+  ([#8](https://github.com/cramor-devo/Wutterworld/issues/8)).
+
 ## [0.2.1] - 2026-10-24
 
 ### Added

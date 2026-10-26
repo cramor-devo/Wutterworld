@@ -120,7 +120,7 @@ Levels are ASCII maps in `src/levels/index.ts`. Every map is 14 rows of 16 px ti
 | `#` `=` `C` `R` | rock, sand, coral, red brick (solid) | `P` / `E` | player start / exit |
 | `o` `O` `A` | plankton, pearl, anemone shield | `c` `f` `t` | crab, puffer fish, triggerfish |
 | `^` `>` `<` | water currents | `S` | tutorial sign |
-| `w` `g` `L` `T` | seaweed, sea fan, stone lantern, gate (decoration) | `.` | water |
+| `w` `g` `L` `T` | seaweed, sea fan, stone lantern, paifang gate (decoration) | `.` | water |
 
 The unit tests check that every level parses and that its exit can be reached.
 
