@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
-import { GAME_HEIGHT } from '../config';
 import { pixelText } from '../art/text';
 import { touchOverride } from '../platform/fullscreen';
 import { type InputState, NO_INPUT } from './state';
+import { touchButtonLayout } from './touchLayout';
 
 interface Button {
   name: keyof InputState;
@@ -10,6 +10,7 @@ interface Button {
   y: number;
   r: number;
   gfx: Phaser.GameObjects.Graphics;
+  text?: Phaser.GameObjects.Container;
 }
 
 /** Whether to show on-screen buttons: touch devices, or forced with ?touch=1. */
@@ -28,17 +29,25 @@ export class TouchControls {
 
   constructor(private readonly scene: Phaser.Scene) {
     scene.input.addPointer(3);
-    const y = GAME_HEIGHT - 26;
-    this.add('left', 24, y, '');
-    this.add('right', 62, y, '');
-    this.add('action', scene.scale.width - 62, y + 6, 'B');
-    this.add('jump', scene.scale.width - 26, y - 8, 'A');
+    for (const spot of touchButtonLayout(scene.scale.width)) this.add(spot.name, spot.x, spot.y, spot.label);
+  }
+
+  /** Moves the right-hand buttons to the edge of a new view width (after rotating or full screen). */
+  relayout(viewWidth: number): void {
+    for (const spot of touchButtonLayout(viewWidth)) {
+      const b = this.buttons.find((btn) => btn.name === spot.name);
+      if (!b) continue;
+      b.x = spot.x;
+      b.y = spot.y;
+      b.text?.setPosition(spot.x, spot.y);
+      this.draw(b, this.state[b.name]);
+    }
   }
 
   private add(name: keyof InputState, x: number, y: number, label: string): void {
     const gfx = this.scene.add.graphics().setScrollFactor(0).setDepth(200);
-    this.buttons.push({ name, x, y, r: 15, gfx });
-    if (label) pixelText(this.scene, x, y, label, { originX: 0.5, originY: 0.5 }).setScrollFactor(0).setDepth(201).setAlpha(0.8);
+    const text = label ? pixelText(this.scene, x, y, label, { originX: 0.5, originY: 0.5 }).setScrollFactor(0).setDepth(201).setAlpha(0.8) : undefined;
+    this.buttons.push({ name, x, y, r: 15, gfx, text });
     this.draw(this.buttons[this.buttons.length - 1], false);
   }
 

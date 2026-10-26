@@ -15,7 +15,7 @@ import { clampFall, currentAcceleration, type CurrentKind, JumpController, stepH
 import { formatScore, LEVEL_CLEAR_BONUS, type PickupKind, Score } from '../logic/score';
 import { THREAD_SPEED, ThreadAbility, threadLifetimeMs } from '../logic/threads';
 import { wrapText } from '../story';
-import { addBackdrop, addBubbles, type Backdrop, fadeTo, setHook } from './common';
+import { addBackdrop, addBubbles, type Backdrop, fadeTo, onViewResize, setHook } from './common';
 
 type Body = Phaser.Physics.Arcade.Body;
 type ArcadeSprite = Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
@@ -63,6 +63,9 @@ export class LevelScene extends Phaser.Scene {
   private hearts: Phaser.GameObjects.Image[] = [];
   private shieldIcon!: Phaser.GameObjects.Image;
   private scoreText!: Phaser.GameObjects.Container;
+  private hudBar!: Phaser.GameObjects.Rectangle;
+  private levelName!: Phaser.GameObjects.Container;
+  private signFrame!: Phaser.GameObjects.Graphics;
   private chargeBar!: Phaser.GameObjects.Rectangle;
   private signBox!: Phaser.GameObjects.Container;
   private signLines: Phaser.GameObjects.Container[] = [];
@@ -107,6 +110,7 @@ export class LevelScene extends Phaser.Scene {
     this.touch = wantsTouchControls(this.game) ? new TouchControls(this) : null;
     this.buildHud();
     this.showTitleCard();
+    onViewResize(this, (w) => this.relayout(w));
     audio.play(this.def.music);
     setHook({ scene: 'Level', level: this.def.id, touch: !!this.touch, difficulty: this.difficulty.id, enemies: this.enemies.length });
   }
@@ -229,7 +233,7 @@ export class LevelScene extends Phaser.Scene {
   // ---------- HUD ----------
 
   private buildHud(): void {
-    this.add.rectangle(0, 0, this.scale.width, 14, 0x0b1020, 0.55).setOrigin(0).setScrollFactor(0).setDepth(100);
+    this.hudBar = this.add.rectangle(0, 0, this.scale.width, 14, 0x0b1020, 0.55).setOrigin(0).setScrollFactor(0).setDepth(100);
     // Up to 5 hearts per row; easy mode's 10 hearts use two rows inside the 14 px bar.
     const max = this.health.maxHearts;
     const twoRows = max > HEARTS_PER_ROW;
@@ -244,19 +248,34 @@ export class LevelScene extends Phaser.Scene {
     const barX = shieldX + 9;
     this.add.rectangle(barX, 6, 22, 4, 0x1a0f1f).setOrigin(0).setScrollFactor(0).setDepth(101);
     this.chargeBar = this.add.rectangle(barX + 1, 7, 20, 2, 0xffd6ec).setOrigin(0).setScrollFactor(0).setDepth(102);
-    pixelText(this, this.scale.width / 2, 3, this.def.name, { color: 0xbff4ff, originX: 0.5 }).setScrollFactor(0).setDepth(101);
+    this.levelName = pixelText(this, this.scale.width / 2, 3, this.def.name, { color: 0xbff4ff, originX: 0.5 }).setScrollFactor(0).setDepth(101);
     this.scoreText = pixelText(this, this.scale.width - 4, 3, formatScore(this.score.value), { color: 0xffd25e, originX: 1 }).setScrollFactor(0).setDepth(101);
 
     this.signBox = this.add.container(0, 0).setScrollFactor(0).setDepth(150).setVisible(false);
-    const box = this.add.graphics();
-    box.fillStyle(0xf2c94c).fillRect(8, 18, this.scale.width - 16, 48);
-    box.fillStyle(0x5a1a18).fillRect(9, 19, this.scale.width - 18, 46);
-    this.signBox.add(box);
+    this.signFrame = this.add.graphics();
+    this.drawSignFrame(this.scale.width);
+    this.signBox.add(this.signFrame);
     for (let i = 0; i < 4; i++) {
       const line = pixelText(this, 14, 24 + i * 10, '');
       this.signLines.push(line);
       this.signBox.add(line);
     }
+  }
+
+  private drawSignFrame(width: number): void {
+    this.signFrame.clear();
+    this.signFrame.fillStyle(0xf2c94c).fillRect(8, 18, width - 16, 48);
+    this.signFrame.fillStyle(0x5a1a18).fillRect(9, 19, width - 18, 46);
+  }
+
+  /** Fits the camera-fixed parts to a new view width, so rotating or going full screen keeps the level running. */
+  private relayout(width: number): void {
+    this.backdrop.resize(width);
+    this.hudBar.setSize(width, 14);
+    this.levelName.setX(width / 2);
+    this.scoreText.setX(width - 4);
+    this.drawSignFrame(width);
+    this.touch?.relayout(width);
   }
 
   private updateHud(): void {

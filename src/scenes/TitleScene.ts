@@ -3,7 +3,7 @@ import { pixelText, setPixelText } from '../art/text';
 import { audio } from '../audio/chiptune';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config';
 import { cycleDifficulty, type Difficulty, DIFFICULTIES, DIFFICULTY_ORDER, isDifficulty, loadDifficulty, saveDifficulty } from '../logic/difficulty';
-import { addBackdrop, addBubbles, addBrandLogo, centreFixedLayout, fadeTo, setHook } from './common';
+import { addBackdrop, addBubbles, addBrandLogo, centreFixedLayout, fadeTo, onViewResize, setHook } from './common';
 
 export const APP_VERSION = '0.2.1';
 
@@ -33,11 +33,11 @@ export class TitleScene extends Phaser.Scene {
     super('Title');
   }
 
-  create(): void {
+  create(data?: { refit?: boolean }): void {
     this.started = false;
     this.selector = undefined;
     setHook({ scene: 'Title', level: undefined });
-    this.cameras.main.fadeIn(300);
+    if (!data?.refit) this.cameras.main.fadeIn(300);
     const offset = centreFixedLayout(this);
     addBackdrop(this);
     addBubbles(this, 14);
@@ -80,6 +80,12 @@ export class TitleScene extends Phaser.Scene {
       if (button.index === PAD_LEFT) this.select(cycleDifficulty(this.difficulty, -1));
       else if (button.index === PAD_RIGHT) this.select(cycleDifficulty(this.difficulty, 1));
       else this.start();
+    });
+    // The title layout is centred for one width; after a rotation simply rebuild it (keeping the chosen mode).
+    onViewResize(this, () => {
+      if (this.started) return;
+      this.registry.set('difficulty', this.difficulty);
+      this.scene.restart({ refit: true });
     });
   }
 

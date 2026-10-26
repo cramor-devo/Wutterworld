@@ -3,7 +3,7 @@ import { pixelText, setPixelText } from '../art/text';
 import { audio } from '../audio/chiptune';
 import { GAME_HEIGHT, GAME_WIDTH } from '../config';
 import { getStory, type PanelArt, type Story, wrapText } from '../story';
-import { centreFixedLayout, fadeTo, setHook } from './common';
+import { centreFixedLayout, fadeTo, onViewResize, setHook } from './common';
 
 const PANEL = { x: 16, y: 12, w: GAME_WIDTH - 32, h: 120 };
 const TEXT_Y = PANEL.y + PANEL.h + 12;
@@ -31,7 +31,7 @@ export class StoryScene extends Phaser.Scene {
     audio.play('title');
     this.cameras.main.fadeIn(300);
     const offset = centreFixedLayout(this);
-    this.add.rectangle(0, 0, this.scale.width, GAME_HEIGHT, 0x0b1020).setOrigin(0).setScrollFactor(0);
+    const bg = this.add.rectangle(0, 0, this.scale.width, GAME_HEIGHT, 0x0b1020).setOrigin(0).setScrollFactor(0);
 
     // Gold-trimmed frame, like a lacquered temple plaque.
     const frame = this.add.graphics();
@@ -44,7 +44,14 @@ export class StoryScene extends Phaser.Scene {
     for (let i = 0; i < 4; i++) this.lines.push(pixelText(this, 16, TEXT_Y + i * 10, ''));
     const next = pixelText(this, GAME_WIDTH + offset - 14, GAME_HEIGHT - 12, 'TAP >', { color: 0xffd25e, originX: 1 });
     this.tweens.add({ targets: next, alpha: 0.2, duration: 500, yoyo: true, repeat: -1 });
-    pixelText(this, -offset + 14, GAME_HEIGHT - 12, 'SKIP: ESC', { color: 0x5f7790, shadow: null });
+    const skip = pixelText(this, -offset + 14, GAME_HEIGHT - 12, 'SKIP: ESC', { color: 0x5f7790, shadow: null });
+    // Re-centre after a rotation without losing the current panel.
+    onViewResize(this, (width) => {
+      const o = centreFixedLayout(this);
+      bg.setSize(width, GAME_HEIGHT);
+      next.setX(GAME_WIDTH + o - 14);
+      skip.setX(-o + 14);
+    });
 
     this.input.on('pointerup', () => this.advance());
     this.input.keyboard?.on('keydown-SPACE', () => this.advance());

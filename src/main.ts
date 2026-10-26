@@ -3,7 +3,7 @@ import { audio } from './audio/chiptune';
 import { GAME_HEIGHT, PHYSICS } from './config';
 import { setupFullscreen } from './platform/fullscreenUi';
 import { BootScene } from './scenes/BootScene';
-import { desiredViewWidth } from './scenes/common';
+import { desiredViewWidth, watchViewSize } from './scenes/common';
 import { LevelScene } from './scenes/LevelScene';
 import { StoryScene } from './scenes/StoryScene';
 import { TitleScene } from './scenes/TitleScene';
@@ -40,6 +40,8 @@ const game = new Phaser.Game({
   },
   scene: [BootScene, TitleScene, StoryScene, LevelScene],
 });
+
+watchViewSize(game);
 
 document.addEventListener('visibilitychange', () => audio.setHidden(document.hidden));
 
