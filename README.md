@@ -15,7 +15,12 @@ dodging every creature that thinks sea cucumbers are a snack, and finally swims 
 sideloading. It works on Android, iPhone/iPad, Chromebooks, Windows, macOS and Linux.
 
 - **Phones:** turn the phone sideways for the biggest view. Tap the screen once to start (iPhones only play sound
-  after a tap).
+  after a tap). The game re-fits straight away when you rotate the phone, with no black bars and no reload.
+- **Full screen:** on Android (and iPad), the first tap also switches the game to full screen and locks it in
+  landscape. The small **full-screen button** (⛶) at the bottom centre, or top right on the title screen, enters
+  and leaves full screen. Computers are unchanged: no automatic full screen.
+- **iPhone:** Safari cannot show a web page full screen. A hint at the top explains how: tap **Share**, then
+  **Add to Home Screen**. Close it with ×, and it stays closed.
 - **Optional "app" icon:** in the browser menu choose **Add to Home Screen** (Safari: Share > Add to Home Screen).
   The game then opens full-screen from its own icon.
 - **Testers:** share the link above or turn it into a QR code (for example via the browser's "Share > QR code").
@@ -84,15 +89,15 @@ Requirements: [Node.js](https://nodejs.org/) 22.13 or newer (current LTS).
 
 The scripts live in `.github/scripts/dev.ps1`.
 
-**Testing on your own phone:** `npm start` also prints a `Network:` URL (for example `http://192.168.1.20:5173/`).
-Open it on a phone on the same Wi-Fi.
+**Testing on your own phone:** `npm start` (the **Run** script) also prints a `Network:` URL (for example
+`http://192.168.1.20:5173/`). Open it on a phone on the same Wi-Fi.
 
 **Handy URL options:**
 
 - `?level=coral-gardens` (or `?level=reef-tutorial`) jumps straight into a level.
 - `?difficulty=scenic` (or `easy`, `normal`, `hard`) plays with that difficulty without changing the saved
   choice. Combine options with `&`, for example `?level=coral-gardens&difficulty=hard`.
-- `?touch=1` / `?touch=0` forces the on-screen buttons on or off.
+- `?touch=1` / `?touch=0` forces the on-screen buttons on or off (and with them the full-screen button).
 
 ### Project layout
 
@@ -106,6 +111,7 @@ src/
   art/               Pixel sprites, bitmap font, texture generation
   audio/             Chiptune songs and WebAudio synth
   input/             Keyboard, gamepad and touch input
+  platform/          Mobile full screen: first-tap full screen, toggle button, iPhone hint
   scenes/            Boot, Title, Story and Level scenes
 tests/               Vitest unit tests
 e2e/                 Playwright smoke tests
