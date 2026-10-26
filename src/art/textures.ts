@@ -291,5 +291,122 @@ export function generateTextures(scene: Phaser.Scene): void {
   fontTexture(scene);
   tilesTexture(scene);
   backgroundTextures(scene);
+  beachTextures(scene);
   decorTextures(scene);
+}
+
+/** Kenting beach: sunny sky over the sea, Big Pointed Mountain far away, dunes, palms and puddles. */
+function beachTextures(scene: Phaser.Scene): void {
+  canvasTexture(scene, 'bg-sky', 256, 224, 1, (ctx) => {
+    bandedGradient(ctx, 256, 128, ['#5bb8f0', '#73c6f5', '#8cd3f8', '#a6defb', '#c2e9fc', '#dcf3fd']);
+    // Sun with a soft halo.
+    ctx.fillStyle = '#fff6c9';
+    ctx.globalAlpha = 0.35;
+    ctx.beginPath();
+    ctx.arc(204, 36, 20, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#fff3a8';
+    ctx.beginPath();
+    ctx.arc(204, 36, 12, 0, Math.PI * 2);
+    ctx.fill();
+    // Small pixel clouds.
+    for (const [x, y] of [[30, 30], [110, 18], [150, 52]]) {
+      px(ctx, '#ffffff', x, y, 24, 4);
+      px(ctx, '#ffffff', x + 4, y - 3, 12, 3);
+      px(ctx, '#e4f4ff', x, y + 4, 24, 1);
+    }
+    // The sea, from the horizon down, with sparkles and the sun's reflection.
+    ctx.save();
+    ctx.translate(0, 128);
+    bandedGradient(ctx, 256, 96, ['#2ec4c6', '#24b2c0', '#1d9fb6', '#178cab']);
+    ctx.restore();
+    const rnd = mulberry32(31);
+    for (let i = 0; i < 40; i++) px(ctx, '#bff4ff', Math.floor(rnd() * 250), 130 + Math.floor(rnd() * 90), 3 + Math.floor(rnd() * 4), 1);
+    px(ctx, '#fff6c9', 196, 132, 16, 1);
+    px(ctx, '#fff6c9', 199, 136, 10, 1);
+  });
+  // Far layer: Kenting's Big Pointed Mountain and green hills on the horizon (the bottom stays see-through).
+  canvasTexture(scene, 'bg-beach-far', 512, 120, 1, (ctx) => {
+    const rnd = mulberry32(41);
+    ctx.fillStyle = '#5e9a7a';
+    for (let x = -20; x < 512; x += 48) {
+      const h = 6 + Math.floor(rnd() * 10);
+      ctx.beginPath();
+      ctx.ellipse(x + 24, 24, 34, h, 0, Math.PI, 0);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#4c8468';
+    ctx.beginPath();
+    ctx.moveTo(150, 24);
+    ctx.lineTo(178, 6);
+    ctx.lineTo(186, 0);
+    ctx.lineTo(194, 8);
+    ctx.lineTo(226, 24);
+    ctx.fill();
+    // A little white lighthouse on a far cape.
+    px(ctx, '#5e9a7a', 400, 18, 40, 6);
+    px(ctx, '#ffffff', 418, 8, 4, 10);
+    px(ctx, '#e63946', 418, 6, 4, 2);
+  });
+
+  // Mid layer: dunes with beach grass; the waves wash up in front of them.
+  canvasTexture(scene, 'bg-beach-mid', 512, 90, 1, (ctx) => {
+    const rnd = mulberry32(53);
+    for (let x = 0; x < 512; x += 2) px(ctx, '#e9f9ff', x, 52 + Math.round(Math.sin(x / 9) * 1.5), 2, 2);
+    for (let x = -30; x < 512; x += 70) {
+      const h = 16 + Math.floor(rnd() * 16);
+      ctx.fillStyle = '#efd49a';
+      ctx.beginPath();
+      ctx.ellipse(x + 35, 90, 52, h + 30, 0, Math.PI, 0);
+      ctx.fill();
+      for (let i = 0; i < 6; i++) {
+        const gx = x + 15 + Math.floor(rnd() * 40);
+        const gy = 90 - h - 26 + Math.floor(rnd() * 10);
+        px(ctx, '#6aa84f', gx, gy, 1, 5);
+        px(ctx, '#6aa84f', gx + 2, gy + 1, 1, 4);
+      }
+    }
+    px(ctx, '#efd49a', 0, 74, 512, 16);
+  });
+
+  // A seawater puddle sunk into the sand (fills one tile in the sand row).
+  canvasTexture(scene, 'puddle', 16, 16, 1, (ctx) => {
+    px(ctx, '#c9a66a', 0, 0, 16, 16);
+    px(ctx, '#3fb6d3', 1, 5, 14, 11);
+    px(ctx, '#2a8fb0', 1, 12, 14, 4);
+    px(ctx, '#bff4ff', 2, 5, 12, 1);
+    px(ctx, '#ffffff', 4, 7, 3, 1);
+    px(ctx, '#ffffff', 10, 9, 2, 1);
+  });
+
+  canvasTexture(scene, 'palm', 32, 56, 1, (ctx) => {
+    // Gently curved trunk with ring marks.
+    for (let y = 14; y < 56; y++) {
+      const x = 14 + Math.round(Math.sin((56 - y) / 18) * 4);
+      px(ctx, y % 4 === 0 ? '#7a5230' : '#a0703f', x, y, 4, 1);
+    }
+    const fronds: [number, number, number, number][] = [[0, 10, 1, 1], [2, 4, 1, -1], [16, 2, -1, 1], [28, 9, -1, 1], [24, 3, -1, -1]];
+    for (const [fx, fy, dx] of fronds) {
+      for (let i = 0; i < 12; i++) {
+        const x = 17 + Math.round(((fx - 17) * i) / 12);
+        const y = 12 + Math.round(((fy - 12) * i) / 12 + (i * i) / 30);
+        px(ctx, '#3f8f3a', x, y, 2, 2);
+        if (i % 2 === 0) px(ctx, '#2d6b2a', x + dx, y + 2, 1, 2);
+      }
+    }
+    px(ctx, '#5a3a20', 15, 13, 3, 3);
+    px(ctx, '#5a3a20', 19, 14, 3, 3);
+  });
+
+  canvasTexture(scene, 'umbrella', 28, 36, 1, (ctx) => {
+    px(ctx, '#e8e2d0', 13, 8, 2, 28);
+    const stripes = ['#e63946', '#ffffff', '#f2c94c', '#ffffff'];
+    for (let y = 0; y < 8; y++) {
+      const half = Math.min(14, 4 + y * 2);
+      for (let x = 14 - half; x < 14 + half; x++) px(ctx, stripes[Math.floor((x + 1) / 4) % 4], x, y + 2);
+    }
+    px(ctx, '#1a0f1f', 13, 0, 2, 2);
+    for (let x = 0; x < 28; x += 4) px(ctx, '#b52a36', x, 10, 3, 1);
+  });
 }

@@ -142,6 +142,97 @@ export const TRIGGERFISH: SpriteDef = {
   ],
 };
 
+// Beach seagull, facing left; two wing-flap frames.
+export const SEAGULL: SpriteDef = {
+  palette: { k: OUTLINE, i: OUTLINE, W: '#f4f6f8', G: '#9aa7b4', y: '#f2a03a' },
+  frames: [
+    [
+      '.......kk.kk....',
+      '......kGk.kGk...',
+      '......kWGkWGk...',
+      '..kkk..kWWWk....',
+      '.kWWWk.kWWWk....',
+      'yyiWWWkWWWWWkk..',
+      '.kkWWWWWWWWWWGk.',
+      '...kWWWWWWWWGGGk',
+      '....kWWWWWWWkkk.',
+      '.....kkkkkkk....',
+      '......y...y.....',
+      '................',
+    ],
+    [
+      '................',
+      '................',
+      '................',
+      '..kkk...........',
+      '.kWWWk..........',
+      'yyiWWWkkkkkkkk..',
+      '.kkWWWWWWWWWWGk.',
+      '...kWWWGGGGWGGGk',
+      '....kWkGGGGkkkk.',
+      '.....kkGGGGk....',
+      '......ykGGk.....',
+      '........kk......',
+    ],
+  ],
+};
+
+const JELLY_PALETTE: Palette = {
+  k: OUTLINE,
+  b: '#8fd3ff',
+  B: '#5aa6d6',
+  W: '#ffffff',
+  p: '#ff8fc8',
+  P: '#d0508f',
+  r: '#c77dff',
+  R: '#8a4fd1',
+  y: '#fff27a',
+};
+
+// A beached moon jellyfish, flattened on the sand. Bouncy while it rests.
+export const JELLYFISH: SpriteDef = {
+  palette: JELLY_PALETTE,
+  frames: [
+    [
+      '................',
+      '.....kkkkkk.....',
+      '...kkbbbbbbkk...',
+      '..kbbWbbppbbbk..',
+      '.kbWbbpPPpbbbbk.',
+      '.kbbbbpPPpbbbbk.',
+      'kbbbbbbppbbbbbbk',
+      'kBBBBBBBBBBBBBBk',
+      '.kpkkpkkpkkpkpk.',
+      'p..p..p..p..p..p',
+    ],
+  ],
+};
+
+// Stinging: purple glow, raised tentacles and sparks. Touching it hurts.
+export const JELLYFISH_STING: SpriteDef = {
+  palette: JELLY_PALETTE,
+  frames: [
+    [
+      '.y....y....y..y.',
+      '..y..kkkkkk..y..',
+      '...kkrrrrrrkk...',
+      '..krrWrrpprrrk..',
+      'ykrWrrpPPprrrrky',
+      '.krrrrpPPprrrrk.',
+      'krrrrrrpprrrrrrk',
+      'kRRRRRRRRRRRRRRk',
+      'pkpkpkpkpkpkpkpk',
+      'p.p.p.p.p.p.p.p.',
+    ],
+  ],
+};
+
+// HUD water tank icon.
+export const DROP_ICON: SpriteDef = {
+  palette: { b: '#5ad1ff', B: '#2a86c4', W: '#ffffff' },
+  frames: [['..b..', '..b..', '.bbb.', 'bbWbb', 'bbbbb', 'BbbbB', '.BBB.']],
+};
+
 export const PLANKTON: SpriteDef = {
   palette: { g: '#7df9ff', G: '#ffffff' },
   frames: [
@@ -248,6 +339,10 @@ export const ALL_SPRITES: Record<string, SpriteDef> = {
   puffer: PUFFER,
   'puffer-inflated': PUFFER_INFLATED,
   triggerfish: TRIGGERFISH,
+  seagull: SEAGULL,
+  jellyfish: JELLYFISH,
+  'jellyfish-sting': JELLYFISH_STING,
+  'drop-icon': DROP_ICON,
   plankton: PLANKTON,
   pearl: PEARL,
   anemone: ANEMONE,

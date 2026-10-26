@@ -64,6 +64,12 @@ export const SONGS = {
     lead: 'A4 C5 D5 E5 | G5 E5 D5 C5 | A4 - E5 - | D5 C5 A4 - | C5 D5 E5 G5 | A5 G5 E5 D5 | E5 - D5 C5 | A4 - - -',
     bass: 'A2 - A3 A2 | G2 - G3 G2 | F2 - F3 F2 | E2 - E3 E2 | A2 - A3 A2 | G2 - G3 G2 | F2 - F3 F2 | E2 - E3 -',
   },
+  // Sunny and bouncy: G major pentatonic with a skipping bass.
+  beach: {
+    bpm: 120,
+    lead: 'G5 - E5 D5 | B4 - D5 - | E5 G5 A5 G5 | E5 - - . | D5 - B4 A4 | G4 - A4 B4 | D5 E5 D5 B4 | G4 - - .',
+    bass: 'G2 . D3 . | G2 . D3 . | C3 . G3 . | C3 . G3 . | D3 . A3 . | E3 . B3 . | D3 . A3 . | G2 . D3 .',
+  },
 } satisfies Record<string, Song>;
 
 export type SongId = keyof typeof SONGS;
