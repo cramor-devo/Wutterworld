@@ -149,11 +149,18 @@ describe('triggerfish', () => {
     expect(b.state).toBe('patrol');
   });
 
-  it('cannot be stomped unless stunned', () => {
+  it('is 5% slower than before playtesting (issue #13)', () => {
+    expect(ENEMY_TUNING.triggerfish.speed).toBeCloseTo(30 * 0.95);
+    expect(ENEMY_TUNING.triggerfish.chaseSpeed).toBeCloseTo(66 * 0.95);
+  });
+
+  it('can be stomped while patrolling and while chasing (issue #13)', () => {
     const b = createBrain('triggerfish', 100, 100);
-    expect(stepEnemy(b, ctx()).stompable).toBe(false);
-    stunEnemy(b);
     expect(stepEnemy(b, ctx()).stompable).toBe(true);
+    const chasing = stepEnemy(b, ctx({ playerX: 150, playerY: 100 }));
+    expect(b.state).toBe('chase');
+    expect(chasing.stompable).toBe(true);
+    expect(chasing.dangerous).toBe(true);
   });
 });
 

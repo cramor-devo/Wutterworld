@@ -56,7 +56,8 @@ export interface EnemyIntent {
 export const ENEMY_TUNING = {
   crab: { speed: 26, range: 40 },
   puffer: { bob: 10, restMs: 3000, warnMs: 700, inflateMs: 1500 },
-  triggerfish: { speed: 30, chaseSpeed: 66, range: 48, noticeDist: 76, giveUpDist: 120, verticalSight: 56 },
+  // 5% slower than the original 30 / 66 after playtesting (issue #13).
+  triggerfish: { speed: 28.5, chaseSpeed: 62.7, range: 48, noticeDist: 76, giveUpDist: 120, verticalSight: 56 },
   jellyfish: { restMs: 3000, warnMs: 700, stingMs: 1500 },
   seagull: {
     speed: 34,
@@ -217,20 +218,20 @@ function stepTriggerfish(brain: EnemyBrain, ctx: EnemyContext): EnemyIntent {
     } else {
       const len = dist || 1;
       brain.dir = dx >= 0 ? 1 : -1;
-      return { vx: (dx / len) * t.chaseSpeed, vy: (dy / len) * t.chaseSpeed, dangerous: true, stompable: false, scale: 1 };
+      return { vx: (dx / len) * t.chaseSpeed, vy: (dy / len) * t.chaseSpeed, dangerous: true, stompable: true, scale: 1 };
     }
   }
 
   if (!ctx.passive && dist < t.noticeDist && Math.abs(dy) < t.verticalSight) {
     brain.state = 'chase';
     brain.dir = dx >= 0 ? 1 : -1;
-    return { vx: brain.dir * t.chaseSpeed, vy: 0, dangerous: true, stompable: false, scale: 1 };
+    return { vx: brain.dir * t.chaseSpeed, vy: 0, dangerous: true, stompable: true, scale: 1 };
   }
 
   const dir = patrolDirection(brain, ctx.x, ctx.blocked);
   // Drift back toward the patrol height after a chase.
   const vy = Math.max(-20, Math.min(20, brain.originY - ctx.y));
-  return { vx: dir * t.speed, vy, dangerous: true, stompable: false, scale: 1 };
+  return { vx: dir * t.speed, vy, dangerous: true, stompable: true, scale: 1 };
 }
 
 function stepJellyfish(brain: EnemyBrain, ctx: EnemyContext): EnemyIntent {

@@ -7,6 +7,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Coral Gardens: triggerfish swim 5% slower and can now be defeated by landing on them, also while they chase
+  ([#13](https://github.com/cramor-devo/Wutterworld/issues/13)).
+
 ## [0.3.0] - 2026-10-26
 
 ### Added

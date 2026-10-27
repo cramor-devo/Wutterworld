@@ -78,13 +78,14 @@ Hard, and never on Scenic.
 1. **Story intro**: four illustrated panels.
 2. **Home Reef (tutorial)**, Kenting: signs teach moving, jumping, currents, plankton, pearls, the anemone
    shield and sticky threads. You cannot lose hearts here.
-3. **Coral Gardens**, Green Island: the first real level, with crabs, puffer fish and triggerfish.
+3. **Coral Gardens**, Green Island: the first real level, with crabs, puffer fish and triggerfish
+   (land on a triggerfish to defeat it).
 4. **Chapter end** story panels.
 5. **Beach Escape**, Kenting Beach: a dry level with the water tank, crabs, seagulls and beached jellyfish.
 6. **Thank-you** story panels, then back to the title screen.
 
-Planned route: Night Market → Temple Festival (Jiufen) → Typhoon → Abyss → a festive **Home Reef**
-finale.
+Planned route for v1.0.0: Night Market → Jiufen → Typhoon → The Midnight Zone (deep sea) → a festive
+**Home Reef** finale (issues #14 to #18).
 
 ## Development
 
