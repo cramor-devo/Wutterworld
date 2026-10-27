@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { FIXED_LAYOUT_TOP, GAME_HEIGHT, GAME_WIDTH, viewWidthFor } from '../config';
-import type { LevelSetting } from '../levels';
+import { type LevelSetting, SETTINGS } from '../levels';
 
 /** State exposed for the Playwright smoke test and for debugging in the browser console. */
 export interface WutterHook {
@@ -32,37 +32,46 @@ export function setHook(patch: Partial<WutterHook>): void {
 export interface Backdrop {
   far: Phaser.GameObjects.TileSprite;
   mid: Phaser.GameObjects.TileSprite;
+  /** Optional closest layer (the night market crowd), between the mid layer and the play layer. */
+  near: Phaser.GameObjects.TileSprite | null;
   scroll(x: number): void;
   /** Stretches the layers to a new view width. */
   resize(width: number): void;
 }
 
-const BACKDROP_KEYS: Record<LevelSetting, { base: string; far: string; mid: string }> = {
-  reef: { base: 'bg-water', far: 'bg-far', mid: 'bg-mid' },
-  beach: { base: 'bg-sky', far: 'bg-beach-far', mid: 'bg-beach-mid' },
-};
+/** Default far and mid layer heights, and the height of the optional near layer (which hugs the ground). */
+const FAR_H = 120;
+const MID_H = 90;
+const NEAR_H = 64;
 
 /**
- * Underwater (or sunny beach) backdrop with two parallax layers, fixed to the camera. The layers stand on
+ * The setting's backdrop, fixed to the camera: a base picture, two parallax layers (far and mid) and, where the
+ * setting has one, a third, faster near layer. Every layer texture tiles seamlessly sideways. The layers stand on
  * `bottom`: in levels that is the top of the extra ground rows, so the scenery is not hidden behind them.
  */
 export function addBackdrop(scene: Phaser.Scene, setting: LevelSetting = 'reef', bottom = GAME_HEIGHT): Backdrop {
   const w = scene.scale.width;
-  const keys = BACKDROP_KEYS[setting];
+  const keys = SETTINGS[setting].backdrop;
   const base = scene.add.image(0, 0, keys.base).setOrigin(0).setScrollFactor(0).setDepth(-30).setDisplaySize(w, GAME_HEIGHT);
-  const far = scene.add.tileSprite(0, bottom - 120, w, 120, keys.far).setOrigin(0).setScrollFactor(0).setDepth(-20);
-  const mid = scene.add.tileSprite(0, bottom - 90, w, 90, keys.mid).setOrigin(0).setScrollFactor(0).setDepth(-15);
+  const farH = keys.farH ?? FAR_H;
+  const midH = keys.midH ?? MID_H;
+  const far = scene.add.tileSprite(0, bottom - farH, w, farH, keys.far).setOrigin(0).setScrollFactor(0).setDepth(-20);
+  const mid = scene.add.tileSprite(0, bottom - midH, w, midH, keys.mid).setOrigin(0).setScrollFactor(0).setDepth(-15);
+  const near = keys.near ? scene.add.tileSprite(0, bottom - NEAR_H, w, NEAR_H, keys.near).setOrigin(0).setScrollFactor(0).setDepth(-12) : null;
   return {
     far,
     mid,
+    near,
     scroll(x: number) {
       far.tilePositionX = x * 0.2;
       mid.tilePositionX = x * 0.45;
+      if (near) near.tilePositionX = x * 0.7;
     },
     resize(width: number) {
       base.setDisplaySize(width, GAME_HEIGHT);
-      far.setSize(width, 120);
-      mid.setSize(width, 90);
+      far.setSize(width, farH);
+      mid.setSize(width, midH);
+      near?.setSize(width, NEAR_H);
     },
   };
 }

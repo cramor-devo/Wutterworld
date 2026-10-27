@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { GROUND_FILL_ROWS, LEVEL_ROWS, PHYSICS, PHYSICS_DRY, TILE } from '../src/config';
 import { CHAPTERS, nextChapter } from '../src/levels/chapters';
 import { FIRST_LEVEL_ID, getLevel, hasLevel, LEVELS, loadLevel } from '../src/levels';
-import { parseLevel, TILE_INDEX, validateMap } from '../src/levels/parser';
-import { canMountPuffer, pufferArcCells, pufferTargets } from '../src/levels/puffers';
+import { parseLevel, TILE_COUNT, TILE_INDEX, validateMap } from '../src/levels/parser';
+import { canMountPuffer, levelBouncers, pufferArcCells, pufferTargets } from '../src/levels/puffers';
 import { canReachExit, reachableCells, unreachableThings } from '../src/levels/reachability';
-import { isBouncer } from '../src/logic/enemies';
+import { isLandSetting, type LevelSetting, SETTINGS } from '../src/levels/settings';
 import { jumpApexHeight } from '../src/logic/movement';
 import { STORIES } from '../src/story';
 
@@ -38,6 +38,34 @@ describe('parser', () => {
     expect(lvl.puddles).toEqual([expect.objectContaining({ col: 2, row: 12 })]);
     expect(lvl.solid[12][2]).toBe(false);
     expect(lvl.tiles[13][2]).toBe(TILE_INDEX.sandTop);
+  });
+
+  it('parses market platforms: cardboard boxes and stacked oil cans with a cap on top', () => {
+    const map = blank(6, { 9: '...B..', 10: '...B..', 11: 'P.bbBE' });
+    const lvl = parseLevel(map);
+    expect(lvl.solid[11].slice(2, 5)).toEqual([true, true, true]);
+    expect([TILE_INDEX.box, TILE_INDEX.boxAlt]).toContain(lvl.tiles[11][2]);
+    expect(lvl.tiles[11][2]).not.toBe(lvl.tiles[11][3]);
+    expect(lvl.tiles[9][3]).toBe(TILE_INDEX.oilTop);
+    expect(lvl.tiles[10][3]).toBe(TILE_INDEX.oilBody);
+    expect(lvl.tiles[11][4]).toBe(TILE_INDEX.oilTop);
+  });
+
+  it('parses street cats and stinky tofu blocks, which have their own bodies instead of grid tiles', () => {
+    const map = blank(6, { 10: '...z..', 11: 'P.kz.E' });
+    const lvl = parseLevel(map);
+    expect(lvl.enemies.map((e) => e.kind)).toEqual(['cat']);
+    expect(lvl.tofu.map((t) => [t.col, t.row])).toEqual([
+      [3, 10],
+      [3, 11],
+    ]);
+    expect(lvl.solid[11][3]).toBe(false);
+    expect(lvl.tiles[11][3]).toBe(TILE_INDEX.empty);
+    expect(levelBouncers(lvl).map((b) => b.kind)).toEqual(['tofu', 'tofu']);
+  });
+
+  it('every tile index fits in the tileset', () => {
+    for (const i of Object.values(TILE_INDEX)) expect(i).toBeLessThan(TILE_COUNT);
   });
 
   it('adds ground rows under the map that continue the bottom row and keep gaps open', () => {
@@ -135,6 +163,15 @@ describe('game levels', () => {
     expect(kinds('reef-tutorial').has('triggerfish')).toBe(false);
     expect([...kinds('coral-gardens')].sort()).toEqual(['crab', 'puffer', 'triggerfish']);
     expect([...kinds('beach')].sort()).toEqual(['crab', 'jellyfish', 'seagull']);
+    expect([...kinds('night-market')].sort()).toEqual(['cat', 'seagull']);
+  });
+
+  it('the night market is a dangerous market level with stinky tofu', () => {
+    const def = LEVELS['night-market'];
+    expect(def.setting).toBe('market');
+    expect(def.safe).toBe(false);
+    expect(loadLevel('night-market').parsed.tofu.length).toBeGreaterThanOrEqual(3);
+    expect(loadLevel('night-market').parsed.decor.some((d) => d.kind === 'market-gate')).toBe(true);
   });
 
   it('only the beach is a beach level', () => {
@@ -145,11 +182,15 @@ describe('game levels', () => {
     expect(STORIES.intro.next).toEqual({ type: 'level', id: FIRST_LEVEL_ID });
   });
 
-  it('chapter 1 leads to the beach, and the beach ends on the thank-you story', () => {
+  it('chapter 1 leads to the beach, the beach to the night market, and the market ends on the thank-you story', () => {
     expect(STORIES['chapter-1-end'].next).toEqual({ type: 'level', id: 'beach' });
     expect(LEVELS.beach.next).toEqual({ type: 'story', id: 'chapter-2-end' });
-    expect(STORIES['chapter-2-end'].next).toEqual({ type: 'title' });
-    expect(STORIES['chapter-2-end'].panels.at(-1)?.text).toContain('THANK YOU FOR PLAYING');
+    expect(STORIES['chapter-2-end'].next).toEqual({ type: 'level', id: 'night-market' });
+    expect(STORIES['chapter-2-end'].panels.at(-1)?.text).toContain('LANTERNS & LINES');
+    expect(LEVELS['night-market'].next).toEqual({ type: 'story', id: 'chapter-3-end' });
+    expect(STORIES['chapter-3-end'].next).toEqual({ type: 'title' });
+    expect(STORIES['chapter-3-end'].panels.at(-1)?.text).toContain('JIUFEN');
+    expect(STORIES['chapter-3-end'].panels.at(-1)?.text).toContain('THANK YOU FOR PLAYING');
   });
 });
 
@@ -177,8 +218,8 @@ describe('level lookup', () => {
   });
 });
 
-describe('beach water tank (issue #7)', () => {
-  const beach = (extraEnemies: boolean) => loadLevel('beach', { extraEnemies }).parsed;
+describe.each(['beach', 'night-market'])('%s water tank (issues #7, #14)', (id) => {
+  const beach = (extraEnemies: boolean) => loadLevel(id, { extraEnemies }).parsed;
 
   it('a dry Wutter jumps two tiles, a wet one three', () => {
     expect(DRY_REACH.up).toBe(2);
@@ -220,15 +261,15 @@ describe('pufferfish placement (issue #3)', () => {
     expect(apex).toBeGreaterThan(jumpApexHeight() * 1.5);
   });
 
-  it.each(levels)('every puffer and jellyfish in %s can be mounted from reachable ground', (_id, lvl) => {
-    for (const p of lvl.enemies.filter((e) => isBouncer(e.kind))) {
-      expect(canMountPuffer(lvl, p, REACH), `puffer at ${p.col},${p.row}`).toBe(true);
+  it.each(levels)('every puffer, jellyfish and stinky tofu in %s can be mounted from reachable ground', (_id, lvl) => {
+    for (const p of levelBouncers(lvl)) {
+      expect(canMountPuffer(lvl, p, REACH), `${p.kind} at ${p.col},${p.row}`).toBe(true);
     }
   });
 
-  it.each(levels)('every puffer and jellyfish in %s bounces the player to a pearl or a sideways current', (_id, lvl) => {
-    for (const p of lvl.enemies.filter((e) => isBouncer(e.kind))) {
-      expect(pufferTargets(lvl, p).length, `puffer at ${p.col},${p.row}`).toBeGreaterThan(0);
+  it.each(levels)('every puffer, jellyfish and stinky tofu in %s bounces the player to a pearl or a sideways current', (_id, lvl) => {
+    for (const p of levelBouncers(lvl)) {
+      expect(pufferTargets(lvl, p).length, `${p.kind} at ${p.col},${p.row}`).toBeGreaterThan(0);
     }
   });
 
@@ -248,7 +289,7 @@ describe('everything can be reached', () => {
 
   it.each(cases)('every pickup and enemy in %s (hard extras: %s) can be reached', (id, extraEnemies) => {
     const lvl = loadLevel(id, { extraEnemies }).parsed;
-    const viaPuffers = lvl.enemies.filter((e) => isBouncer(e.kind)).flatMap((p) => [...pufferArcCells(lvl, p)]);
+    const viaPuffers = levelBouncers(lvl).flatMap((p) => [...pufferArcCells(lvl, p)]);
     expect(unreachableThings(lvl, REACH, viaPuffers)).toEqual([]);
   });
 
@@ -261,19 +302,38 @@ describe('everything can be reached', () => {
 });
 
 describe('hard mode (issue #4)', () => {
-  it('adds extra enemies to Coral Gardens and the beach, not the tutorial', () => {
-    for (const id of ['coral-gardens', 'beach']) {
+  it('adds extra enemies to Coral Gardens, the beach and the night market, not the tutorial', () => {
+    for (const id of ['coral-gardens', 'beach', 'night-market']) {
       const base = loadLevel(id).parsed.enemies.length;
       expect(loadLevel(id, { extraEnemies: true }).parsed.enemies.length).toBeGreaterThan(base);
     }
     expect(loadLevel('reef-tutorial', { extraEnemies: true }).parsed.enemies).toEqual(loadLevel('reef-tutorial').parsed.enemies);
   });
 
-  it.each(['coral-gardens', 'beach'])('places extra enemies in %s in open space, with crabs standing on the ground', (id) => {
+  it.each(['coral-gardens', 'beach', 'night-market'])('places extra enemies in %s in open space, with crabs and cats standing on the ground', (id) => {
     const lvl = loadLevel(id, { extraEnemies: true }).parsed;
     for (const e of LEVELS[id].hardEnemies ?? []) {
       expect(lvl.solid[e.row][e.col], `${e.kind} at ${e.col},${e.row}`).toBe(false);
-      if (e.kind === 'crab') expect(lvl.solid[e.row + 1][e.col], `crab at ${e.col},${e.row}`).toBe(true);
+      if (e.kind === 'crab' || e.kind === 'cat') expect(lvl.solid[e.row + 1][e.col], `${e.kind} at ${e.col},${e.row}`).toBe(true);
     }
+  });
+});
+
+describe('level settings (issue #14)', () => {
+  const all = Object.keys(SETTINGS) as LevelSetting[];
+
+  it('the reef is underwater; the beach and the night market are dry land', () => {
+    expect(all.filter(isLandSetting).sort()).toEqual(['beach', 'market']);
+  });
+
+  it('every setting has its own level-clear banner', () => {
+    const banners = all.map((s) => SETTINGS[s].clearBanner);
+    expect(new Set(banners).size).toBe(all.length);
+    expect(SETTINGS.market.clearBanner).toBe('MARKET CLEAR!');
+  });
+
+  it('market puddles look murky, beach puddles keep their seawater', () => {
+    expect(SETTINGS.market.puddle).not.toBe(SETTINGS.beach.puddle);
+    expect(SETTINGS.market.tileset).not.toBe(SETTINGS.beach.tileset);
   });
 });

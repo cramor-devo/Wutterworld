@@ -1,40 +1,12 @@
 import Phaser from 'phaser';
+import { TILE_COUNT } from '../levels/parser';
+import { bandedGradient, canvasTexture, mulberry32, px } from './canvas';
 import { CELL_H, CELL_W, FONT_CHARS, GLYPH_W, GLYPHS } from './font';
+import { marketTextures } from './market';
+import { marketBackdropTextures } from './marketBackdrop';
 import { ALL_SPRITES, type SpriteDef, spriteSize } from './sprites';
 
-/** Small deterministic RNG so procedural art looks the same on every device. */
-export function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-type Draw = (ctx: CanvasRenderingContext2D, frame: number) => void;
-
-function canvasTexture(scene: Phaser.Scene, key: string, w: number, h: number, frames: number, draw: Draw): void {
-  const tex = scene.textures.createCanvas(key, w * frames, h);
-  if (!tex) return;
-  const ctx = tex.getContext();
-  ctx.imageSmoothingEnabled = false;
-  for (let f = 0; f < frames; f++) {
-    ctx.save();
-    ctx.translate(f * w, 0);
-    draw(ctx, f);
-    ctx.restore();
-    tex.add(f, 0, f * w, 0, w, h);
-  }
-  tex.refresh();
-}
-
-function px(ctx: CanvasRenderingContext2D, color: string, x: number, y: number, w = 1, h = 1): void {
-  ctx.fillStyle = color;
-  ctx.fillRect(x, y, w, h);
-}
+export { mulberry32 } from './canvas';
 
 export function spriteTexture(scene: Phaser.Scene, key: string, def: SpriteDef): void {
   const { w, h } = spriteSize(def);
@@ -71,19 +43,33 @@ function fontTexture(scene: Phaser.Scene): void {
   scene.cache.bitmapFont.add('font', data);
 }
 
-/** Tileset order matches TILE_INDEX in levels/parser.ts. */
-function tilesTexture(scene: Phaser.Scene): void {
+/**
+ * Tileset order matches TILE_INDEX in levels/parser.ts. Every setting has its own tileset with the same slots;
+ * only the ground ('=', slots 0 and 1) changes: sand on the reef and the beach, asphalt in the night market.
+ */
+function tilesTexture(scene: Phaser.Scene, key: string, ground: 'sand' | 'asphalt'): void {
   const rnd = mulberry32(7);
-  canvasTexture(scene, 'tiles', 16 * 5, 16, 1, (ctx) => {
-    // 0: sand top
-    px(ctx, '#e3c283', 0, 0, 16, 16);
-    for (let i = 0; i < 26; i++) px(ctx, '#c4a064', Math.floor(rnd() * 16), 3 + Math.floor(rnd() * 13));
-    for (let x = 0; x < 16; x++) px(ctx, '#f7e3b0', x, 0, 1, 2 + (x % 5 === 0 ? 1 : 0));
-    px(ctx, '#ff9fb0', 11, 6, 2, 1);
-    px(ctx, '#fff2d6', 4, 9);
-    // 1: sand
-    px(ctx, '#d3ad6c', 16, 0, 16, 16);
-    for (let i = 0; i < 30; i++) px(ctx, '#b38d54', 16 + Math.floor(rnd() * 16), Math.floor(rnd() * 16));
+  canvasTexture(scene, key, 16 * TILE_COUNT, 16, 1, (ctx) => {
+    if (ground === 'sand') {
+      // 0: sand top
+      px(ctx, '#e3c283', 0, 0, 16, 16);
+      for (let i = 0; i < 26; i++) px(ctx, '#c4a064', Math.floor(rnd() * 16), 3 + Math.floor(rnd() * 13));
+      for (let x = 0; x < 16; x++) px(ctx, '#f7e3b0', x, 0, 1, 2 + (x % 5 === 0 ? 1 : 0));
+      px(ctx, '#ff9fb0', 11, 6, 2, 1);
+      px(ctx, '#fff2d6', 4, 9);
+      // 1: sand
+      px(ctx, '#d3ad6c', 16, 0, 16, 16);
+      for (let i = 0; i < 30; i++) px(ctx, '#b38d54', 16 + Math.floor(rnd() * 16), Math.floor(rnd() * 16));
+    } else {
+      // 0: asphalt with a worn edge and a dashed yellow road marking
+      asphalt(ctx, 0, rnd, '#2b2d33');
+      px(ctx, '#4a4d55', 0, 0, 16, 1);
+      px(ctx, '#3a3d45', 0, 1, 16, 1);
+      px(ctx, '#e8c547', 0, 5, 10, 2);
+      px(ctx, '#b89a30', 0, 7, 10, 1);
+      // 1: deeper asphalt
+      asphalt(ctx, 16, rnd, '#24262b');
+    }
     // 2: rock
     px(ctx, '#55647a', 32, 0, 16, 16);
     px(ctx, '#74859c', 32, 0, 16, 2);
@@ -109,16 +95,67 @@ function tilesTexture(scene: Phaser.Scene): void {
     px(ctx, '#c9614b', 64, 0, 16, 1);
     px(ctx, '#4f8a5b', 66, 0, 4, 1);
     px(ctx, '#4f8a5b', 73, 0, 2, 2);
+    // 5, 6: cardboard boxes of foodstuff; 7, 8: soybean oil can body and top
+    cardboardBox(ctx, 80, 'bowl');
+    cardboardBox(ctx, 96, 'cabbage');
+    oilCan(ctx, 112, false);
+    oilCan(ctx, 128, true);
   });
 }
 
-/** SNES-style banded gradient with a checkerboard dither between bands. */
-function bandedGradient(ctx: CanvasRenderingContext2D, w: number, h: number, colors: string[]): void {
-  const band = h / colors.length;
-  colors.forEach((c, i) => px(ctx, c, 0, Math.floor(i * band), w, Math.ceil(band)));
-  for (let i = 1; i < colors.length; i++) {
-    const y0 = Math.floor(i * band) - 2;
-    for (let y = y0; y < y0 + 4; y++) for (let x = (y % 2); x < w; x += 2) px(ctx, colors[y < i * band ? i : i - 1], x, y);
+function asphalt(ctx: CanvasRenderingContext2D, x0: number, rnd: () => number, base: string): void {
+  px(ctx, base, x0, 0, 16, 16);
+  for (let i = 0; i < 22; i++) px(ctx, rnd() < 0.5 ? '#3a3d45' : '#1c1d22', x0 + Math.floor(rnd() * 16), Math.floor(rnd() * 16));
+}
+
+/** A cardboard box with packing tape and a printed food label. */
+function cardboardBox(ctx: CanvasRenderingContext2D, x0: number, print: 'bowl' | 'cabbage'): void {
+  px(ctx, print === 'bowl' ? '#c08f57' : '#b58450', x0, 0, 16, 16);
+  px(ctx, '#d9aa6e', x0, 0, 16, 2);
+  px(ctx, '#7a5530', x0, 15, 16, 1);
+  px(ctx, '#7a5530', x0 + 15, 0, 1, 16);
+  px(ctx, '#8f6a3c', x0, 2, 16, 1);
+  px(ctx, '#e6cf9c', x0 + 7, 0, 2, 6);
+  if (print === 'bowl') {
+    // Red label with a bowl of rice and chopsticks.
+    px(ctx, '#f3e7cf', x0 + 3, 6, 10, 7);
+    px(ctx, '#ffffff', x0 + 6, 7, 4, 2);
+    px(ctx, '#d64545', x0 + 5, 9, 6, 2);
+    px(ctx, '#d64545', x0 + 6, 11, 4, 1);
+    px(ctx, '#5a2a22', x0 + 10, 6, 1, 4);
+    px(ctx, '#5a2a22', x0 + 11, 6, 1, 3);
+  } else {
+    // Green cabbage print and "this side up" arrows.
+    px(ctx, '#5aa04a', x0 + 3, 7, 6, 6);
+    px(ctx, '#5aa04a', x0 + 2, 8, 8, 4);
+    px(ctx, '#8fd06a', x0 + 4, 8, 2, 2);
+    px(ctx, '#3f7a35', x0 + 6, 8, 1, 5);
+    px(ctx, '#3a2a1a', x0 + 12, 5, 1, 5);
+    px(ctx, '#3a2a1a', x0 + 11, 6, 3, 1);
+    px(ctx, '#3a2a1a', x0 + 12, 11, 1, 3);
+  }
+}
+
+/** One 16 px segment of a tall soybean oil can; the top segment gets the shoulder, handle and red cap. */
+function oilCan(ctx: CanvasRenderingContext2D, x0: number, top: boolean): void {
+  const y0 = top ? 3 : 0;
+  px(ctx, '#d9a520', x0 + 1, y0, 14, 16 - y0);
+  px(ctx, '#ffe07a', x0 + 2, y0, 2, 16 - y0);
+  px(ctx, '#8a6510', x0 + 13, y0, 2, 16 - y0);
+  // Green label with a golden soybean.
+  px(ctx, '#2f7d4a', x0 + 1, 5, 14, 7);
+  px(ctx, '#f6d55c', x0 + 6, 7, 4, 3);
+  px(ctx, '#8a6510', x0 + 7, 8, 1, 1);
+  px(ctx, '#e63946', x0 + 1, 5, 14, 1);
+  px(ctx, '#e63946', x0 + 1, 11, 14, 1);
+  if (top) {
+    px(ctx, '#b8860b', x0 + 1, 3, 14, 1);
+    px(ctx, '#5a4a2a', x0 + 3, 0, 5, 1);
+    px(ctx, '#5a4a2a', x0 + 3, 1, 1, 2);
+    px(ctx, '#5a4a2a', x0 + 7, 1, 1, 2);
+    px(ctx, '#c0392b', x0 + 10, 0, 3, 3);
+  } else {
+    px(ctx, '#b8860b', x0 + 1, 15, 14, 1);
   }
 }
 
@@ -289,9 +326,12 @@ function decorTextures(scene: Phaser.Scene): void {
 export function generateTextures(scene: Phaser.Scene): void {
   for (const [key, def] of Object.entries(ALL_SPRITES)) spriteTexture(scene, key, def);
   fontTexture(scene);
-  tilesTexture(scene);
+  tilesTexture(scene, 'tiles', 'sand');
+  tilesTexture(scene, 'tiles-market', 'asphalt');
   backgroundTextures(scene);
   beachTextures(scene);
+  marketTextures(scene);
+  marketBackdropTextures(scene);
   decorTextures(scene);
 }
 

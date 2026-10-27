@@ -1,7 +1,7 @@
 import type { NextStep } from './levels';
 
 /** Which illustration the story scene draws behind the text. */
-export type PanelArt = 'reef-night' | 'surface-lights' | 'hungry-mouths' | 'threads' | 'tide-pool' | 'beach-ahead' | 'market-lights';
+export type PanelArt = 'reef-night' | 'surface-lights' | 'hungry-mouths' | 'threads' | 'tide-pool' | 'beach-ahead' | 'market-lights' | 'jiufen-hills';
 
 export interface StoryPanel {
   art: PanelArt;
@@ -39,7 +39,16 @@ export const STORIES: Record<string, Story> = {
     panels: [
       { art: 'beach-ahead', text: 'PAST THE LAST PAIFANG GATE, WUTTER HOPPED INTO A BUCKET OF SEAWATER ON A FISHING TRUCK.' },
       { art: 'market-lights', text: 'THE TRUCK RATTLED NORTH ALL NIGHT. FAR AHEAD, THE LANTERNS OF A BIG NIGHT MARKET GLOWED.' },
-      { art: 'market-lights', text: 'TO BE CONTINUED: CHAPTER 3 - LANTERNS & LINES. THANK YOU FOR PLAYING!' },
+      { art: 'market-lights', text: 'WUTTER HOPPED OUT OF THE BUCKET INTO A RIVER OF LIGHTS AND YUMMY SMELLS. CHAPTER 3: LANTERNS & LINES!' },
+    ],
+    next: { type: 'level', id: 'night-market' },
+  },
+  'chapter-3-end': {
+    id: 'chapter-3-end',
+    panels: [
+      { art: 'market-lights', text: 'WUTTER SPLASHED BACK INTO ITS BUCKET, FULL OF LANTERN LIGHT AND STINKY TOFU SMELLS.' },
+      { art: 'jiufen-hills', text: 'AT DAWN A BUS RUMBLED OFF TO JIUFEN, A MISTY MOUNTAIN TOWN OF TEA HOUSES AND RED LANTERNS.' },
+      { art: 'jiufen-hills', text: 'TO BE CONTINUED IN JIUFEN... THANK YOU FOR PLAYING!' },
     ],
     next: { type: 'title' },
   },

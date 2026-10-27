@@ -6,14 +6,26 @@ import { createKeys, type Keys, readGamepad, readKeys } from '../input/devices';
 import { controlScheme, withButtonLabels } from '../input/labels';
 import { InputEdges, mergeInputs } from '../input/state';
 import { TouchControls, wantsTouchControls } from '../input/touch';
-import { type LevelDef, loadLevel } from '../levels';
-import type { ParsedLevel } from '../levels/parser';
+import { isLandSetting, type LevelDef, loadLevel, SETTINGS, type SettingStyle } from '../levels';
+import { type ParsedLevel, TILE_COUNT } from '../levels/parser';
 import { DIFFICULTIES, type DifficultySettings, isDifficulty, loadDifficulty } from '../logic/difficulty';
-import { createBrain, defeatEnemy, type EnemyBrain, type EnemyIntent, type EnemyKind, isBouncer, pufferPhaseForColumn, stepEnemy, stunEnemy } from '../logic/enemies';
+import {
+  createBrain,
+  defeatEnemy,
+  type EnemyBrain,
+  type EnemyIntent,
+  type EnemyKind,
+  isBouncer,
+  isGroundWalker,
+  pufferPhaseForColumn,
+  stepEnemy,
+  stunEnemy,
+} from '../logic/enemies';
 import { Health } from '../logic/health';
 import { clampFall, currentAcceleration, type CurrentKind, JumpController, stepHorizontal } from '../logic/movement';
 import { formatScore, LEVEL_CLEAR_BONUS, type PickupKind, Score } from '../logic/score';
 import { THREAD_SPEED, ThreadAbility, threadLifetimeMs } from '../logic/threads';
+import { StickyFeet, StinkyTofu, TofuContact } from '../logic/tofu';
 import { WaterTank } from '../logic/water';
 import { wrapText } from '../story';
 import { addBackdrop, addBubbles, type Backdrop, fadeTo, onViewResize, setHook } from './common';
@@ -26,6 +38,13 @@ interface Enemy {
   sprite: ArcadeSprite;
   brain: EnemyBrain;
   intent: EnemyIntent;
+}
+
+interface Tofu {
+  sprite: Phaser.Types.Physics.Arcade.SpriteWithStaticBody;
+  logic: StinkyTofu;
+  /** Tells a fresh landing apart from Wutter still standing on it. */
+  contact: TofuContact;
 }
 
 const STOMP_POINTS = 100;
@@ -41,10 +60,13 @@ const ENEMY_TEXTURE: Record<EnemyKind, string> = {
   triggerfish: 'triggerfish',
   jellyfish: 'jellyfish',
   seagull: 'seagull',
+  cat: 'cat',
 };
 
 export class LevelScene extends Phaser.Scene {
   private def!: LevelDef;
+  /** Look of the level's setting (tileset, puddles, lanterns, banner). */
+  private style!: SettingStyle;
   private difficulty!: DifficultySettings;
   private level!: ParsedLevel;
   private player!: ArcadeSprite;
@@ -55,6 +77,11 @@ export class LevelScene extends Phaser.Scene {
   private pickups!: Phaser.Physics.Arcade.Group;
   private threadsGroup!: Phaser.Physics.Arcade.Group;
   private currents = new Map<string, CurrentKind>();
+  private tofus: Tofu[] = [];
+  private tofuGroup!: Phaser.Physics.Arcade.StaticGroup;
+  private sticky = new StickyFeet();
+  /** Arcade physics steps run so far; tofu contact is tracked per step, not per millisecond. */
+  private physicsStep = 0;
 
   private keys: Keys | null = null;
   private touch: TouchControls | null = null;
@@ -62,7 +89,7 @@ export class LevelScene extends Phaser.Scene {
   private jump = new JumpController();
   private threads = new ThreadAbility();
   private health!: Health;
-  /** Only on dry levels (the beach); null underwater. */
+  /** Only on dry land (beach, night market); null underwater. */
   private tank: WaterTank | null = null;
   private physicsNow: Physics = PHYSICS;
   private score!: Score;
@@ -79,7 +106,7 @@ export class LevelScene extends Phaser.Scene {
   private scoreText!: Phaser.GameObjects.Container;
   private hudBar!: Phaser.GameObjects.Rectangle;
   private levelName!: Phaser.GameObjects.Container;
-  /** Right edge of the left HUD items (hearts, charge bar and, on the beach, the water tank). */
+  /** Right edge of the left HUD items (hearts, charge bar and, on land, the water tank). */
   private hudLeftEnd = 0;
   private signFrame!: Phaser.GameObjects.Graphics;
   private chargeBar!: Phaser.GameObjects.Rectangle;
@@ -98,16 +125,22 @@ export class LevelScene extends Phaser.Scene {
     this.difficulty = DIFFICULTIES[isDifficulty(chosen) ? chosen : loadDifficulty()];
     const loaded = loadLevel(data.id, { extraEnemies: this.difficulty.extraEnemies });
     this.def = loaded.def;
+    this.style = SETTINGS[this.def.setting];
     this.level = loaded.parsed;
     this.resetState();
 
     const worldW = this.level.cols * TILE;
     const worldH = this.level.rows * TILE;
     this.physics.world.setBounds(0, 0, worldW, worldH);
+    const countStep = (): void => {
+      this.physicsStep += 1;
+    };
+    this.physics.world.on(Phaser.Physics.Arcade.Events.WORLD_STEP, countStep);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.physics.world.off(Phaser.Physics.Arcade.Events.WORLD_STEP, countStep));
     this.cameras.main.setBounds(0, 0, worldW, worldH).fadeIn(300);
 
     this.backdrop = addBackdrop(this, this.def.setting, LEVEL_ROWS * TILE);
-    if (this.def.setting === 'reef') addBubbles(this);
+    if (this.style.bubbles) addBubbles(this);
     this.buildDecor();
     this.buildTiles();
     this.buildPuddles();
@@ -116,8 +149,10 @@ export class LevelScene extends Phaser.Scene {
     this.buildPickups();
     this.buildPlayer();
     this.buildEnemies();
+    this.buildTofu();
     this.threadsGroup = this.physics.add.group({ allowGravity: false });
     this.physics.add.collider(this.threadsGroup, this.layer, (t) => (t as Phaser.GameObjects.Sprite).destroy());
+    this.physics.add.collider(this.threadsGroup, this.tofuGroup, (t) => (t as Phaser.GameObjects.Sprite).destroy());
     this.physics.add.overlap(this.threadsGroup, this.enemyGroup, (t, e) => this.onThreadHit(t as ArcadeSprite, e as ArcadeSprite));
 
     this.cameras.main.startFollow(this.player, true, 0.15, 0.15);
@@ -135,6 +170,9 @@ export class LevelScene extends Phaser.Scene {
 
   private resetState(): void {
     this.enemies = [];
+    this.tofus = [];
+    this.sticky = new StickyFeet();
+    this.physicsStep = 0;
     this.currents.clear();
     this.hearts = [];
     this.signLines = [];
@@ -147,7 +185,7 @@ export class LevelScene extends Phaser.Scene {
     this.health = new Health({ maxHearts: d.maxHearts, damage: d.damage, safe: this.def.safe || d.immortal });
     this.startScore = (this.registry.get('score') as number | undefined) ?? 0;
     this.score = new Score(this.startScore);
-    this.tank = this.def.setting === 'beach' ? new WaterTank(d.waterDrainMs) : null;
+    this.tank = isLandSetting(this.def.setting) ? new WaterTank(d.waterDrainMs) : null;
     this.physicsNow = PHYSICS;
     this.tankBar = null;
     this.walkVx = 0;
@@ -160,11 +198,11 @@ export class LevelScene extends Phaser.Scene {
 
   private buildTiles(): void {
     const map = this.make.tilemap({ data: this.level.tiles, tileWidth: TILE, tileHeight: TILE });
-    const tileset = map.addTilesetImage('tiles', 'tiles', TILE, TILE, 0, 0);
+    const tileset = map.addTilesetImage('tiles', this.style.tileset, TILE, TILE, 0, 0);
     if (!tileset) throw new Error('tileset missing');
     const layer = map.createLayer(0, tileset, 0, 0);
     if (!layer) throw new Error('tile layer missing');
-    this.layer = layer.setCollisionBetween(0, 4).setDepth(0);
+    this.layer = layer.setCollisionBetween(0, TILE_COUNT - 1).setDepth(0);
   }
 
   private buildDecor(): void {
@@ -172,10 +210,10 @@ export class LevelScene extends Phaser.Scene {
       const bottom = d.y + TILE / 2;
       if (d.kind === 'seaweed') this.add.sprite(d.x, bottom, 'seaweed').setOrigin(0.5, 1).setDepth(-2).play({ key: 'seaweed-sway', startFrame: d.col % 2 });
       else if (d.kind === 'seafan') this.add.image(d.x, bottom, 'seafan').setOrigin(0.5, 1).setDepth(-2);
-      else if (d.kind === 'lantern') this.add.image(d.x, bottom, 'lantern').setOrigin(0.5, 1).setDepth(-2);
+      else if (d.kind === 'lantern') this.addLantern(d.x, bottom);
       else if (d.kind === 'palm' || d.kind === 'umbrella') this.add.image(d.x, bottom, d.kind).setOrigin(0.5, 1).setDepth(-2);
-      // Underwater gates are overgrown; on dry land they are clean.
-      else this.add.image(d.x, bottom, this.def.setting === 'reef' ? 'gate' : 'gate-clean').setOrigin(0.5, 1).setDepth(-3);
+      else if (d.kind === 'market-gate') this.addMarketGate(d.x, bottom);
+      else this.add.image(d.x, bottom, this.style.gate).setOrigin(0.5, 1).setDepth(-3);
     }
     this.level.signs.forEach((s, i) => {
       this.add.image(s.x, s.y + TILE / 2, 'sign').setOrigin(0.5, 1).setDepth(-1);
@@ -184,13 +222,37 @@ export class LevelScene extends Phaser.Scene {
     });
   }
 
+  /** Stone lantern, or a lit paper lantern with a soft, breathing halo (Wutter loves lanterns). */
+  private addLantern(x: number, bottom: number): void {
+    this.add.image(x, bottom, this.style.lantern).setOrigin(0.5, 1).setDepth(-2);
+    const at = this.style.lanternGlow;
+    if (!at) return;
+    const halo = this.add.image(x + at.dx, bottom + at.dy, 'glow').setTint(0xff9a4a).setAlpha(0.8).setDepth(-2).setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({ targets: halo, alpha: 0.5, scale: 0.9, duration: 900 + (x % 5) * 80, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+  }
+
+  /** The night market's entrance gate (112x104 texture), with breathing halos on its plaque and two lanterns. */
+  private addMarketGate(x: number, bottom: number): void {
+    this.add.image(x, bottom, 'market-gate').setOrigin(0.5, 1).setDepth(-3);
+    const top = bottom - 104;
+    const halos: [number, number, number, number][] = [
+      [x, top + 25, 0xffc860, 2.2],
+      [x - 30, top + 52, 0xff9a4a, 1],
+      [x + 30, top + 52, 0xff9a4a, 1],
+    ];
+    for (const [hx, hy, tint, scale] of halos) {
+      const halo = this.add.image(hx, hy, 'glow').setTint(tint).setScale(scale).setAlpha(0.7).setDepth(-3).setBlendMode(Phaser.BlendModes.ADD);
+      this.tweens.add({ targets: halo, alpha: 0.45, duration: 1000 + (hx % 7) * 60, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+    }
+  }
+
   private puddleGroup: Phaser.GameObjects.Zone[] = [];
 
-  /** Seawater puddles sunk into the sand; walking through one refills the water tank. */
+  /** Puddles sunk into the ground (seawater on the beach, murky rain water in the market); they refill the tank. */
   private buildPuddles(): void {
     this.puddleGroup = [];
     for (const p of this.level.puddles) {
-      this.add.image(p.x, p.y, 'puddle').setDepth(1);
+      this.add.image(p.x, p.y, this.style.puddle).setDepth(1);
       const zone = this.add.zone(p.x, p.y - TILE / 2, TILE, TILE * 1.5);
       this.physics.add.existing(zone, true);
       this.puddleGroup.push(zone);
@@ -264,6 +326,10 @@ export class LevelScene extends Phaser.Scene {
         body.setAllowGravity(false);
         body.setSize(12, 8).setOffset(2, 3);
         sprite.play({ key: 'seagull-flap', startFrame: e.col % 2 });
+      } else if (e.kind === 'cat') {
+        // Like crabs, cats walk under world gravity; see stepCat for how the pounce uses it.
+        body.setSize(14, 9).setOffset(1, 3);
+        sprite.play({ key: 'cat-walk', startFrame: e.col % 2 });
       } else {
         body.setAllowGravity(false);
         body.setSize(12, 8).setOffset(2, 2);
@@ -275,6 +341,52 @@ export class LevelScene extends Phaser.Scene {
     }
     this.physics.add.collider(this.enemyGroup, this.layer);
     this.physics.add.overlap(this.player, this.enemyGroup, (_p, e) => this.onEnemyContact((e as ArcadeSprite).getData('enemy') as Enemy));
+  }
+
+  /** Stinky tofu blocks: static platforms that bounce Wutter while hairy and hold on to her once bald. */
+  private buildTofu(): void {
+    this.tofuGroup = this.physics.add.staticGroup();
+    for (const t of this.level.tofu) {
+      const sprite = this.tofuGroup.create(t.x, t.y, 'tofu', 0) as Tofu['sprite'];
+      sprite.setDepth(2);
+      sprite.body.setSize(14, 13).setOffset(1, 3);
+      const tofu: Tofu = { sprite, logic: new StinkyTofu(), contact: new TofuContact() };
+      this.tofus.push(tofu);
+      sprite.setData('tofu', tofu);
+    }
+    this.physics.add.collider(this.player, this.tofuGroup, (_p, s) => this.onTofu((s as Tofu['sprite']).getData('tofu') as Tofu));
+    this.physics.add.collider(this.enemyGroup, this.tofuGroup);
+  }
+
+  private onTofu(tofu: Tofu): void {
+    const body = this.player.body;
+    if (this.finished || !body.touching.down) return;
+    if (!tofu.contact.touch(this.physicsStep)) return;
+    if (tofu.logic.land() === 'bounce') {
+      body.setVelocityY(-PHYSICS.pufferBounce);
+      this.jump.markAirborneBounce();
+      audio.sfx('jump');
+      this.tweens.add({ targets: tofu.sprite, scaleY: 0.8, duration: 70, yoyo: true });
+    } else {
+      this.sticky.stick();
+      audio.sfx('splash');
+    }
+    this.puffStink(tofu.sprite.x, tofu.sprite.y - 8);
+  }
+
+  /** A little green whiff of stink rising off the tofu. */
+  private puffStink(x: number, y: number): void {
+    for (const dx of [-4, 3]) {
+      const puff = this.add.image(x + dx, y, 'stink').setAlpha(0.8).setDepth(3);
+      this.tweens.add({ targets: puff, y: y - 14, x: x + dx * 2, alpha: 0, scale: 1.6, duration: 700, onComplete: () => puff.destroy() });
+    }
+  }
+
+  private updateTofu(dtMs: number): void {
+    for (const t of this.tofus) {
+      t.logic.update(dtMs);
+      t.sprite.setFrame(t.logic.fresh ? Math.min(t.logic.bounces, 1) : 2);
+    }
   }
 
   // ---------- HUD ----------
@@ -394,6 +506,7 @@ export class LevelScene extends Phaser.Scene {
     this.health.update(dtMs);
     this.threads.update(dtMs);
     this.updateEnemies(dtMs);
+    this.updateTofu(dtMs);
     setHook({ player: { x: Math.round(this.player.x), y: Math.round(this.player.y) }, score: this.score.value, hearts: this.health.hearts });
 
     if (this.finished) return;
@@ -407,9 +520,16 @@ export class LevelScene extends Phaser.Scene {
     const grounded = body.blocked.down || body.touching.down;
     this.updateTank(dtMs);
     const p = this.physicsNow;
+    this.sticky.update(dtMs);
+    if (!grounded) this.sticky.release();
 
     if (body.blocked.left || body.blocked.right) this.walkVx = 0;
     this.walkVx = stepHorizontal(this.walkVx, input, dt);
+    // Bald stinky tofu holds Wutter's feet: no walking until it lets go.
+    if (this.sticky.stuck) {
+      this.walkVx = 0;
+      this.driftVx = 0;
+    }
 
     const current = this.currentAt(this.player.x, this.player.y);
     let vy = body.velocity.y;
@@ -423,8 +543,10 @@ export class LevelScene extends Phaser.Scene {
 
     const jumpVy = this.jump.update(dtMs, grounded, this.edges.pressed.jump, input.jump, vy);
     if (jumpVy !== null) {
-      if (jumpVy === -p.jumpVelocity) audio.sfx('jump');
-      vy = jumpVy;
+      const takeOff = jumpVy === -p.jumpVelocity;
+      if (takeOff) audio.sfx('jump');
+      // Sticky tofu only lets go for a low hop.
+      vy = takeOff ? this.sticky.jump(jumpVy) : jumpVy;
     }
     body.setVelocityY(clampFall(vy, p.maxFall));
 
@@ -439,7 +561,7 @@ export class LevelScene extends Phaser.Scene {
     this.player.setAlpha(this.health.invulnerable && Math.floor(this.time.now / 80) % 2 === 0 ? 0.3 : 1);
   }
 
-  /** Drains the beach water tank; a dry Wutter is heavier and jumps lower. */
+  /** Drains the water tank on land; a dry Wutter is heavier and jumps lower. */
   private updateTank(dtMs: number): void {
     if (!this.tank) return;
     this.tank.update(dtMs);
@@ -480,19 +602,26 @@ export class LevelScene extends Phaser.Scene {
         dtMs,
         blocked: body.blocked.left || body.blocked.right,
         passive: this.difficulty.passiveEnemies,
+        grounded: body.blocked.down,
       });
       body.setVelocityX(e.intent.vx);
-      if (e.brain.kind !== 'crab') body.setVelocityY(e.intent.vy);
-      if (Math.abs(e.intent.vx) > 1) e.sprite.setFlipX(e.brain.kind === 'crab' ? false : e.intent.vx > 0);
-      if (e.brain.kind === 'seagull' && e.brain.state === 'warning' && before !== 'warning') audio.sfx('squawk');
+      // Ground walkers fall under world gravity; a non-zero vy is a one-off jump impulse.
+      if (!isGroundWalker(e.brain.kind) || e.intent.vy !== 0) body.setVelocityY(e.intent.vy);
+      if (e.brain.kind === 'cat') e.sprite.setFlipX(e.brain.dir > 0);
+      else if (Math.abs(e.intent.vx) > 1) e.sprite.setFlipX(e.brain.kind === 'crab' ? false : e.intent.vx > 0);
+      if (e.brain.state === 'warning' && before !== 'warning') {
+        if (e.brain.kind === 'seagull') audio.sfx('squawk');
+        else if (e.brain.kind === 'cat') audio.sfx('meow');
+      }
 
       const stunned = e.brain.state === 'stunned';
       if (stunned) {
         e.sprite.setTint(0xb0b0d0).setAngle(Math.sin(this.time.now / 60) * 10);
         e.sprite.anims.pause();
       } else if (e.brain.state === 'warning') {
-        // About to puff up, sting or dive: shake and flash so the player can react in time.
-        e.sprite.setAngle(e.brain.kind === 'seagull' ? 0 : Math.sin(this.time.now / 25) * 12);
+        // About to puff up, sting, dive or pounce: shake and flash so the player can react in time.
+        const shake = e.brain.kind === 'seagull' ? 0 : e.brain.kind === 'cat' ? 4 : 12;
+        e.sprite.setAngle(Math.sin(this.time.now / 25) * shake);
         if (Math.floor(this.time.now / 120) % 2 === 0) e.sprite.setTint(0xff9a7a);
         else e.sprite.clearTint();
       } else {
@@ -506,6 +635,14 @@ export class LevelScene extends Phaser.Scene {
         else body.setSize(12, 8).setOffset(2, 2);
       } else if (e.brain.kind === 'jellyfish') {
         e.sprite.setTexture(e.brain.state === 'sting' ? 'jellyfish-sting' : 'jellyfish');
+      } else if (e.brain.kind === 'cat' && !stunned) {
+        // Crouch and wiggle before a pounce, stretch out mid-air, otherwise walk (frozen while resting).
+        if (e.brain.state === 'warning') e.sprite.play('cat-wiggle', true);
+        else if (e.brain.state === 'pounce') e.sprite.stop().setFrame(4);
+        else {
+          e.sprite.play('cat-walk', true);
+          if (e.brain.state === 'rest') e.sprite.anims.pause();
+        }
       }
     }
   }
@@ -547,6 +684,7 @@ export class LevelScene extends Phaser.Scene {
     audio.sfx(result === 'shield' ? 'shield' : 'hit');
     this.cameras.main.shake(120, 0.01);
     const away = this.player.x < enemy.sprite.x ? -1 : 1;
+    this.sticky.release();
     this.walkVx = away * PHYSICS.walkSpeed * 1.5;
     pBody.setVelocityY(-120);
     if (result === 'dead') this.die();
@@ -581,7 +719,7 @@ export class LevelScene extends Phaser.Scene {
     this.tweens.add({ targets: this.player, y: this.player.y - 40, alpha: 0, duration: 1400 });
     const banner = this.add.container(this.scale.width / 2, 92).setScrollFactor(0).setDepth(160);
     banner.add(this.add.rectangle(0, 8, this.scale.width, 32, 0x0b1020, 0.7));
-    banner.add(pixelText(this, 0, 0, this.def.setting === 'beach' ? 'BEACH CLEAR!' : 'REEF CLEAR!', { color: 0xffd25e, scale: 2, originX: 0.5 }));
+    banner.add(pixelText(this, 0, 0, this.style.clearBanner, { color: 0xffd25e, scale: 2, originX: 0.5 }));
     setHook({ scene: 'LevelClear' });
     this.time.delayedCall(2200, () => {
       const next = this.def.next;
