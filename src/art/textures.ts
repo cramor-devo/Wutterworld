@@ -9,6 +9,7 @@ import { drawPuddle } from './puddle';
 import { ALL_SPRITES, type SpriteDef, spriteSize } from './sprites';
 import { BACKDROP_BASE_HEIGHT, BEACH_SEA_TOP } from '../scenes/backdropLayout';
 import { typhoonTextures } from './typhoon';
+import { abyssTextures } from './abyss';
 
 export { mulberry32 } from './canvas';
 
@@ -49,19 +50,27 @@ function fontTexture(scene: Phaser.Scene): void {
 
 /**
  * Tileset order matches TILE_INDEX in levels/parser.ts. Every setting has its own tileset with the same slots;
- * the ground ('=', slots 0 and 1) changes per setting (sand, asphalt, Jiufen's stone steps or the typhoon's wet
- * rock), and so do the crates ('b' and 'B', slots 5 to 8): food boxes and oil cans in the market, souvenirs in
- * Jiufen, sandbags and bollards on the stormy coast.
+ * the ground ('=', slots 0 and 1) changes per setting (sand, asphalt, Jiufen's stone steps, the typhoon's wet
+ * rock or the deep-sea silt, where rock, coral and brick are redrawn darker too), and so do the crates ('b' and
+ * 'B', slots 5 to 8): food boxes and oil cans in the market, souvenirs in Jiufen, sandbags and bollards on the
+ * stormy coast.
  */
 function tilesTexture(
   scene: Phaser.Scene,
   key: string,
-  ground: 'sand' | 'asphalt' | 'stone' | 'wetrock',
+  ground: 'sand' | 'asphalt' | 'stone' | 'wetrock' | 'abyss',
   crates: 'market' | 'souvenir' | 'storm' = 'market',
 ): void {
   const rnd = mulberry32(7);
   canvasTexture(scene, key, 16 * TILE_COUNT, 16, 1, (ctx) => {
-    if (ground === 'wetrock') {
+    if (ground === 'abyss') {
+      // 0: the deep-sea floor, pale silt with glowing specks on top; 1: the dark ooze below.
+      abyssSilt(ctx, 0, rnd);
+      px(ctx, '#8a9cc0', 0, 0, 16, 1);
+      px(ctx, '#6a7aa0', 0, 1, 16, 1);
+      for (let x = 2; x < 16; x += 6) px(ctx, '#7affd8', x, 2, 1, 1);
+      abyssSilt(ctx, 16, rnd);
+    } else if (ground === 'wetrock') {
       // 0: dark coastal rock, slick with rain on top; 1: the rock below.
       wetRock(ctx, 0, rnd);
       px(ctx, '#8a98a8', 0, 0, 16, 1);
@@ -143,7 +152,39 @@ function tilesTexture(
       oilCan(ctx, 112, false);
       oilCan(ctx, 128, true);
     }
+    // In the Midnight Zone rock, coral and brick are redrawn darker, lit only by things that glow.
+    if (ground === 'abyss') abyssSolids(ctx, rnd);
   });
+}
+
+/** Dark deep-sea ooze with a few paler grains, so the floor reads against the even darker water. */
+function abyssSilt(ctx: CanvasRenderingContext2D, x0: number, rnd: () => number): void {
+  px(ctx, '#3c4866', x0, 0, 16, 16);
+  for (let i = 0; i < 20; i++) px(ctx, rnd() < 0.6 ? '#323c58' : '#4e5c7e', x0 + Math.floor(rnd() * 16), Math.floor(rnd() * 16));
+}
+
+/** Slots 2-4 for the deep sea: basalt with glowing algae, glowing bubblegum coral, and the planks of a sunken ship. */
+function abyssSolids(ctx: CanvasRenderingContext2D, rnd: () => number): void {
+  // 2: basalt
+  px(ctx, '#465474', 32, 0, 16, 16);
+  px(ctx, '#6a7ca4', 32, 0, 16, 2);
+  px(ctx, '#6a7ca4', 32, 0, 2, 16);
+  px(ctx, '#2c3650', 32, 14, 16, 2);
+  px(ctx, '#2c3650', 46, 0, 2, 16);
+  px(ctx, '#2c3650', 38, 6, 1, 4);
+  for (let i = 0; i < 4; i++) px(ctx, '#5affd0', 34 + Math.floor(rnd() * 11), 3 + Math.floor(rnd() * 10));
+  // 3: bubblegum coral, its tips glowing pink
+  px(ctx, '#9a3a6a', 48, 0, 16, 16);
+  for (let y = 1; y < 16; y += 3) for (let x = 0; x < 16; x++) if (Math.sin(x * 0.9 + y) > 0.2) px(ctx, '#6a2450', 48 + x, y);
+  px(ctx, '#ff8ac8', 48, 0, 16, 1);
+  for (let x = 1; x < 16; x += 4) px(ctx, '#ffd0ec', 48 + x, 0, 2, 2);
+  px(ctx, '#4a1838', 48, 15, 16, 1);
+  // 4: the dark planks of a sunken ship's hull, with a rusty rivet line
+  px(ctx, '#5a4a40', 64, 0, 16, 16);
+  for (let y = 4; y < 16; y += 5) px(ctx, '#3a2e28', 64, y, 16, 1);
+  px(ctx, '#7a6658', 64, 0, 16, 1);
+  for (let x = 2; x < 16; x += 5) px(ctx, '#b8783a', 64 + x, 2, 1, 1);
+  px(ctx, '#5affd0', 70, 10, 1, 1);
 }
 
 /** The northeast coast's dark rock, wet from the rain, with cracks and a few lighter speckles. */
@@ -485,12 +526,14 @@ export function generateTextures(scene: Phaser.Scene): void {
   tilesTexture(scene, 'tiles-market', 'asphalt');
   tilesTexture(scene, 'tiles-jiufen', 'stone', 'souvenir');
   tilesTexture(scene, 'tiles-typhoon', 'wetrock', 'storm');
+  tilesTexture(scene, 'tiles-abyss', 'abyss');
   backgroundTextures(scene);
   beachTextures(scene);
   marketTextures(scene);
   marketBackdropTextures(scene);
   jiufenTextures(scene);
   typhoonTextures(scene);
+  abyssTextures(scene);
   decorTextures(scene);
 }
 
