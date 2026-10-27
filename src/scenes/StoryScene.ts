@@ -37,9 +37,13 @@ export class StoryScene extends Phaser.Scene {
     const frame = this.add.graphics();
     frame.fillStyle(0xf2c94c).fillRect(PANEL.x - 3, PANEL.y - 3, PANEL.w + 6, PANEL.h + 6);
     frame.fillStyle(0xb8332e).fillRect(PANEL.x - 2, PANEL.y - 2, PANEL.w + 4, PANEL.h + 4);
-    this.art = this.add.container(0, 0);
-    const mask = this.make.graphics({}).fillRect(PANEL.x, PANEL.y, PANEL.w, PANEL.h).createGeometryMask();
-    this.art.setMask(mask);
+    // Phaser 4's Mask filter (WebGL) keeps the panel art inside the frame; geometry masks only work on Canvas there.
+    this.art = this.add.container(0, 0).enableFilters();
+    const mask = this.make.graphics({}, false).fillStyle(0xffffff).fillRect(PANEL.x, PANEL.y, PANEL.w, PANEL.h);
+    this.art.filters?.internal.addMask(mask, false, this.cameras.main);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => mask.destroy());
+    const reportPanel = (o: number) => setHook({ storyPanel: { x: PANEL.x + o, y: PANEL.y + FIXED_LAYOUT_TOP, w: PANEL.w, h: PANEL.h } });
+    reportPanel(offset);
 
     for (let i = 0; i < 4; i++) this.lines.push(pixelText(this, 16, TEXT_Y + i * 10, ''));
     const next = pixelText(this, GAME_WIDTH + offset - 14, FIXED_LAYOUT_HEIGHT + FIXED_LAYOUT_TOP - 12, 'TAP >', { color: 0xffd25e, originX: 1 });
@@ -51,6 +55,7 @@ export class StoryScene extends Phaser.Scene {
       bg.setSize(width, GAME_HEIGHT);
       next.setX(GAME_WIDTH + o - 14);
       skip.setX(-o + 14);
+      reportPanel(o);
     });
 
     this.input.on('pointerup', () => this.advance());

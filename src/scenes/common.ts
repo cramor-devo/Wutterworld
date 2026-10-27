@@ -18,6 +18,10 @@ export interface WutterHook {
   viewWidth?: number;
   /** Typhoon wind phase ('calm', 'warning' or 'gust'); undefined in levels without a storm. */
   wind?: string;
+  /** Renderer in use ('WEBGL' or 'CANVAS'). */
+  renderer?: string;
+  /** Story panel frame interior, in view pixels from the canvas's top-left corner. */
+  storyPanel?: { x: number; y: number; w: number; h: number };
   /** Dev builds only: finishes the running level, so e2e tests can walk the whole story. */
   finishLevel?: () => void;
 }
