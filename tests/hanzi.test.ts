@@ -1,6 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { GATE_TEXT, HANZI, HANZI_SIZE, hanziWidth, MARKET_SIGNS } from '../src/art/hanzi';
+import {
+  CINEMA_TEXT,
+  GATE_TEXT,
+  HANZI,
+  HANZI_SIZE,
+  hanziWidth,
+  JIUFEN_STALLS,
+  JIUFEN_TEXT,
+  MARKET_SIGNS,
+  PINEAPPLE_CAKE_TEXT,
+  TEA_TEXT,
+} from '../src/art/hanzi';
 import { FOOD_ICON_PALETTE_KEYS, FOOD_ICONS } from '../src/art/marketBackdrop';
+
+const SIGN_TEXTS = [...MARKET_SIGNS, ...JIUFEN_STALLS].map((s) => s.text);
+const OTHER_TEXTS = [GATE_TEXT, PINEAPPLE_CAKE_TEXT, TEA_TEXT, JIUFEN_TEXT, CINEMA_TEXT];
+const usedChars = () => new Set([...SIGN_TEXTS, ...OTHER_TEXTS].flatMap((t) => [...t]));
 
 describe('night market pixel glyphs (issue #14)', () => {
   it('every glyph is a 12x12 grid of ink and empty pixels', () => {
@@ -18,18 +33,23 @@ describe('night market pixel glyphs (issue #14)', () => {
   });
 
   it('every character on the stall signs and the gate has a glyph', () => {
-    const used = new Set([...MARKET_SIGNS.flatMap((s) => [...s.text]), ...GATE_TEXT]);
+    const used = usedChars();
     for (const ch of used) expect(HANZI[ch], ch).toBeDefined();
   });
 
   it('only the characters the signs use are drawn', () => {
-    const used = new Set([...MARKET_SIGNS.flatMap((s) => [...s.text]), ...GATE_TEXT]);
+    const used = usedChars();
     expect(Object.keys(HANZI).sort()).toEqual([...used].sort());
   });
 
   it('has the PO-requested stalls with Traditional Chinese names', () => {
     expect(MARKET_SIGNS.map((s) => s.text)).toEqual(['臭豆腐', '烤肉串', '牛肉麵', '藥燉排骨', '珍珠奶茶', '胡椒餅', '蚵仔煎', '烤魷魚']);
     expect(GATE_TEXT).toBe('夜市');
+  });
+
+  it('has the PO-requested Jiufen stalls and shop signs (issue #15)', () => {
+    expect(JIUFEN_STALLS.map((s) => s.text)).toEqual(['芋圓', '魚丸湯', '香腸', '花生捲冰淇淋']);
+    expect([PINEAPPLE_CAKE_TEXT, TEA_TEXT, JIUFEN_TEXT, CINEMA_TEXT]).toEqual(['鳳梨酥', '茶', '九份', '戲院']);
   });
 
   it('measures a line of glyphs with 1 px gaps', () => {
@@ -41,7 +61,7 @@ describe('night market pixel glyphs (issue #14)', () => {
 describe('night market food icons (issue #14)', () => {
   it('every stall sign has a 12x12 food icon drawn with palette colours only', () => {
     const allowed = new Set(['.', ...FOOD_ICON_PALETTE_KEYS]);
-    for (const sign of MARKET_SIGNS) {
+    for (const sign of [...MARKET_SIGNS, ...JIUFEN_STALLS]) {
       const rows = FOOD_ICONS[sign.food];
       expect(rows.length, sign.food).toBe(12);
       for (const row of rows) {

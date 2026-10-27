@@ -290,11 +290,68 @@ export const FOOD_ICONS: Record<FoodIcon, readonly string[]> = {
     '.....b......',
     '.....b......',
   ],
+  // Jiufen: chewy taro and sweet potato balls in a bowl of shaved ice.
+  'taro-balls': [
+    '............',
+    '............',
+    '....qq.oo...',
+    '..eeqqooonn.',
+    '.eetqqtonnnc',
+    'kkkkkkkkkkkk',
+    'kwwwwwwwwwwk',
+    '.kwwwwwwwwk.',
+    '..kwwwwwwk..',
+    '...kkkkkk...',
+    '....kWWk....',
+    '...kkkkkk...',
+  ],
+  'fish-balls': [
+    '...W....W...',
+    '....W..W....',
+    '...W..W.....',
+    '.kkkkkkkkkk.',
+    'knwwngnwwnnk',
+    'kwwwwnwwwwgk',
+    '.krrrrrrrrk.',
+    '.kwwwwwwwwk.',
+    '..kwwwwwwk..',
+    '...kkkkkk...',
+    '............',
+    '............',
+  ],
+  sausage: [
+    '..........b.',
+    '.........b..',
+    '......kkk...',
+    '.....krrsk..',
+    '....krrsrk..',
+    '...krrsrk...',
+    '..krsrrk....',
+    '.krrsrk.....',
+    '.krrrk......',
+    '..kkb.......',
+    '...b........',
+    '..b.........',
+  ],
+  'ice-cream-roll': [
+    '............',
+    '....kkkk....',
+    '...kqcqck...',
+    '..kwYqcYwk..',
+    '..kwcYqcwk..',
+    '..kwqcYqwk..',
+    '..kwYqcYwk..',
+    '..kwwwwwwk..',
+    '..kWwwwwWk..',
+    '...kWwwWk...',
+    '....kWWk....',
+    '.....kk.....',
+  ],
 };
 
 export const FOOD_ICON_PALETTE_KEYS = Object.keys(ICON_PALETTE);
 
-function drawIcon(ctx: CanvasRenderingContext2D, rows: readonly string[], x: number, y: number): void {
+export function drawIcon(ctx: CanvasRenderingContext2D, rows: readonly string[], x: number, y: number): void {
   rows.forEach((row, r) => {
     for (let c = 0; c < row.length; c++) if (row[c] !== '.') px(ctx, ICON_PALETTE[row[c]], x + c, y + r);
   });
