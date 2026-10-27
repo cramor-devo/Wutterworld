@@ -17,9 +17,14 @@ export class WaterTank {
     return this.amount <= 0;
   }
 
-  update(dtMs: number): void {
+  /**
+   * Drains the tank. `rainPerMs` is the fill fraction rain adds per ms (see rain.ts); drain and rain apply in one
+   * net step, so rain makes the tank last longer or slowly fills it up. A tank that never drains stays full.
+   */
+  update(dtMs: number, rainPerMs = 0): void {
     if (this.drainMs <= 0 || dtMs <= 0) return;
-    this.amount = Math.max(0, this.amount - dtMs / this.drainMs);
+    const net = rainPerMs - 1 / this.drainMs;
+    this.amount = Math.min(1, Math.max(0, this.amount + dtMs * net));
   }
 
   /** Fills the tank; returns true when it was noticeably low (to play a splash). */

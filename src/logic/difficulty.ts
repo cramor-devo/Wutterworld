@@ -16,6 +16,8 @@ export interface DifficultySettings {
   extraEnemies: boolean;
   /** Beach levels: how long a full water tank lasts in ms (0 = it never drains). */
   waterDrainMs: number;
+  /** Typhoon: how hard the wind gusts push (1 = full strength). */
+  windScale: number;
 }
 
 export const DIFFICULTIES: Record<Difficulty, DifficultySettings> = {
@@ -29,6 +31,7 @@ export const DIFFICULTIES: Record<Difficulty, DifficultySettings> = {
     passiveEnemies: true,
     extraEnemies: false,
     waterDrainMs: 0,
+    windScale: 0.5,
   },
   easy: {
     id: 'easy',
@@ -40,6 +43,7 @@ export const DIFFICULTIES: Record<Difficulty, DifficultySettings> = {
     passiveEnemies: false,
     extraEnemies: false,
     waterDrainMs: 18000,
+    windScale: 0.8,
   },
   normal: {
     id: 'normal',
@@ -51,6 +55,7 @@ export const DIFFICULTIES: Record<Difficulty, DifficultySettings> = {
     passiveEnemies: false,
     extraEnemies: false,
     waterDrainMs: 12000,
+    windScale: 1,
   },
   hard: {
     id: 'hard',
@@ -62,6 +67,7 @@ export const DIFFICULTIES: Record<Difficulty, DifficultySettings> = {
     passiveEnemies: false,
     extraEnemies: true,
     waterDrainMs: 12000,
+    windScale: 1.15,
   },
 };
 
