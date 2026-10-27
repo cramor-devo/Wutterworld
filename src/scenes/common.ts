@@ -46,7 +46,8 @@ const NEAR_H = 64;
 
 /**
  * The setting's backdrop, fixed to the camera: a base picture, two parallax layers (far and mid) and, where the
- * setting has one, a third, faster near layer. Every layer texture tiles seamlessly sideways.
+ * setting has one, a third, faster near layer. Every layer texture tiles seamlessly sideways. Haze veils mute
+ * the layers more with distance, so Wutter and the enemies stand out.
  */
 export function addBackdrop(scene: Phaser.Scene, setting: LevelSetting = 'reef'): Backdrop {
   const w = scene.scale.width;
@@ -57,6 +58,11 @@ export function addBackdrop(scene: Phaser.Scene, setting: LevelSetting = 'reef')
   const far = scene.add.tileSprite(0, GAME_HEIGHT - farH, w, farH, keys.far).setOrigin(0).setScrollFactor(0).setDepth(-20);
   const mid = scene.add.tileSprite(0, GAME_HEIGHT - midH, w, midH, keys.mid).setOrigin(0).setScrollFactor(0).setDepth(-15);
   const near = keys.near ? scene.add.tileSprite(0, GAME_HEIGHT - NEAR_H, w, NEAR_H, keys.near).setOrigin(0).setScrollFactor(0).setDepth(-12) : null;
+  // Haze veils just in front of each layer; they stack, so the farthest layers are the most muted.
+  const veil = (alpha: number, depth: number) =>
+    scene.add.rectangle(0, 0, w, GAME_HEIGHT, keys.haze.color, alpha).setOrigin(0).setScrollFactor(0).setDepth(depth);
+  const veils = [veil(keys.haze.far, -19), veil(keys.haze.mid, -14)];
+  if (near && keys.haze.near) veils.push(veil(keys.haze.near, -11));
   return {
     far,
     mid,
@@ -71,6 +77,7 @@ export function addBackdrop(scene: Phaser.Scene, setting: LevelSetting = 'reef')
       far.setSize(width, farH);
       mid.setSize(width, midH);
       near?.setSize(width, NEAR_H);
+      for (const v of veils) v.setSize(width, GAME_HEIGHT);
     },
   };
 }

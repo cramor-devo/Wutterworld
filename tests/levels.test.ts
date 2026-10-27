@@ -5,7 +5,7 @@ import { FIRST_LEVEL_ID, getLevel, hasLevel, LEVELS, loadLevel } from '../src/le
 import { parseLevel, TILE_COUNT, TILE_INDEX, validateMap } from '../src/levels/parser';
 import { canMountPuffer, levelBouncers, pufferArcCells, pufferTargets } from '../src/levels/puffers';
 import { canReachExit, reachableCells, unreachableThings } from '../src/levels/reachability';
-import { isLandSetting, type LevelSetting, SETTINGS } from '../src/levels/settings';
+import { effectiveHaze, isLandSetting, type LevelSetting, SETTINGS } from '../src/levels/settings';
 import { jumpApexHeight } from '../src/logic/movement';
 import { STORIES } from '../src/story';
 
@@ -313,5 +313,39 @@ describe('level settings (issue #14)', () => {
   it('market puddles look murky, beach puddles keep their seawater', () => {
     expect(SETTINGS.market.puddle).not.toBe(SETTINGS.beach.puddle);
     expect(SETTINGS.market.tileset).not.toBe(SETTINGS.beach.tileset);
+  });
+});
+
+describe('background haze (issue #25)', () => {
+  const all = Object.keys(SETTINGS) as LevelSetting[];
+
+  it('mutes the nearest backdrop layer only slightly', () => {
+    for (const s of all) {
+      const h = effectiveHaze(SETTINGS[s].backdrop.haze);
+      const nearest = h.near ?? h.mid;
+      expect(nearest, s).toBeGreaterThan(0.05);
+      expect(nearest, s).toBeLessThanOrEqual(0.2);
+    }
+  });
+
+  it('mutes farther layers more, up to about a third', () => {
+    for (const s of all) {
+      const h = effectiveHaze(SETTINGS[s].backdrop.haze);
+      if (h.near !== undefined) expect(h.mid, s).toBeGreaterThan(h.near);
+      expect(h.far, s).toBeGreaterThan(h.mid);
+      expect(h.far, s).toBeGreaterThanOrEqual(0.25);
+      expect(h.far, s).toBeLessThanOrEqual(0.4);
+    }
+  });
+
+  it('has a near veil exactly when the setting has a near layer', () => {
+    for (const s of all) {
+      const b = SETTINGS[s].backdrop;
+      expect(b.haze.near !== undefined, s).toBe(b.near !== undefined);
+    }
+  });
+
+  it('stacks veils: two 50% veils mute 75%', () => {
+    expect(effectiveHaze({ color: 0, far: 0.5, mid: 0.5 })).toEqual({ mid: 0.5, far: 0.75 });
   });
 });
