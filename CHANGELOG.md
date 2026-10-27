@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-27
+
 ### Added
 
 - **Night Market**, the third level, in Taipei ([#14](https://github.com/cramor-devo/Wutterworld/issues/14)):
@@ -97,6 +99,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- The title screen shows the current version again (it still said V0.2.1).
 - Kenting Beach: the far hills meet the sea again with no pale sky band in between. The backdrop's base picture
   is no longer stretched to the taller screen; the strip below it continues its bottom colour
   ([#27](https://github.com/cramor-devo/Wutterworld/issues/27)).
@@ -201,7 +204,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Pressing M on the title screen toggles mute instead of starting the game.
 - `?level=` ignores names that are not real levels (such as `constructor`) and falls back to the title screen.
 
-[Unreleased]: https://github.com/cramor-devo/Wutterworld/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/cramor-devo/Wutterworld/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/cramor-devo/Wutterworld/compare/v0.3.0...v1.0.0
 [0.3.0]: https://github.com/cramor-devo/Wutterworld/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/cramor-devo/Wutterworld/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/cramor-devo/Wutterworld/releases/tag/v0.2.0

@@ -130,7 +130,7 @@ enemies (not even on Hard), no pits, just plankton and pearls to collect under b
 sea stars, shrimp, crabs, urchins and other sea cucumbers dance in party hats. At the tide-pool light, Wutter tells
 them everything it saw on its journey. Then: **THE END**, thank you for playing, and back to the title screen.
 
-### What is playable now (v0.3.0)
+### What is playable now (v1.0.0)
 
 1. **Story intro**: four illustrated panels.
 2. **Home Reef (tutorial)**, Kenting: signs teach moving, jumping, currents, plankton, pearls, the anemone
@@ -157,8 +157,8 @@ them everything it saw on its journey. Then: **THE END**, thank you for playing,
 16. **Closing story**: Wutter tells the other reef dwellers about its journey, then **THE END**, thank you for
     playing, and back to the title screen.
 
-The whole story can be played from start to finish: 8 levels, from the home reef up into the world above and back
-home again.
+The complete game: all 8 chapters can be played from start to finish, from the Home Reef up into the world above
+and back home to the Festive Home Reef finale.
 
 ## Development
 
@@ -197,7 +197,7 @@ src/
   main.ts            Phaser game config
   config.ts          Resolution, physics tuning, view width
   logic/             Pure game rules: movement, health, threads, score, enemy AI (unit tested)
-  levels/            ASCII level maps, parser, reachability check, chapter roadmap
+  levels/            ASCII level maps, parser, reachability check, chapter order
   story.ts           Story panels
   art/               Pixel sprites, bitmap font, texture generation
   audio/             Chiptune songs and WebAudio synth
