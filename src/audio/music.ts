@@ -110,6 +110,17 @@ export const SONGS = {
       'E2 - - - | B2 - - - | C3 - - - | B2 - - - | E2 - - - | G2 - - - | A2 - - - | B2 - - - | ' +
       'C3 - - - | G2 - - - | A2 - - - | B2 - - - | C3 - - - | D3 - - - | B2 - - - | E2 - - -',
   },
+  // Joyful remix of the reef theme for the homecoming party: the same C major pentatonic tune, faster, with a
+  // skipping octave bass and a second half that climbs up like fireworks.
+  festive: {
+    bpm: 128,
+    lead:
+      'E5 G5 G5 A5 | C6 - A5 G5 | E5 E5 D5 E5 | G5 - - . | A5 A5 C6 D6 | C6 A5 G5 E5 | D5 - E5 G5 | E5 - - . | ' +
+      'G5 A5 C6 D6 | E6 - D6 C6 | A5 C6 D6 E6 | G6 - - . | E6 D6 C6 A5 | G5 A5 C6 D6 | E6 - D6 - | C6 - - .',
+    bass:
+      'C3 C2 G2 C3 | A2 A1 E2 A2 | C3 C2 G2 C3 | G2 G1 D2 G2 | A2 A1 E2 A2 | C3 C2 G2 C3 | G2 G1 D2 G2 | C3 C2 G2 C3 | ' +
+      'F2 F1 C2 F2 | C3 C2 G2 C3 | F2 F1 C2 F2 | G2 G1 D2 G2 | A2 A1 E2 A2 | F2 F1 C2 F2 | G2 G1 D2 G2 | C3 G2 C3 .',
+  },
 } satisfies Record<string, Song>;
 
 export type SongId = keyof typeof SONGS;
