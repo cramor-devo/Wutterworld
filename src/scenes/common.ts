@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { FIXED_LAYOUT_TOP, GAME_HEIGHT, GAME_WIDTH, viewWidthFor } from '../config';
 import { type LevelSetting, SETTINGS } from '../levels';
+import { BACKDROP_FAR_HEIGHT, BACKDROP_MID_HEIGHT, backdropLayout } from './backdropLayout';
 
 /** State exposed for the Playwright smoke test and for debugging in the browser console. */
 export interface WutterHook {
@@ -42,8 +43,8 @@ export interface Backdrop {
 }
 
 /** Default far and mid layer heights, and the height of the optional near layer (which hugs the ground). */
-const FAR_H = 120;
-const MID_H = 90;
+const FAR_H = BACKDROP_FAR_HEIGHT;
+const MID_H = BACKDROP_MID_HEIGHT;
 const NEAR_H = 64;
 
 /**
@@ -55,11 +56,19 @@ const NEAR_H = 64;
 export function addBackdrop(scene: Phaser.Scene, setting: LevelSetting = 'reef', bottom = GAME_HEIGHT): Backdrop {
   const w = scene.scale.width;
   const keys = SETTINGS[setting].backdrop;
-  const base = scene.add.image(0, 0, keys.base).setOrigin(0).setScrollFactor(0).setDepth(-30).setDisplaySize(w, GAME_HEIGHT);
   const farH = keys.farH ?? FAR_H;
   const midH = keys.midH ?? MID_H;
-  const far = scene.add.tileSprite(0, bottom - farH, w, farH, keys.far).setOrigin(0).setScrollFactor(0).setDepth(-20);
-  const mid = scene.add.tileSprite(0, bottom - midH, w, midH, keys.mid).setOrigin(0).setScrollFactor(0).setDepth(-15);
+  const layout = backdropLayout(bottom, farH, midH);
+  const base = scene.add.image(0, 0, keys.base).setOrigin(0).setScrollFactor(0).setDepth(-30).setDisplaySize(w, layout.baseHeight);
+  // Below the base, continue its last row instead of stretching it (stretching moves the horizon, see #27).
+  const edge = scene.textures.getPixel(0, layout.baseHeight - 1, keys.base);
+  const fill = scene.add
+    .rectangle(0, layout.fillY, w, layout.fillHeight, edge ? edge.color : 0)
+    .setOrigin(0)
+    .setScrollFactor(0)
+    .setDepth(-30);
+  const far = scene.add.tileSprite(0, layout.farY, w, farH, keys.far).setOrigin(0).setScrollFactor(0).setDepth(-20);
+  const mid = scene.add.tileSprite(0, layout.midY, w, midH, keys.mid).setOrigin(0).setScrollFactor(0).setDepth(-15);
   const near = keys.near ? scene.add.tileSprite(0, bottom - NEAR_H, w, NEAR_H, keys.near).setOrigin(0).setScrollFactor(0).setDepth(-12) : null;
   // Haze veils just in front of each layer; they stack, so the farthest layers are the most muted.
   const veil = (alpha: number, depth: number) =>
@@ -76,7 +85,8 @@ export function addBackdrop(scene: Phaser.Scene, setting: LevelSetting = 'reef',
       if (near) near.tilePositionX = x * 0.7;
     },
     resize(width: number) {
-      base.setDisplaySize(width, GAME_HEIGHT);
+      base.setDisplaySize(width, layout.baseHeight);
+      fill.setSize(width, layout.fillHeight);
       far.setSize(width, farH);
       mid.setSize(width, midH);
       near?.setSize(width, NEAR_H);

@@ -407,6 +407,16 @@ describe('Jiufen (issue #15)', () => {
     expect(def.signs.some((s) => s.includes('JISHAN'))).toBe(true);
     expect(def.signs.some((s) => s.includes('SHUQI'))).toBe(true);
   });
+
+  it('each sign describes where it stands', () => {
+    const signs = [...jiufen().signs].sort((a, b) => a.col - b.col);
+    const floor = surface();
+    expect(signs[0].text).toContain('HOP UP THE STONE STEPS');
+    expect(signs[1].text).toContain('JISHAN STREET');
+    expect(signs[2].text).toContain('THE TOP OF SHUQI ROAD');
+    expect(floor[signs[2].col]).toBe(Math.min(...floor));
+    expect(signs[3].text).toContain('CINEMA');
+  });
 });
 
 describe('Typhoon (issue #16)', () => {

@@ -7,6 +7,7 @@ import { marketTextures } from './market';
 import { marketBackdropTextures } from './marketBackdrop';
 import { drawPuddle } from './puddle';
 import { ALL_SPRITES, type SpriteDef, spriteSize } from './sprites';
+import { BACKDROP_BASE_HEIGHT, BEACH_SEA_TOP } from '../scenes/backdropLayout';
 import { typhoonTextures } from './typhoon';
 
 export { mulberry32 } from './canvas';
@@ -314,7 +315,7 @@ function oilCan(ctx: CanvasRenderingContext2D, x0: number, top: boolean): void {
 }
 
 function backgroundTextures(scene: Phaser.Scene): void {
-  canvasTexture(scene, 'bg-water', 256, 224, 1, (ctx) => {
+  canvasTexture(scene, 'bg-water', 256, BACKDROP_BASE_HEIGHT, 1, (ctx) => {
     bandedGradient(ctx, 256, 224, ['#4fc3d9', '#38aecb', '#2b98bd', '#2183ac', '#1a6f99', '#155c85', '#114a70', '#0d395b']);
     // Light rays from the surface.
     ctx.globalAlpha = 0.09;
@@ -495,8 +496,8 @@ export function generateTextures(scene: Phaser.Scene): void {
 
 /** Kenting beach: sunny sky over the sea, Big Pointed Mountain far away, dunes, palms and puddles. */
 function beachTextures(scene: Phaser.Scene): void {
-  canvasTexture(scene, 'bg-sky', 256, 224, 1, (ctx) => {
-    bandedGradient(ctx, 256, 128, ['#5bb8f0', '#73c6f5', '#8cd3f8', '#a6defb', '#c2e9fc', '#dcf3fd']);
+  canvasTexture(scene, 'bg-sky', 256, BACKDROP_BASE_HEIGHT, 1, (ctx) => {
+    bandedGradient(ctx, 256, BEACH_SEA_TOP, ['#5bb8f0', '#73c6f5', '#8cd3f8', '#a6defb', '#c2e9fc', '#dcf3fd']);
     // Sun with a soft halo.
     ctx.fillStyle = '#fff6c9';
     ctx.globalAlpha = 0.35;
@@ -516,7 +517,7 @@ function beachTextures(scene: Phaser.Scene): void {
     }
     // The sea, from the horizon down, with sparkles and the sun's reflection.
     ctx.save();
-    ctx.translate(0, 128);
+    ctx.translate(0, BEACH_SEA_TOP);
     bandedGradient(ctx, 256, 96, ['#2ec4c6', '#24b2c0', '#1d9fb6', '#178cab']);
     ctx.restore();
     const rnd = mulberry32(31);
