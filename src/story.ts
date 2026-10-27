@@ -1,7 +1,7 @@
 import type { NextStep } from './levels';
 
 /** Which illustration the story scene draws behind the text. */
-export type PanelArt = 'reef-night' | 'surface-lights' | 'hungry-mouths' | 'threads' | 'tide-pool' | 'beach-ahead' | 'market-lights' | 'jiufen-hills' | 'typhoon-clouds';
+export type PanelArt = 'reef-night' | 'surface-lights' | 'hungry-mouths' | 'threads' | 'tide-pool' | 'beach-ahead' | 'market-lights' | 'jiufen-hills' | 'typhoon-clouds' | 'big-wave' | 'deep-sea';
 
 export interface StoryPanel {
   art: PanelArt;
@@ -57,7 +57,16 @@ export const STORIES: Record<string, Story> = {
     panels: [
       { art: 'jiufen-hills', text: 'AT THE BOTTOM OF THE HILL, WUTTER WAVED GOODBYE TO A QUIET MASKED FRIEND WITH A RED LANTERN.' },
       { art: 'typhoon-clouds', text: 'BUT OUT AT SEA, DARK CLOUDS WERE SPINNING. THE RADIO CRACKLED: TYPHOON SIGNAL NO. 8!' },
-      { art: 'typhoon-clouds', text: 'TO BE CONTINUED ON THE NORTHEAST COAST... THANK YOU FOR PLAYING!' },
+      { art: 'typhoon-clouds', text: 'WUTTER HURRIED DOWN TO THE COAST TO GET BACK INTO THE SEA BEFORE THE STORM. CHAPTER 5: SIGNAL NO. 8!' },
+    ],
+    next: { type: 'level', id: 'typhoon' },
+  },
+  'chapter-5-end': {
+    id: 'chapter-5-end',
+    panels: [
+      { art: 'typhoon-clouds', text: 'AT LAST, THE SEA! WUTTER CRAWLED TO THE EDGE OF THE ROCKS, SOAKED AND HAPPY.' },
+      { art: 'big-wave', text: 'THEN A HUGE WAVE ROSE OUT OF THE STORM... AND SWEPT WUTTER FAR OUT INTO THE DEEP, DARK SEA!' },
+      { art: 'deep-sea', text: 'DOWN, DOWN, DOWN... TO WHERE THE SUN NEVER SHINES. TO BE CONTINUED... THANK YOU FOR PLAYING!' },
     ],
     next: { type: 'title' },
   },

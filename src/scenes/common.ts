@@ -16,6 +16,8 @@ export interface WutterHook {
   enemies?: number;
   /** Current view width in game pixels (height is always 224). */
   viewWidth?: number;
+  /** Typhoon wind phase ('calm', 'warning' or 'gust'); undefined in levels without a storm. */
+  wind?: string;
 }
 
 declare global {

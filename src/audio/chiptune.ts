@@ -1,6 +1,6 @@
 import { midiToFrequency, parsePattern, SONGS, type SongId } from './music';
 
-export type Sfx = 'jump' | 'pickup' | 'pearl' | 'hit' | 'thread' | 'stomp' | 'shield' | 'clear' | 'squawk' | 'splash' | 'meow';
+export type Sfx = 'jump' | 'pickup' | 'pearl' | 'hit' | 'thread' | 'stomp' | 'shield' | 'clear' | 'squawk' | 'splash' | 'meow' | 'siren' | 'gust';
 
 const MUTE_KEY = 'wutter-muted';
 
@@ -129,17 +129,18 @@ export class Chiptune {
   sfx(kind: Sfx): void {
     if (!this.ctx || !this.master || this.muted) return;
     const t = this.ctx.currentTime;
-    const sweep = (from: number, to: number, dur: number, type: OscillatorType = 'square', vol = 0.6) => {
+    const sweep = (from: number, to: number, dur: number, type: OscillatorType = 'square', vol = 0.6, delay = 0) => {
+      const t0 = t + delay;
       const osc = this.ctx!.createOscillator();
       const gain = this.ctx!.createGain();
       osc.type = type;
-      osc.frequency.setValueAtTime(from, t);
-      osc.frequency.exponentialRampToValueAtTime(to, t + dur);
-      gain.gain.setValueAtTime(vol, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      osc.frequency.setValueAtTime(from, t0);
+      osc.frequency.exponentialRampToValueAtTime(to, t0 + dur);
+      gain.gain.setValueAtTime(vol, t0);
+      gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
       osc.connect(gain).connect(this.master!);
-      osc.start(t);
-      osc.stop(t + dur + 0.02);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.02);
     };
     switch (kind) {
       case 'jump':
@@ -164,6 +165,16 @@ export class Chiptune {
         return sweep(1300, 220, 0.25, 'triangle', 0.6);
       case 'meow':
         return sweep(620, 1040, 0.22, 'triangle', 0.45);
+      case 'siren':
+        // Typhoon warning: a rising two-tone wail, three times.
+        for (let i = 0; i < 3; i++) {
+          sweep(520, 880, 0.18, 'square', 0.35, i * 0.4);
+          sweep(880, 660, 0.18, 'square', 0.35, i * 0.4 + 0.2);
+        }
+        return;
+      case 'gust':
+        // A low whoosh as the gust hits.
+        return sweep(180, 60, 0.9, 'sawtooth', 0.25);
     }
   }
 }

@@ -90,6 +90,16 @@ export const SONGS = {
       'A2 - E3 - | F2 - C3 - | C3 - G3 - | G2 - D3 - | A2 - E3 - | E2 - B2 - | F2 - C3 - | E2 - B2 - | ' +
       'F2 - C3 - | C3 - G3 - | A2 - E3 - | G2 - D3 - | F2 - C3 - | A2 - E3 - | G2 - D3 - | A2 - E3 -',
   },
+  // Urgent and stormy for the typhoon: D minor pentatonic in fast runs over a driving, pounding bass.
+  typhoon: {
+    bpm: 150,
+    lead:
+      'D5 F5 G5 A5 | C6 - A5 G5 | F5 G5 F5 D5 | C5 - D5 . | D5 F5 G5 A5 | D6 - C6 A5 | G5 A5 G5 F5 | D5 - - . | ' +
+      'A5 - A5 C6 | D6 C6 A5 G5 | A5 - G5 F5 | G5 - D5 . | F5 G5 A5 C6 | A5 G5 F5 D5 | C5 D5 F5 C5 | D5 - - .',
+    bass:
+      'D2 D3 D2 D3 | D2 D3 D2 D3 | A#1 A#2 A#1 A#2 | C2 C3 C2 C3 | D2 D3 D2 D3 | D2 D3 D2 D3 | A#1 A#2 C2 C3 | D2 D3 D2 D3 | ' +
+      'F2 F3 F2 F3 | F2 F3 F2 F3 | A#1 A#2 A#1 A#2 | C2 C3 C2 C3 | D2 D3 D2 D3 | A#1 A#2 A#1 A#2 | C2 C3 C2 C3 | D2 D3 A1 A2',
+  },
 } satisfies Record<string, Song>;
 
 export type SongId = keyof typeof SONGS;

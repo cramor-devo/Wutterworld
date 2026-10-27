@@ -6,7 +6,7 @@ import { FIRST_LEVEL_ID, getLevel, hasLevel, LEVELS, loadLevel } from '../src/le
 import { parseLevel, TILE_COUNT, TILE_INDEX, validateMap } from '../src/levels/parser';
 import { canMountPuffer, levelBouncers, pufferArcCells, pufferTargets } from '../src/levels/puffers';
 import { canReachExit, reachableCells, unreachableThings } from '../src/levels/reachability';
-import { effectiveHaze, isLandSetting, type LevelSetting, SETTINGS } from '../src/levels/settings';
+import { effectiveHaze, isLandSetting, isStormSetting, type LevelSetting, SETTINGS } from '../src/levels/settings';
 import { jumpApexHeight } from '../src/logic/movement';
 import { floorRows } from '../src/logic/strollers';
 import { STORIES } from '../src/story';
@@ -189,7 +189,7 @@ describe('game levels', () => {
     expect(STORIES.intro.next).toEqual({ type: 'level', id: FIRST_LEVEL_ID });
   });
 
-  it('chapter 1 leads to the beach, the beach to the night market, the market to Jiufen, and Jiufen ends on the thank-you story', () => {
+  it('chapter 1 leads to the beach, then the night market, Jiufen and the typhoon, which ends on the thank-you story', () => {
     expect(STORIES['chapter-1-end'].next).toEqual({ type: 'level', id: 'beach' });
     expect(LEVELS.beach.next).toEqual({ type: 'story', id: 'chapter-2-end' });
     expect(STORIES['chapter-2-end'].next).toEqual({ type: 'level', id: 'night-market' });
@@ -198,9 +198,15 @@ describe('game levels', () => {
     expect(STORIES['chapter-3-end'].next).toEqual({ type: 'level', id: 'jiufen' });
     expect(STORIES['chapter-3-end'].panels.at(-1)?.text).toContain('LANTERN HILL');
     expect(LEVELS.jiufen.next).toEqual({ type: 'story', id: 'chapter-4-end' });
-    expect(STORIES['chapter-4-end'].next).toEqual({ type: 'title' });
+    expect(STORIES['chapter-4-end'].next).toEqual({ type: 'level', id: 'typhoon' });
     expect(STORIES['chapter-4-end'].panels.some((p) => p.text.includes('TYPHOON'))).toBe(true);
-    expect(STORIES['chapter-4-end'].panels.at(-1)?.text).toContain('THANK YOU FOR PLAYING');
+    expect(STORIES['chapter-4-end'].panels.at(-1)?.text).toContain('SIGNAL NO. 8');
+    expect(LEVELS.typhoon.next).toEqual({ type: 'story', id: 'chapter-5-end' });
+    // A big wave sweeps Wutter into the deep sea; the Midnight Zone (chapter 6) comes next.
+    expect(STORIES['chapter-5-end'].panels.map((p) => p.art)).toContain('big-wave');
+    expect(STORIES['chapter-5-end'].panels.some((p) => p.text.includes('WAVE'))).toBe(true);
+    expect(STORIES['chapter-5-end'].panels.at(-1)?.text).toContain('THANK YOU FOR PLAYING');
+    expect(STORIES['chapter-5-end'].next).toEqual({ type: 'title' });
   });
 });
 
@@ -214,10 +220,10 @@ describe('chapters', () => {
     expect(nextChapter('festive-reef')).toBeUndefined();
   });
 
-  it('chapter 4 is Lantern Hill in Jiufen, and the typhoon hits the Northeast Coast (issue #15)', () => {
+  it('chapter 4 is Lantern Hill in Jiufen, and chapter 5 is the typhoon on the Northeast Coast (issues #15, #16)', () => {
     const byId = (id: string) => CHAPTERS.find((c) => c.id === id);
     expect(byId('jiufen')).toMatchObject({ title: 'Lantern Hill', place: 'Jiufen', playable: true });
-    expect(byId('typhoon')).toMatchObject({ title: 'Signal No. 8', place: 'Northeast Coast' });
+    expect(byId('typhoon')).toMatchObject({ title: 'Signal No. 8', place: 'Northeast Coast', playable: true });
   });
 
   it('every playable chapter has a level', () => {
@@ -320,14 +326,14 @@ describe('everything can be reached', () => {
 
 describe('hard mode (issue #4)', () => {
   it('adds extra enemies to Coral Gardens, the beach and the night market, not the tutorial', () => {
-    for (const id of ['coral-gardens', 'beach', 'night-market', 'jiufen']) {
+    for (const id of ['coral-gardens', 'beach', 'night-market', 'jiufen', 'typhoon']) {
       const base = loadLevel(id).parsed.enemies.length;
       expect(loadLevel(id, { extraEnemies: true }).parsed.enemies.length).toBeGreaterThan(base);
     }
     expect(loadLevel('reef-tutorial', { extraEnemies: true }).parsed.enemies).toEqual(loadLevel('reef-tutorial').parsed.enemies);
   });
 
-  it.each(['coral-gardens', 'beach', 'night-market', 'jiufen'])('places extra enemies in %s in open space, with crabs and cats standing on the ground', (id) => {
+  it.each(['coral-gardens', 'beach', 'night-market', 'jiufen', 'typhoon'])('places extra enemies in %s in open space, with crabs and cats standing on the ground', (id) => {
     const lvl = loadLevel(id, { extraEnemies: true }).parsed;
     for (const e of LEVELS[id].hardEnemies ?? []) {
       expect(lvl.solid[e.row][e.col], `${e.kind} at ${e.col},${e.row}`).toBe(false);
@@ -413,11 +419,67 @@ describe('Jiufen (issue #15)', () => {
   });
 });
 
+describe('Typhoon (issue #16)', () => {
+  const typhoon = (extraEnemies = false) => loadLevel('typhoon', { extraEnemies }).parsed;
+  /** A gust can stop Wutter mid-jump, so check the level with a shorter sideways reach too. */
+  const GUSTY = { up: DRY_REACH.up, across: 2 };
+
+  it('is a dangerous stormy dry-land level with its own song', () => {
+    const def = LEVELS.typhoon;
+    expect(def.setting).toBe('typhoon');
+    expect(isLandSetting(def.setting)).toBe(true);
+    expect(isStormSetting(def.setting)).toBe(true);
+    expect(Object.keys(SETTINGS).filter((s) => isStormSetting(s as LevelSetting))).toEqual(['typhoon']);
+    expect(def.safe).toBe(false);
+    expect(def.music).toBe('typhoon');
+    expect(SONGS.typhoon).toBeDefined();
+    expect(def.name).toBe('SIGNAL NO. 8');
+  });
+
+  it.each([false, true])('the exit can be reached with dry jumps, even when a gust cuts a jump short (hard extras: %s)', (extra) => {
+    expect(canReachExit(typhoon(extra), DRY_REACH)).toBe(true);
+    expect(canReachExit(typhoon(extra), GUSTY)).toBe(true);
+  });
+
+  it('the sea and the exit are at the far end, so the wind blows away from them', () => {
+    const lvl = typhoon();
+    expect(lvl.exit.col).toBeGreaterThan(lvl.cols - 5);
+    expect(lvl.spawn.col).toBeLessThan(5);
+  });
+
+  it('has only a few puddles (the rain helps), and every one can be reached', () => {
+    const lvl = typhoon();
+    expect(lvl.puddles.length).toBeGreaterThanOrEqual(3);
+    expect(lvl.puddles.length).toBeLessThanOrEqual(5);
+    const cells = reachableCells(lvl, DRY_REACH);
+    for (const p of lvl.puddles) expect(cells.has(`${p.col},${p.row}`), `puddle at ${p.col}`).toBe(true);
+  });
+
+  it('has crabs and seagulls for the wind to blow around, and more of both on hard', () => {
+    const kinds = (extra: boolean) => typhoon(extra).enemies.map((e) => e.kind);
+    expect(kinds(false)).toContain('crab');
+    expect(kinds(false)).toContain('seagull');
+    expect(kinds(true).length).toBeGreaterThan(kinds(false).length);
+  });
+
+  it('has rocks to shelter behind and uses sandbags and bollards as platforms', () => {
+    const lvl = typhoon();
+    const tiles = new Set(lvl.tiles.flat());
+    for (const t of [TILE_INDEX.rock, TILE_INDEX.box, TILE_INDEX.boxAlt, TILE_INDEX.oilBody, TILE_INDEX.oilTop]) expect(tiles.has(t), `tile ${t}`).toBe(true);
+    expect(SETTINGS.typhoon.tileset).toBe('tiles-typhoon');
+  });
+
+  it('warns about the wind on its signs', () => {
+    expect(LEVELS.typhoon.signs.some((s) => s.includes('GUST'))).toBe(true);
+    expect(LEVELS.typhoon.signs.some((s) => s.includes('RAIN'))).toBe(true);
+  });
+});
+
 describe('level settings (issue #14)', () => {
   const all = Object.keys(SETTINGS) as LevelSetting[];
 
-  it('the reef is underwater; the beach, the night market and Jiufen are dry land', () => {
-    expect(all.filter(isLandSetting).sort()).toEqual(['beach', 'jiufen', 'market']);
+  it('the reef is underwater; the beach, the night market, Jiufen and the typhoon coast are dry land', () => {
+    expect(all.filter(isLandSetting).sort()).toEqual(['beach', 'jiufen', 'market', 'typhoon']);
   });
 
   it('every setting has its own level-clear banner', () => {

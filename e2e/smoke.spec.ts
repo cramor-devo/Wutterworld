@@ -9,6 +9,7 @@ interface Hook {
   difficulty?: string;
   enemies?: number;
   viewWidth?: number;
+  wind?: string;
 }
 
 const hook = (page: Page) => page.evaluate(() => (window as unknown as { __wutter?: Hook }).__wutter);
@@ -159,6 +160,27 @@ test('level shortcut loads Jiufen and Wutter can walk up the street (issue #15)'
   expect(errors).toEqual([]);
 });
 
+test('level shortcut loads the Typhoon, Wutter can walk in the calm and the wind warns before a gust (issue #16)', async ({ page, isMobile }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('./?level=typhoon');
+  await waitForScene(page, 'Level');
+  const start = await hook(page);
+  expect(start?.level).toBe('typhoon');
+  expect(start?.wind).toBe('calm');
+  if (!isMobile) {
+    await page.waitForTimeout(400);
+    const startX = (await hook(page))?.player?.x ?? 0;
+    await page.keyboard.down('ArrowRight');
+    await page.waitForTimeout(800);
+    await page.keyboard.up('ArrowRight');
+    expect((await hook(page))?.player?.x ?? 0).toBeGreaterThan(startX + 20);
+  }
+  // The first calm is about 4.5 s; then the warning comes and a gust follows.
+  await expect.poll(async () => (await hook(page))?.wind, { timeout: 10_000 }).toBe('warning');
+  await expect.poll(async () => (await hook(page))?.wind, { timeout: 5_000 }).toBe('gust');
+  expect(errors).toEqual([]);
+});
 /** View width the game should pick for a window size (mirrors viewWidthFor in src/config.ts). */
 const expectedViewWidth = (w: number, h: number) => Math.min(576, Math.max(256, Math.round((256 * (w / h)) / 2) * 2));
 

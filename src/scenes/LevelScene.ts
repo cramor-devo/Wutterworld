@@ -28,7 +28,9 @@ import { formatScore, LEVEL_CLEAR_BONUS, type PickupKind, Score } from '../logic
 import { THREAD_SPEED, ThreadAbility, threadLifetimeMs } from '../logic/threads';
 import { easeY, flatSpans, floorRows, floorY, makeCrowd, spiritWaves, type Stroller, stepStroller } from '../logic/strollers';
 import { StickyFeet, StinkyTofu, TofuContact } from '../logic/tofu';
+import { rainPerMs } from '../logic/rain';
 import { WaterTank } from '../logic/water';
+import { applyWind, isSheltered, Wind, WIND_TUNING, windFactor, type WindPhase } from '../logic/wind';
 import { wrapText } from '../story';
 import { addBackdrop, addBubbles, type Backdrop, fadeTo, onViewResize, setHook } from './common';
 import { hudTitleX, pixelTextWidth } from './hud';
@@ -61,6 +63,9 @@ interface Tofu {
 
 const STOMP_POINTS = 100;
 const SIGN_RADIUS = 22;
+/** Top of the windsock under the HUD, and just below an open sign panel (which ends at y 66). */
+const STORM_HUD_TOP = 16;
+const STORM_HUD_BELOW_SIGN = 68;
 const HEARTS_PER_ROW = 5;
 const HEART_W = 7;
 const HEART_STEP = 8;
@@ -109,6 +114,15 @@ export class LevelScene extends Phaser.Scene {
   /** Only on dry land (beach, night market); null underwater. */
   private tank: WaterTank | null = null;
   private physicsNow: Physics = PHYSICS;
+  /** Typhoon gusts; null when the setting has no storm. */
+  private wind: Wind | null = null;
+  /** Storm visuals: rain and wind streaks over the whole view, and the windsock that warns of a gust. */
+  private rain: Phaser.GameObjects.TileSprite | null = null;
+  private streaks: Phaser.GameObjects.TileSprite | null = null;
+  private windsock: Phaser.GameObjects.Image | null = null;
+  private windLabel: Phaser.GameObjects.Container | null = null;
+  /** Camera position at the last frame, to move the rain with the world. */
+  private rainCamX = 0;
   private score!: Score;
   private startScore = 0;
 
@@ -180,11 +194,12 @@ export class LevelScene extends Phaser.Scene {
     this.keys = createKeys(this);
     this.input.keyboard?.on('keydown-M', () => audio.toggleMute());
     this.touch = wantsTouchControls(this.game) ? new TouchControls(this) : null;
+    this.buildStorm();
     this.buildHud();
     this.showTitleCard();
     onViewResize(this, (w) => this.relayout(w));
     audio.play(this.def.music);
-    setHook({ scene: 'Level', level: this.def.id, touch: !!this.touch, difficulty: this.difficulty.id, enemies: this.enemies.length });
+    setHook({ scene: 'Level', level: this.def.id, touch: !!this.touch, difficulty: this.difficulty.id, enemies: this.enemies.length, wind: this.wind?.state.phase });
   }
 
   private resetState(): void {
@@ -207,6 +222,11 @@ export class LevelScene extends Phaser.Scene {
     this.startScore = (this.registry.get('score') as number | undefined) ?? 0;
     this.score = new Score(this.startScore);
     this.tank = isLandSetting(this.def.setting) ? new WaterTank(d.waterDrainMs) : null;
+    this.wind = this.style.storm ? new Wind(d.windScale) : null;
+    this.rain = null;
+    this.streaks = null;
+    this.windsock = null;
+    this.windLabel = null;
     this.physicsNow = PHYSICS;
     this.tankBar = null;
     this.walkVx = 0;
@@ -543,6 +563,10 @@ export class LevelScene extends Phaser.Scene {
     this.levelName.setX(this.levelNameX(width));
     this.scoreText.setX(width - 4);
     this.drawSignFrame(width);
+    this.rain?.setSize(width, this.scale.height);
+    this.streaks?.setSize(width, this.scale.height);
+    this.windsock?.setX(width - 4);
+    this.windLabel?.setX(width - 30);
     this.touch?.relayout(width);
   }
 
@@ -599,6 +623,7 @@ export class LevelScene extends Phaser.Scene {
     this.edges.update(input);
     this.health.update(dtMs);
     this.threads.update(dtMs);
+    this.updateWind(dtMs);
     this.updateEnemies(dtMs);
     this.updateTofu(dtMs);
     this.updateCrowd(dtMs);
@@ -618,7 +643,8 @@ export class LevelScene extends Phaser.Scene {
     this.sticky.update(dtMs);
     if (!grounded) this.sticky.release();
 
-    if (body.blocked.left || body.blocked.right) this.walkVx = 0;
+    // Only a wall in the walking direction stops the walk, so a gust that pins Wutter to a wall can't hold her there.
+    if ((body.blocked.left && this.walkVx < 0) || (body.blocked.right && this.walkVx > 0)) this.walkVx = 0;
     this.walkVx = stepHorizontal(this.walkVx, input, dt);
     // Bald stinky tofu holds Wutter's feet: no walking until it lets go.
     if (this.sticky.stuck) {
@@ -634,7 +660,7 @@ export class LevelScene extends Phaser.Scene {
       this.driftVx = Phaser.Math.Clamp(this.driftVx + currentAcceleration(current).ax * dt, -80, 80);
     }
     if (current !== 'left' && current !== 'right') this.driftVx *= 0.92;
-    body.setVelocityX(this.walkVx + this.driftVx);
+    body.setVelocityX(this.windOn(this.player, this.walkVx + this.driftVx, 1));
 
     const jumpVy = this.jump.update(dtMs, grounded, this.edges.pressed.jump, input.jump, vy);
     if (jumpVy !== null) {
@@ -659,7 +685,8 @@ export class LevelScene extends Phaser.Scene {
   /** Drains the water tank on land; a dry Wutter is heavier and jumps lower. */
   private updateTank(dtMs: number): void {
     if (!this.tank) return;
-    this.tank.update(dtMs);
+    // In a typhoon the rain tops the tank up: a drizzle between gusts, a downpour while the wind blows.
+    this.tank.update(dtMs, this.wind ? rainPerMs(this.wind.state.phase) : 0);
     const next = this.tank.dry ? PHYSICS_DRY : PHYSICS;
     if (next === this.physicsNow) return;
     this.physicsNow = next;
@@ -668,6 +695,72 @@ export class LevelScene extends Phaser.Scene {
     this.player.body.setGravityY(next.gravity - PHYSICS.gravity);
     if (this.tank.dry) this.player.setTint(0xd8b48a);
     else this.player.clearTint();
+  }
+
+  // ---------- typhoon: wind and rain ----------
+
+  /** Rain and wind streaks over the whole view, plus the windsock and a "WIND!" warning under the HUD. */
+  private buildStorm(): void {
+    if (!this.wind) return;
+    const { width, height } = this.scale;
+    this.streaks = this.add.tileSprite(0, 0, width, height, 'wind-streaks').setOrigin(0).setScrollFactor(0).setDepth(48).setAlpha(0);
+    this.rain = this.add.tileSprite(0, 0, width, height, 'rain').setOrigin(0).setScrollFactor(0).setDepth(49).setAlpha(0.45);
+    this.windsock = this.add.image(width - 4, STORM_HUD_TOP, 'windsock', 0).setOrigin(1, 0).setScrollFactor(0).setDepth(101);
+    this.windLabel = pixelText(this, width - 30, STORM_HUD_TOP + 4, 'WIND!', { color: 0xff7a2a, originX: 1 }).setScrollFactor(0).setDepth(101).setVisible(false);
+  }
+
+  /** Advances the gust schedule: siren on a warning, a whoosh when the gust hits, and the storm visuals. */
+  private updateWind(dtMs: number): void {
+    if (!this.wind) return;
+    const started = this.finished ? null : this.wind.update(dtMs);
+    if (started) this.onWindPhase(started);
+    const { phase, strength } = this.wind.state;
+    const dt = dtMs / 1000;
+    const camX = this.cameras.main.scrollX;
+    if (this.rain) {
+      // Rain falls faster and slants more in a gust (down and to the left, with the wind); it moves with the world
+      // as the camera scrolls, so it feels part of the scene rather than stuck to the screen.
+      const fall = (160 + 120 * strength) * dt;
+      this.rain.tilePositionY -= fall;
+      this.rain.tilePositionX += fall * (0.5 + 0.6 * strength) + (camX - this.rainCamX);
+      this.rain.setAlpha(0.4 + 0.3 * strength);
+    }
+    this.rainCamX = camX;
+    if (this.streaks) {
+      this.streaks.tilePositionX += (phase === 'gust' ? 420 : 220) * dt;
+      const target = phase === 'gust' ? 0.35 + 0.4 * strength : phase === 'warning' ? 0.3 : 0;
+      this.streaks.setAlpha(Phaser.Math.Linear(this.streaks.alpha, target, 0.1));
+    }
+    // An open sign covers y 18-66; drop the warning just below it so it stays readable.
+    const top = this.signBox.visible ? STORM_HUD_BELOW_SIGN : STORM_HUD_TOP;
+    if (this.windsock) {
+      const flap = Math.floor(this.time.now / 90) % 2;
+      this.windsock.setFrame(phase === 'gust' ? 2 + flap : phase === 'warning' ? 1 : 0).setY(top);
+    }
+    this.windLabel?.setY(top + 4).setVisible(phase === 'warning' && Math.floor(this.time.now / 150) % 2 === 0);
+  }
+
+  private onWindPhase(phase: WindPhase): void {
+    if (phase === 'warning') audio.sfx('siren');
+    else if (phase === 'gust') {
+      audio.sfx('gust');
+      this.cameras.main.shake(this.wind!.state.remainingMs, 0.002);
+    }
+    setHook({ wind: phase });
+  }
+
+  /** A body's sideways speed with the gust added, unless a rock shelters it or a wall already stops it. */
+  private windOn(sprite: ArcadeSprite, vx: number, factor: number): number {
+    if (!this.wind || factor === 0) return vx;
+    const push = this.wind.push(factor);
+    if (push === 0) return vx;
+    const body = sprite.body;
+    const col = Math.floor(sprite.x / TILE);
+    const row = Math.floor(sprite.y / TILE);
+    const solidAt = (c: number, r: number) => r >= 0 && r < this.level.rows && c >= 0 && c < this.level.cols && this.level.solid[r][c];
+    if (isSheltered(solidAt, col, row)) return vx;
+    const blockedDownwind = WIND_TUNING.direction < 0 ? body.blocked.left : body.blocked.right;
+    return applyWind(vx, push, blockedDownwind);
   }
 
   private currentAt(x: number, y: number): CurrentKind | undefined {
@@ -699,7 +792,7 @@ export class LevelScene extends Phaser.Scene {
         passive: this.difficulty.passiveEnemies,
         grounded: body.blocked.down,
       });
-      body.setVelocityX(e.intent.vx);
+      body.setVelocityX(this.windOn(e.sprite, e.intent.vx, windFactor(e.brain.kind)));
       // Ground walkers fall under world gravity; a non-zero vy is a one-off jump impulse.
       if (!isGroundWalker(e.brain.kind) || e.intent.vy !== 0) body.setVelocityY(e.intent.vy);
       if (e.brain.kind === 'cat') e.sprite.setFlipX(e.brain.dir > 0);

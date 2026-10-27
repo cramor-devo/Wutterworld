@@ -1,8 +1,8 @@
 /**
  * Where a level takes place. The reef is underwater; every other setting is dry land, where Wutter carries a water
- * tank and refills it in puddles. New land settings (the typhoon) only need a row in `SETTINGS`.
+ * tank and refills it in puddles. New land settings only need a row in `SETTINGS`.
  */
-export type LevelSetting = 'reef' | 'beach' | 'market' | 'jiufen';
+export type LevelSetting = 'reef' | 'beach' | 'market' | 'jiufen' | 'typhoon';
 
 export interface BackdropKeys {
   base: string;
@@ -53,6 +53,8 @@ export interface SettingStyle {
   lantern: string;
   /** Where a lit lantern's halo sits, relative to the bottom centre of the lantern texture. */
   lanternGlow?: { dx: number; dy: number };
+  /** A typhoon: rain slowly refills the water tank and timed wind gusts push everything toward the land. */
+  storm?: boolean;
   backdrop: BackdropKeys;
 }
 
@@ -98,22 +100,40 @@ export const SETTINGS: Record<LevelSetting, SettingStyle> = {
       haze: { color: 0x1a1c48, far: 0.12, mid: 0.1, near: 0.12 },
     },
   },
-      jiufen: {
-        land: true,
-        bubbles: false,
-        clearBanner: 'JIUFEN CLEAR!',
-        // Stone stairs; the boxes are pineapple cakes and nougat, the cans are tea tins.
-        tileset: 'tiles-jiufen',
-        puddle: 'puddle-jiufen',
-        gate: 'gate-clean',
-        lantern: 'market-lantern',
-        lanternGlow: { dx: 5, dy: -27 },
-        // Blue hour: the mountain and the sea far away, the lantern-lit teahouses on the hillside closer by. Tall
-        // layers, because the stairs raise the ground and hide the bottom of the backdrop.
-        backdrop: { base: 'bg-dusk', far: 'bg-jiufen-far', mid: 'bg-jiufen-mid', farH: 200, midH: 150, haze: { color: 0x2a2f6a, far: 0.2, mid: 0.1 } },
-      },
-    };
+  jiufen: {
+    land: true,
+    bubbles: false,
+    clearBanner: 'JIUFEN CLEAR!',
+    // Stone stairs; the boxes are pineapple cakes and nougat, the cans are tea tins.
+    tileset: 'tiles-jiufen',
+    puddle: 'puddle-jiufen',
+    gate: 'gate-clean',
+    lantern: 'market-lantern',
+    lanternGlow: { dx: 5, dy: -27 },
+    // Blue hour: the mountain and the sea far away, the lantern-lit teahouses on the hillside closer by. Tall
+    // layers, because the stairs raise the ground and hide the bottom of the backdrop.
+    backdrop: { base: 'bg-dusk', far: 'bg-jiufen-far', mid: 'bg-jiufen-mid', farH: 200, midH: 150, haze: { color: 0x2a2f6a, far: 0.2, mid: 0.1 } },
+  },
+  typhoon: {
+    land: true,
+    bubbles: false,
+    clearBanner: 'COAST CLEAR!',
+    // Wet rocks on the coast; the boxes are sandbags, the cans are bollards.
+    tileset: 'tiles-typhoon',
+    puddle: 'puddle-typhoon',
+    gate: 'gate-clean',
+    lantern: 'market-lantern',
+    lanternGlow: { dx: 5, dy: -27 },
+    storm: true,
+    // Storm sky with rain; the mountains with lit-up Jiufen far away, the windswept coast and bent palms closer by.
+    backdrop: { base: 'bg-storm', far: 'bg-typhoon-far', mid: 'bg-typhoon-mid', farH: 170, midH: 110, haze: { color: 0x3a4456, far: 0.2, mid: 0.12 } },
+  },
+};
 
 export function isLandSetting(setting: LevelSetting): boolean {
   return SETTINGS[setting].land;
+}
+
+export function isStormSetting(setting: LevelSetting): boolean {
+  return SETTINGS[setting].storm === true;
 }

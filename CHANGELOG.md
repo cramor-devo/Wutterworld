@@ -34,9 +34,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - `?level=jiufen` URL shortcut and level character `V` (old cinema).
 - New story panels after Jiufen: goodbye to the masked friend, a tease of Typhoon Signal No. 8 on the Northeast
   Coast, thank you for playing, then back to the title screen.
+- **Signal No. 8**, the fifth level, on the Northeast Coast during a typhoon ([#16](https://github.com/cramor-devo/Wutterworld/issues/16)):
+  - A storm sky with animated rain, dark mountains with the lights of Jiufen in the distance, and spray, rocks and
+    bent palms along the wet, rocky shore.
+  - **Wind gusts** on a fixed rhythm: calm, then a warning (wind streaks, a flapping windsock, a "WIND!" label and a
+    siren), then a gust that pushes Wutter back toward the land, away from the sea. Hide behind a rock to shelter.
+    Gusts never push harder than Wutter can walk, never shove anything through a wall, and are gentler on Scenic and
+    Easy and a bit stronger on Hard.
+  - Crabs and seagulls are blown around by the gusts too.
+  - The rain slowly refills the water tank (harder during a gust), so there are only a few puddles.
+  - Sandbags and bollards as platforms, a new stormy chiptune song, and extra crabs and seagulls on Hard.
+  - `?level=typhoon` URL shortcut.
+- New story panels after the typhoon: a huge wave sweeps Wutter into the deep sea, to be continued in the Midnight
+  Zone, then back to the title screen.
 
 ### Changed
 
+- The Jiufen story now continues to the typhoon (chapter 5: Signal No. 8) instead of ending the game.
 - The night market story now continues to Jiufen (chapter 4: Lantern Hill) instead of ending the game.
 - Roadmap: chapter 4 is now **Lantern Hill** in Jiufen, and chapter 5 (Signal No. 8) takes place on the Northeast
   Coast.

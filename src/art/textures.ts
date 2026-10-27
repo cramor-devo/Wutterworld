@@ -8,6 +8,7 @@ import { marketBackdropTextures } from './marketBackdrop';
 import { drawPuddle } from './puddle';
 import { ALL_SPRITES, type SpriteDef, spriteSize } from './sprites';
 import { BACKDROP_BASE_HEIGHT, BEACH_SEA_TOP } from '../scenes/backdropLayout';
+import { typhoonTextures } from './typhoon';
 
 export { mulberry32 } from './canvas';
 
@@ -48,13 +49,28 @@ function fontTexture(scene: Phaser.Scene): void {
 
 /**
  * Tileset order matches TILE_INDEX in levels/parser.ts. Every setting has its own tileset with the same slots;
- * the ground ('=', slots 0 and 1) changes per setting (sand, asphalt or Jiufen's stone steps), and so do the
- * crates ('b' and 'B', slots 5 to 8): food boxes and oil cans in the market, souvenirs in Jiufen.
+ * the ground ('=', slots 0 and 1) changes per setting (sand, asphalt, Jiufen's stone steps or the typhoon's wet
+ * rock), and so do the crates ('b' and 'B', slots 5 to 8): food boxes and oil cans in the market, souvenirs in
+ * Jiufen, sandbags and bollards on the stormy coast.
  */
-function tilesTexture(scene: Phaser.Scene, key: string, ground: 'sand' | 'asphalt' | 'stone', crates: 'market' | 'souvenir' = 'market'): void {
+function tilesTexture(
+  scene: Phaser.Scene,
+  key: string,
+  ground: 'sand' | 'asphalt' | 'stone' | 'wetrock',
+  crates: 'market' | 'souvenir' | 'storm' = 'market',
+): void {
   const rnd = mulberry32(7);
   canvasTexture(scene, key, 16 * TILE_COUNT, 16, 1, (ctx) => {
-    if (ground === 'stone') {
+    if (ground === 'wetrock') {
+      // 0: dark coastal rock, slick with rain on top; 1: the rock below.
+      wetRock(ctx, 0, rnd);
+      px(ctx, '#8a98a8', 0, 0, 16, 1);
+      px(ctx, '#6a7888', 0, 1, 16, 1);
+      for (let x = 1; x < 16; x += 5) px(ctx, '#c8d8e8', x, 0, 2, 1);
+      px(ctx, '#3a5a44', 3, 2, 3, 1);
+      px(ctx, '#3a5a44', 11, 2, 2, 1);
+      wetRock(ctx, 16, rnd);
+    } else if (ground === 'stone') {
       // 0: a granite stair tread with a worn, lighter nosing; 1: the masonry wall under the steps.
       stoneFill(ctx, 0, rnd);
       px(ctx, '#b4aec0', 0, 0, 16, 2);
@@ -108,7 +124,13 @@ function tilesTexture(scene: Phaser.Scene, key: string, ground: 'sand' | 'asphal
     px(ctx, '#c9614b', 64, 0, 16, 1);
     px(ctx, '#4f8a5b', 66, 0, 4, 1);
     px(ctx, '#4f8a5b', 73, 0, 2, 2);
-    if (crates === 'souvenir') {
+    if (crates === 'storm') {
+      // 5, 6: sandbags piled against the flood; 7, 8: a harbour bollard body and its cap
+      sandbags(ctx, 80, 0);
+      sandbags(ctx, 96, 4);
+      bollard(ctx, 112, false);
+      bollard(ctx, 128, true);
+    } else if (crates === 'souvenir') {
       // 5, 6: pineapple-cake and nougat gift boxes; 7, 8: tea tin body and top with its lid
       pineappleCakeBox(ctx, 80);
       nougatBox(ctx, 96);
@@ -122,6 +144,48 @@ function tilesTexture(scene: Phaser.Scene, key: string, ground: 'sand' | 'asphal
       oilCan(ctx, 128, true);
     }
   });
+}
+
+/** The northeast coast's dark rock, wet from the rain, with cracks and a few lighter speckles. */
+function wetRock(ctx: CanvasRenderingContext2D, x0: number, rnd: () => number): void {
+  px(ctx, '#4a5462', x0, 0, 16, 16);
+  for (let i = 0; i < 18; i++) px(ctx, rnd() < 0.6 ? '#3a4250' : '#5a6676', x0 + Math.floor(rnd() * 16), Math.floor(rnd() * 16));
+  px(ctx, '#2a323e', x0 + 4, 5, 1, 4);
+  px(ctx, '#2a323e', x0 + 5, 9, 3, 1);
+  px(ctx, '#2a323e', x0 + 11, 11, 1, 3);
+}
+
+/** Two rows of hessian sandbags, tied at the ends; `shift` staggers the rows so stacks look piled. */
+function sandbags(ctx: CanvasRenderingContext2D, x0: number, shift: number): void {
+  px(ctx, '#2a2620', x0, 0, 16, 16);
+  for (let row = 0; row < 2; row++) {
+    const y = row * 8;
+    const off = row === 0 ? shift : 8 - shift;
+    for (let bx = -8 + off; bx < 16; bx += 8) {
+      const l = Math.max(0, bx);
+      const r = Math.min(16, bx + 8);
+      if (r - l < 1) continue;
+      px(ctx, '#a89068', x0 + l, y + 1, r - l, 6);
+      px(ctx, '#c8b088', x0 + l, y + 1, r - l, 1);
+      px(ctx, '#7a6448', x0 + l, y + 6, r - l, 1);
+      if (bx + 7 < 16 && bx + 7 >= 0) px(ctx, '#5a4a34', x0 + bx + 7, y + 2, 1, 4);
+    }
+  }
+}
+
+/** A black iron harbour bollard with a yellow band; `top` draws the rounded cap. */
+function bollard(ctx: CanvasRenderingContext2D, x0: number, top: boolean): void {
+  px(ctx, '#2a2c34', x0 + 2, 0, 12, 16);
+  px(ctx, '#4a4e5a', x0 + 3, 0, 2, 16);
+  px(ctx, '#16181e', x0 + 12, 0, 2, 16);
+  if (top) {
+    px(ctx, '#2a2c34', x0, 2, 16, 4);
+    px(ctx, '#5a5e6a', x0, 2, 16, 1);
+    px(ctx, '#16181e', x0, 5, 16, 1);
+    px(ctx, '#e8c547', x0 + 2, 10, 12, 2);
+  } else {
+    px(ctx, '#e8c547', x0 + 2, 6, 12, 2);
+  }
 }
 
 /** Jiufen's old masonry: blue-grey blocks in the dusk light, offset every row like a retaining wall. */
@@ -420,11 +484,13 @@ export function generateTextures(scene: Phaser.Scene): void {
   tilesTexture(scene, 'tiles', 'sand');
   tilesTexture(scene, 'tiles-market', 'asphalt');
   tilesTexture(scene, 'tiles-jiufen', 'stone', 'souvenir');
+  tilesTexture(scene, 'tiles-typhoon', 'wetrock', 'storm');
   backgroundTextures(scene);
   beachTextures(scene);
   marketTextures(scene);
   marketBackdropTextures(scene);
   jiufenTextures(scene);
+  typhoonTextures(scene);
   decorTextures(scene);
 }
 
