@@ -66,6 +66,9 @@ interface Tofu {
 
 const STOMP_POINTS = 100;
 const SIGN_RADIUS = 22;
+/** Top of the windsock under the HUD, and just below an open sign panel (which ends at y 66). */
+const STORM_HUD_TOP = 16;
+const STORM_HUD_BELOW_SIGN = 68;
 const HEARTS_PER_ROW = 5;
 const HEART_W = 7;
 const HEART_STEP = 8;
@@ -718,8 +721,8 @@ export class LevelScene extends Phaser.Scene {
     const { width, height } = this.scale;
     this.streaks = this.add.tileSprite(0, 0, width, height, 'wind-streaks').setOrigin(0).setScrollFactor(0).setDepth(48).setAlpha(0);
     this.rain = this.add.tileSprite(0, 0, width, height, 'rain').setOrigin(0).setScrollFactor(0).setDepth(49).setAlpha(0.45);
-    this.windsock = this.add.image(width - 4, 16, 'windsock', 0).setOrigin(1, 0).setScrollFactor(0).setDepth(101);
-    this.windLabel = pixelText(this, width - 30, 20, 'WIND!', { color: 0xff7a2a, originX: 1 }).setScrollFactor(0).setDepth(101).setVisible(false);
+    this.windsock = this.add.image(width - 4, STORM_HUD_TOP, 'windsock', 0).setOrigin(1, 0).setScrollFactor(0).setDepth(101);
+    this.windLabel = pixelText(this, width - 30, STORM_HUD_TOP + 4, 'WIND!', { color: 0xff7a2a, originX: 1 }).setScrollFactor(0).setDepth(101).setVisible(false);
   }
 
   /** Advances the gust schedule: siren on a warning, a whoosh when the gust hits, and the storm visuals. */
@@ -744,11 +747,13 @@ export class LevelScene extends Phaser.Scene {
       const target = phase === 'gust' ? 0.35 + 0.4 * strength : phase === 'warning' ? 0.3 : 0;
       this.streaks.setAlpha(Phaser.Math.Linear(this.streaks.alpha, target, 0.1));
     }
+    // An open sign covers y 18-66; drop the warning just below it so it stays readable.
+    const top = this.signBox.visible ? STORM_HUD_BELOW_SIGN : STORM_HUD_TOP;
     if (this.windsock) {
       const flap = Math.floor(this.time.now / 90) % 2;
-      this.windsock.setFrame(phase === 'gust' ? 2 + flap : phase === 'warning' ? 1 : 0);
+      this.windsock.setFrame(phase === 'gust' ? 2 + flap : phase === 'warning' ? 1 : 0).setY(top);
     }
-    this.windLabel?.setVisible(phase === 'warning' && Math.floor(this.time.now / 150) % 2 === 0);
+    this.windLabel?.setY(top + 4).setVisible(phase === 'warning' && Math.floor(this.time.now / 150) % 2 === 0);
   }
 
   private onWindPhase(phase: WindPhase): void {

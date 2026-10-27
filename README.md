@@ -190,7 +190,7 @@ src/
   art/               Pixel sprites, bitmap font, texture generation
   audio/             Chiptune songs and WebAudio synth
   input/             Keyboard, gamepad and touch input
-  platform/          Mobile full screen: first-tap full screen, toggle button, iPhone hint
+  platform/          Mobile full screen: first-tap full screen, toggle button, iPhone hint; Phaser bug patches
   scenes/            Boot, Title, Story and Level scenes
 tests/               Vitest unit tests
 e2e/                 Playwright smoke tests

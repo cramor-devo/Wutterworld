@@ -88,6 +88,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Kenting Beach: the far hills meet the sea again with no pale sky band in between. The backdrop's base picture
   is no longer stretched to the taller screen; the strip below it continues its bottom colour
   ([#27](https://github.com/cramor-devo/Wutterworld/issues/27)).
+- Firefox desktop: finishing a level no longer leaves a black screen with the music still playing. A Phaser 3.90
+  bug crashed every scene change when the browser reported a gamepad with an empty slot before it; the game now
+  skips empty slots ([#31](https://github.com/cramor-devo/Wutterworld/issues/31)).
 
 ## [0.3.0] - 2026-10-26
 
