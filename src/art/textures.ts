@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { TILE_COUNT } from '../levels/parser';
 import { bandedGradient, canvasTexture, mulberry32, px } from './canvas';
 import { CELL_H, CELL_W, FONT_CHARS, GLYPH_W, GLYPHS } from './font';
+import { jiufenTextures } from './jiufen';
 import { marketTextures } from './market';
 import { marketBackdropTextures } from './marketBackdrop';
 import { drawPuddle } from './puddle';
@@ -46,12 +47,22 @@ function fontTexture(scene: Phaser.Scene): void {
 
 /**
  * Tileset order matches TILE_INDEX in levels/parser.ts. Every setting has its own tileset with the same slots;
- * only the ground ('=', slots 0 and 1) changes: sand on the reef and the beach, asphalt in the night market.
+ * the ground ('=', slots 0 and 1) changes per setting (sand, asphalt or Jiufen's stone steps), and so do the
+ * crates ('b' and 'B', slots 5 to 8): food boxes and oil cans in the market, souvenirs in Jiufen.
  */
-function tilesTexture(scene: Phaser.Scene, key: string, ground: 'sand' | 'asphalt'): void {
+function tilesTexture(scene: Phaser.Scene, key: string, ground: 'sand' | 'asphalt' | 'stone', crates: 'market' | 'souvenir' = 'market'): void {
   const rnd = mulberry32(7);
   canvasTexture(scene, key, 16 * TILE_COUNT, 16, 1, (ctx) => {
-    if (ground === 'sand') {
+    if (ground === 'stone') {
+      // 0: a granite stair tread with a worn, lighter nosing; 1: the masonry wall under the steps.
+      stoneFill(ctx, 0, rnd);
+      px(ctx, '#b4aec0', 0, 0, 16, 2);
+      px(ctx, '#8d889c', 0, 2, 16, 1);
+      px(ctx, '#3a3646', 0, 3, 16, 1);
+      px(ctx, '#5f8a5a', 2, 4, 2, 1);
+      px(ctx, '#5f8a5a', 12, 4, 1, 1);
+      stoneFill(ctx, 16, rnd);
+    } else if (ground === 'sand') {
       // 0: sand top
       px(ctx, '#e3c283', 0, 0, 16, 16);
       for (let i = 0; i < 26; i++) px(ctx, '#c4a064', Math.floor(rnd() * 16), 3 + Math.floor(rnd() * 13));
@@ -96,12 +107,90 @@ function tilesTexture(scene: Phaser.Scene, key: string, ground: 'sand' | 'asphal
     px(ctx, '#c9614b', 64, 0, 16, 1);
     px(ctx, '#4f8a5b', 66, 0, 4, 1);
     px(ctx, '#4f8a5b', 73, 0, 2, 2);
-    // 5, 6: cardboard boxes of foodstuff; 7, 8: soybean oil can body and top
-    cardboardBox(ctx, 80, 'bowl');
-    cardboardBox(ctx, 96, 'cabbage');
-    oilCan(ctx, 112, false);
-    oilCan(ctx, 128, true);
+    if (crates === 'souvenir') {
+      // 5, 6: pineapple-cake and nougat gift boxes; 7, 8: tea tin body and top with its lid
+      pineappleCakeBox(ctx, 80);
+      nougatBox(ctx, 96);
+      teaTin(ctx, 112, false);
+      teaTin(ctx, 128, true);
+    } else {
+      // 5, 6: cardboard boxes of foodstuff; 7, 8: soybean oil can body and top
+      cardboardBox(ctx, 80, 'bowl');
+      cardboardBox(ctx, 96, 'cabbage');
+      oilCan(ctx, 112, false);
+      oilCan(ctx, 128, true);
+    }
   });
+}
+
+/** Jiufen's old masonry: blue-grey blocks in the dusk light, offset every row like a retaining wall. */
+function stoneFill(ctx: CanvasRenderingContext2D, x0: number, rnd: () => number): void {
+  px(ctx, '#5c5868', x0, 0, 16, 16);
+  for (let y = 0; y < 16; y += 4) {
+    px(ctx, '#3a3646', x0, y + 3, 16, 1);
+    px(ctx, '#6e6a7c', x0, y, 16, 1);
+    const off = (y / 4) % 2 === 0 ? 5 : 12;
+    px(ctx, '#3a3646', x0 + off, y, 1, 3);
+  }
+  for (let i = 0; i < 10; i++) px(ctx, rnd() < 0.5 ? '#4c4858' : '#6a6676', x0 + Math.floor(rnd() * 16), Math.floor(rnd() * 16));
+}
+
+/** 鳳梨酥 gift box: golden yellow with a red band and a little pineapple on the lid. */
+function pineappleCakeBox(ctx: CanvasRenderingContext2D, x0: number): void {
+  px(ctx, '#e8b830', x0, 0, 16, 16);
+  px(ctx, '#ffd860', x0, 0, 16, 2);
+  px(ctx, '#9a6a10', x0, 15, 16, 1);
+  px(ctx, '#9a6a10', x0 + 15, 0, 1, 16);
+  px(ctx, '#c8302a', x0, 10, 16, 3);
+  px(ctx, '#ffd860', x0, 11, 16, 1);
+  // The pineapple: green crown over a criss-crossed golden fruit.
+  px(ctx, '#3f8f3a', x0 + 6, 2, 1, 2);
+  px(ctx, '#3f8f3a', x0 + 8, 2, 1, 2);
+  px(ctx, '#5ab04a', x0 + 7, 1, 1, 3);
+  px(ctx, '#c88a1a', x0 + 5, 4, 6, 5);
+  px(ctx, '#f6d050', x0 + 6, 5, 1, 1);
+  px(ctx, '#f6d050', x0 + 8, 5, 1, 1);
+  px(ctx, '#f6d050', x0 + 7, 6, 1, 1);
+  px(ctx, '#f6d050', x0 + 6, 7, 1, 1);
+  px(ctx, '#f6d050', x0 + 9, 7, 1, 1);
+}
+
+/** 牛軋糖 nougat box: cream paper with a pink ribbon and a blue flower print. */
+function nougatBox(ctx: CanvasRenderingContext2D, x0: number): void {
+  px(ctx, '#f2ead8', x0, 0, 16, 16);
+  px(ctx, '#ffffff', x0, 0, 16, 2);
+  px(ctx, '#a89a80', x0, 15, 16, 1);
+  px(ctx, '#a89a80', x0 + 15, 0, 1, 16);
+  px(ctx, '#e86a8a', x0 + 10, 0, 2, 15);
+  px(ctx, '#e86a8a', x0, 6, 15, 2);
+  px(ctx, '#e86a8a', x0 + 8, 3, 2, 2);
+  px(ctx, '#e86a8a', x0 + 12, 3, 2, 2);
+  for (const [fx, fy] of [[3, 3], [5, 11], [12, 11]]) {
+    px(ctx, '#4a7ac8', x0 + fx - 1, fy, 3, 1);
+    px(ctx, '#4a7ac8', x0 + fx, fy - 1, 1, 3);
+    px(ctx, '#f2c94c', x0 + fx, fy, 1, 1);
+  }
+}
+
+/** One 16 px segment of a tall oolong tea tin; the top segment gets the gold lid. */
+function teaTin(ctx: CanvasRenderingContext2D, x0: number, top: boolean): void {
+  const y0 = top ? 2 : 0;
+  px(ctx, '#2f6a4a', x0 + 1, y0, 14, 16 - y0);
+  px(ctx, '#5aa07a', x0 + 2, y0, 2, 16 - y0);
+  px(ctx, '#1a4030', x0 + 13, y0, 2, 16 - y0);
+  // Red label with a gold border and a tea leaf.
+  px(ctx, '#c8302a', x0 + 3, 5, 10, 7);
+  px(ctx, '#f2c94c', x0 + 3, 5, 10, 1);
+  px(ctx, '#f2c94c', x0 + 3, 11, 10, 1);
+  px(ctx, '#7ac04a', x0 + 6, 7, 4, 2);
+  px(ctx, '#4a8a2a', x0 + 7, 9, 1, 1);
+  if (top) {
+    px(ctx, '#c8a040', x0, 0, 16, 3);
+    px(ctx, '#ffe08a', x0 + 1, 0, 14, 1);
+    px(ctx, '#8a6a20', x0, 3, 16, 1);
+  } else {
+    px(ctx, '#c8a040', x0 + 1, 15, 14, 1);
+  }
 }
 
 function asphalt(ctx: CanvasRenderingContext2D, x0: number, rnd: () => number, base: string): void {
@@ -329,10 +418,12 @@ export function generateTextures(scene: Phaser.Scene): void {
   fontTexture(scene);
   tilesTexture(scene, 'tiles', 'sand');
   tilesTexture(scene, 'tiles-market', 'asphalt');
+  tilesTexture(scene, 'tiles-jiufen', 'stone', 'souvenir');
   backgroundTextures(scene);
   beachTextures(scene);
   marketTextures(scene);
   marketBackdropTextures(scene);
+  jiufenTextures(scene);
   decorTextures(scene);
 }
 
