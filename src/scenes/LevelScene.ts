@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { pixelText, setPixelText } from '../art/text';
 import { audio } from '../audio/chiptune';
-import { type Physics, PHYSICS, PHYSICS_DRY, TILE } from '../config';
+import { LEVEL_ROWS, type Physics, PHYSICS, PHYSICS_DRY, TILE } from '../config';
 import { createKeys, type Keys, readGamepad, readKeys } from '../input/devices';
 import { controlScheme, withButtonLabels } from '../input/labels';
 import { InputEdges, mergeInputs } from '../input/state';
@@ -139,7 +139,7 @@ export class LevelScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.physics.world.off(Phaser.Physics.Arcade.Events.WORLD_STEP, countStep));
     this.cameras.main.setBounds(0, 0, worldW, worldH).fadeIn(300);
 
-    this.backdrop = addBackdrop(this, this.def.setting);
+    this.backdrop = addBackdrop(this, this.def.setting, LEVEL_ROWS * TILE);
     if (this.style.bubbles) addBubbles(this);
     this.buildDecor();
     this.buildTiles();

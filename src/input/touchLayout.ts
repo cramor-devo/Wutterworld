@@ -8,13 +8,21 @@ export interface ButtonSpot {
   label: string;
 }
 
-/** Positions of the on-screen pad: arrows on the left edge, B and A on the right edge of the view. */
+/**
+ * Distance of the outermost button centres from the left and right screen edges. Keeps the buttons (and
+ * their larger touch area) out of the edge strip where Android's back-swipe gesture starts.
+ */
+export const TOUCH_EDGE_INSET = 40;
+/** Height of the button row above the bottom of the screen, over the extra ground rows. */
+export const TOUCH_BOTTOM_INSET = 40;
+
+/** Positions of the on-screen pad: arrows on the left, B and A on the right of the view. */
 export function touchButtonLayout(viewWidth: number): ButtonSpot[] {
-  const y = GAME_HEIGHT - 26;
+  const y = GAME_HEIGHT - TOUCH_BOTTOM_INSET;
   return [
-    { name: 'left', x: 24, y, label: '' },
-    { name: 'right', x: 62, y, label: '' },
-    { name: 'action', x: viewWidth - 62, y: y + 6, label: 'B' },
-    { name: 'jump', x: viewWidth - 26, y: y - 8, label: 'A' },
+    { name: 'left', x: TOUCH_EDGE_INSET, y, label: '' },
+    { name: 'right', x: TOUCH_EDGE_INSET + 38, y, label: '' },
+    { name: 'action', x: viewWidth - TOUCH_EDGE_INSET - 36, y: y + 6, label: 'B' },
+    { name: 'jump', x: viewWidth - TOUCH_EDGE_INSET, y: y - 8, label: 'A' },
   ];
 }
