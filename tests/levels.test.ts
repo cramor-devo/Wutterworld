@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LEVEL_ROWS, PHYSICS, PHYSICS_DRY, TILE } from '../src/config';
+import { GROUND_FILL_ROWS, LEVEL_ROWS, PHYSICS, PHYSICS_DRY, TILE } from '../src/config';
 import { CHAPTERS, nextChapter } from '../src/levels/chapters';
 import { FIRST_LEVEL_ID, getLevel, hasLevel, LEVELS, loadLevel } from '../src/levels';
 import { parseLevel, TILE_COUNT, TILE_INDEX, validateMap } from '../src/levels/parser';
@@ -21,7 +21,7 @@ describe('parser', () => {
     const map = blank(10, { 10: '..^..f....', 11: 'P.S.oOAc.E' });
     const lvl = parseLevel(map, ['HELLO']);
     expect(lvl.cols).toBe(10);
-    expect(lvl.rows).toBe(LEVEL_ROWS);
+    expect(lvl.rows).toBe(LEVEL_ROWS + GROUND_FILL_ROWS);
     expect(lvl.spawn).toMatchObject({ col: 0, row: 11, x: 8, y: 11 * TILE + 8 });
     expect(lvl.exit.col).toBe(9);
     expect(lvl.signs).toEqual([expect.objectContaining({ col: 2, text: 'HELLO' })]);
@@ -66,6 +66,28 @@ describe('parser', () => {
 
   it('every tile index fits in the tileset', () => {
     for (const i of Object.values(TILE_INDEX)) expect(i).toBeLessThan(TILE_COUNT);
+  });
+
+  it('adds ground rows under the map that continue the bottom row and keep gaps open', () => {
+    const map = blank(4, { 11: 'P..E', 13: '=.#=' });
+    const lvl = parseLevel(map);
+    expect(lvl.tiles).toHaveLength(LEVEL_ROWS + GROUND_FILL_ROWS);
+    for (let r = LEVEL_ROWS; r < lvl.rows; r++) {
+      expect(lvl.solid[r]).toEqual([true, false, true, true]);
+      expect(lvl.tiles[r]).toEqual([TILE_INDEX.sand, TILE_INDEX.empty, TILE_INDEX.rock, TILE_INDEX.sand]);
+    }
+  });
+
+  it('keeps a pit in the bottom row open down to the bottom of the screen', () => {
+    const map = blank(5, { 11: 'P...E', 12: '==.==', 13: '==.==' });
+    const lvl = parseLevel(map);
+    for (let r = 12; r < lvl.rows; r++) {
+      expect(lvl.solid[r][2]).toBe(false);
+      expect(lvl.tiles[r][2]).toBe(TILE_INDEX.empty);
+    }
+    // Wutter can drop into the pit, land on the bottom of the world and still reach the exit.
+    expect(reachableCells(lvl, REACH).has(`2,${lvl.rows - 1}`)).toBe(true);
+    expect(canReachExit(lvl, REACH)).toBe(true);
   });
 
   it('uses a sand-top tile only where nothing solid is above', () => {

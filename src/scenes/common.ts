@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_HEIGHT, GAME_WIDTH, viewWidthFor } from '../config';
+import { FIXED_LAYOUT_TOP, GAME_HEIGHT, GAME_WIDTH, viewWidthFor } from '../config';
 import { type LevelSetting, SETTINGS } from '../levels';
 
 /** State exposed for the Playwright smoke test and for debugging in the browser console. */
@@ -46,18 +46,19 @@ const NEAR_H = 64;
 
 /**
  * The setting's backdrop, fixed to the camera: a base picture, two parallax layers (far and mid) and, where the
- * setting has one, a third, faster near layer. Every layer texture tiles seamlessly sideways. Haze veils mute
- * the layers more with distance, so Wutter and the enemies stand out.
+ * setting has one, a third, faster near layer. Every layer texture tiles seamlessly sideways. The layers stand on
+ * `bottom`: in levels that is the top of the extra ground rows, so the scenery is not hidden behind them. Haze
+ * veils mute the layers more with distance, so Wutter and the enemies stand out.
  */
-export function addBackdrop(scene: Phaser.Scene, setting: LevelSetting = 'reef'): Backdrop {
+export function addBackdrop(scene: Phaser.Scene, setting: LevelSetting = 'reef', bottom = GAME_HEIGHT): Backdrop {
   const w = scene.scale.width;
   const keys = SETTINGS[setting].backdrop;
   const base = scene.add.image(0, 0, keys.base).setOrigin(0).setScrollFactor(0).setDepth(-30).setDisplaySize(w, GAME_HEIGHT);
   const farH = keys.farH ?? FAR_H;
   const midH = keys.midH ?? MID_H;
-  const far = scene.add.tileSprite(0, GAME_HEIGHT - farH, w, farH, keys.far).setOrigin(0).setScrollFactor(0).setDepth(-20);
-  const mid = scene.add.tileSprite(0, GAME_HEIGHT - midH, w, midH, keys.mid).setOrigin(0).setScrollFactor(0).setDepth(-15);
-  const near = keys.near ? scene.add.tileSprite(0, GAME_HEIGHT - NEAR_H, w, NEAR_H, keys.near).setOrigin(0).setScrollFactor(0).setDepth(-12) : null;
+  const far = scene.add.tileSprite(0, bottom - farH, w, farH, keys.far).setOrigin(0).setScrollFactor(0).setDepth(-20);
+  const mid = scene.add.tileSprite(0, bottom - midH, w, midH, keys.mid).setOrigin(0).setScrollFactor(0).setDepth(-15);
+  const near = keys.near ? scene.add.tileSprite(0, bottom - NEAR_H, w, NEAR_H, keys.near).setOrigin(0).setScrollFactor(0).setDepth(-12) : null;
   // Haze veils just in front of each layer; they stack, so the farthest layers are the most muted.
   const veil = (alpha: number, depth: number) =>
     scene.add.rectangle(0, 0, w, GAME_HEIGHT, keys.haze.color, alpha).setOrigin(0).setScrollFactor(0).setDepth(depth);
@@ -167,6 +168,6 @@ export function watchViewSize(game: Phaser.Game, settleMs = 150): void {
 /** Centres a fixed 256-wide layout (title, story) in a wider view by shifting the camera. */
 export function centreFixedLayout(scene: Phaser.Scene): number {
   const offset = Math.floor((scene.scale.width - GAME_WIDTH) / 2);
-  scene.cameras.main.setScroll(-offset, 0);
+  scene.cameras.main.setScroll(-offset, -FIXED_LAYOUT_TOP);
   return offset;
 }
