@@ -57,6 +57,14 @@ describe('parser', () => {
     expect(lvl.tiles[11][4]).toBe(TILE_INDEX.oilTop);
   });
 
+  it('parses deep-sea chars: giant squids and anglerfish', () => {
+    const lvl = parseLevel(blank(8, { 7: '...Q....', 11: 'P..n...E' }));
+    expect(lvl.enemies.map((e) => [e.kind, e.col, e.row])).toEqual([
+      ['squid', 3, 7],
+      ['anglerfish', 3, 11],
+    ]);
+  });
+
   it('parses street cats and stinky tofu blocks, which have their own bodies instead of grid tiles', () => {
     const map = blank(6, { 10: '...z..', 11: 'P.kz.E' });
     const lvl = parseLevel(map);
@@ -171,6 +179,7 @@ describe('game levels', () => {
     expect([...kinds('beach')].sort()).toEqual(['crab', 'jellyfish', 'seagull']);
     expect([...kinds('night-market')].sort()).toEqual(['cat', 'seagull']);
     expect([...kinds('jiufen')].sort()).toEqual(['cat', 'seagull']);
+    expect([...kinds('abyss')].sort()).toEqual(['anglerfish', 'squid']);
   });
 
   it('the night market is a dangerous market level with stinky tofu', () => {
@@ -189,7 +198,7 @@ describe('game levels', () => {
     expect(STORIES.intro.next).toEqual({ type: 'level', id: FIRST_LEVEL_ID });
   });
 
-  it('chapter 1 leads to the beach, then the night market, Jiufen and the typhoon, which ends on the thank-you story', () => {
+  it('chapter 1 leads to the beach, the night market, Jiufen, the typhoon and the Midnight Zone, which ends on the thank-you story', () => {
     expect(STORIES['chapter-1-end'].next).toEqual({ type: 'level', id: 'beach' });
     expect(LEVELS.beach.next).toEqual({ type: 'story', id: 'chapter-2-end' });
     expect(STORIES['chapter-2-end'].next).toEqual({ type: 'level', id: 'night-market' });
@@ -202,11 +211,17 @@ describe('game levels', () => {
     expect(STORIES['chapter-4-end'].panels.some((p) => p.text.includes('TYPHOON'))).toBe(true);
     expect(STORIES['chapter-4-end'].panels.at(-1)?.text).toContain('SIGNAL NO. 8');
     expect(LEVELS.typhoon.next).toEqual({ type: 'story', id: 'chapter-5-end' });
-    // A big wave sweeps Wutter into the deep sea; the Midnight Zone (chapter 6) comes next.
-    expect(STORIES['chapter-5-end'].panels.map((p) => p.art)).toContain('big-wave');
+    // A big wave sweeps Wutter into the deep sea: the Midnight Zone (chapter 6).
+    expect(STORIES['chapter-5-end'].panels.map((p) => p.art)).toEqual(expect.arrayContaining(['big-wave', 'deep-sea']));
     expect(STORIES['chapter-5-end'].panels.some((p) => p.text.includes('WAVE'))).toBe(true);
-    expect(STORIES['chapter-5-end'].panels.at(-1)?.text).toContain('THANK YOU FOR PLAYING');
-    expect(STORIES['chapter-5-end'].next).toEqual({ type: 'title' });
+    expect(STORIES['chapter-5-end'].panels.at(-1)?.text).toContain('THE MIDNIGHT ZONE');
+    expect(STORIES['chapter-5-end'].next).toEqual({ type: 'level', id: 'abyss' });
+    expect(LEVELS.abyss.next).toEqual({ type: 'story', id: 'chapter-6-end' });
+    // The glowing creatures lead Wutter up toward the lights of Kenting; the festive home reef (chapter 7) comes next.
+    expect(STORIES['chapter-6-end'].panels.map((p) => p.art)).toContain('glow-ascent');
+    expect(STORIES['chapter-6-end'].panels.some((p) => p.text.includes('KENTING'))).toBe(true);
+    expect(STORIES['chapter-6-end'].panels.at(-1)?.text).toContain('THANK YOU FOR PLAYING');
+    expect(STORIES['chapter-6-end'].next).toEqual({ type: 'title' });
   });
 });
 
@@ -220,10 +235,11 @@ describe('chapters', () => {
     expect(nextChapter('festive-reef')).toBeUndefined();
   });
 
-  it('chapter 4 is Lantern Hill in Jiufen, and chapter 5 is the typhoon on the Northeast Coast (issues #15, #16)', () => {
+  it('chapter 4 is Lantern Hill in Jiufen, chapter 5 the typhoon on the Northeast Coast, chapter 6 the Midnight Zone (issues #15-#17)', () => {
     const byId = (id: string) => CHAPTERS.find((c) => c.id === id);
     expect(byId('jiufen')).toMatchObject({ title: 'Lantern Hill', place: 'Jiufen', playable: true });
     expect(byId('typhoon')).toMatchObject({ title: 'Signal No. 8', place: 'Northeast Coast', playable: true });
+    expect(byId('abyss')).toMatchObject({ title: 'The Midnight Zone', place: 'Abyssal Sea', playable: true });
   });
 
   it('every playable chapter has a level', () => {
@@ -326,14 +342,14 @@ describe('everything can be reached', () => {
 
 describe('hard mode (issue #4)', () => {
   it('adds extra enemies to Coral Gardens, the beach and the night market, not the tutorial', () => {
-    for (const id of ['coral-gardens', 'beach', 'night-market', 'jiufen', 'typhoon']) {
+    for (const id of ['coral-gardens', 'beach', 'night-market', 'jiufen', 'typhoon', 'abyss']) {
       const base = loadLevel(id).parsed.enemies.length;
       expect(loadLevel(id, { extraEnemies: true }).parsed.enemies.length).toBeGreaterThan(base);
     }
     expect(loadLevel('reef-tutorial', { extraEnemies: true }).parsed.enemies).toEqual(loadLevel('reef-tutorial').parsed.enemies);
   });
 
-  it.each(['coral-gardens', 'beach', 'night-market', 'jiufen', 'typhoon'])('places extra enemies in %s in open space, with crabs and cats standing on the ground', (id) => {
+  it.each(['coral-gardens', 'beach', 'night-market', 'jiufen', 'typhoon', 'abyss'])('places extra enemies in %s in open space, with crabs and cats standing on the ground', (id) => {
     const lvl = loadLevel(id, { extraEnemies: true }).parsed;
     for (const e of LEVELS[id].hardEnemies ?? []) {
       expect(lvl.solid[e.row][e.col], `${e.kind} at ${e.col},${e.row}`).toBe(false);
@@ -475,10 +491,69 @@ describe('Typhoon (issue #16)', () => {
   });
 });
 
+describe('Midnight Zone (issue #17)', () => {
+  const abyss = (extraEnemies = false) => loadLevel('abyss', { extraEnemies }).parsed;
+
+  it('is a dangerous underwater level with its own slow song', () => {
+    const def = LEVELS.abyss;
+    expect(def.setting).toBe('abyss');
+    expect(def.safe).toBe(false);
+    expect(isLandSetting('abyss')).toBe(false);
+    expect(isStormSetting('abyss')).toBe(false);
+    expect(def.music).toBe('abyss');
+    expect(SONGS.abyss.bpm).toBeLessThan(SONGS.reef.bpm);
+  });
+
+  it.each([false, true])('can be completed and everything can be reached (hard extras: %s)', (extra) => {
+    const lvl = abyss(extra);
+    expect(canReachExit(lvl, REACH)).toBe(true);
+    expect(unreachableThings(lvl, REACH)).toEqual([]);
+  });
+
+  it('has giant squids and anglerfish, and more of both on hard', () => {
+    const count = (extra: boolean, kind: string) => abyss(extra).enemies.filter((e) => e.kind === kind).length;
+    for (const kind of ['squid', 'anglerfish']) {
+      expect(count(false, kind), kind).toBeGreaterThanOrEqual(3);
+      expect(count(true, kind), kind).toBeGreaterThan(count(false, kind));
+    }
+  });
+
+  it('squids lurk in open water, a few tiles above the floor, with room to lunge', () => {
+    const lvl = abyss(true);
+    for (const e of lvl.enemies.filter((en) => en.kind === 'squid')) {
+      for (const dc of [-1, 0, 1]) for (const dr of [-1, 0, 1]) expect(lvl.solid[e.row + dr][e.col + dc], `squid at ${e.col},${e.row}`).toBe(false);
+      expect(e.row).toBeLessThanOrEqual(8);
+    }
+  });
+
+  it('uses its own dark tileset and backdrop, and never veils the play layer', () => {
+    const style = SETTINGS.abyss;
+    expect(style.tileset).toBe('tiles-abyss');
+    expect(style.backdrop.base).toBe('bg-abyss');
+    // No reduced visibility: only the backdrop layers are hazed, there is no near layer or veil in front of the play layer.
+    expect(style.backdrop.near).toBeUndefined();
+    expect(style.backdrop.haze.near).toBeUndefined();
+    const lightness = (c: number) => ((c >> 16) & 255) + ((c >> 8) & 255) + (c & 255);
+    expect(lightness(style.backdrop.haze.color)).toBeLessThan(lightness(SETTINGS.reef.backdrop.haze.color));
+  });
+
+  it('ends up high: an up-current carries Wutter to the exit, following the jellyfish home', () => {
+    const lvl = abyss();
+    expect(lvl.exit.row).toBeLessThan(lvl.spawn.row - 3);
+    expect(lvl.currents.some((c) => c.kind === 'up' && c.col > lvl.exit.col - 8 && c.col < lvl.exit.col)).toBe(true);
+  });
+
+  it('has a sunken ship of planks and warns about the squid and the anglerfish on its signs', () => {
+    expect(abyss().tiles.flat().filter((t) => t === TILE_INDEX.brick).length).toBeGreaterThan(10);
+    expect(LEVELS.abyss.signs.some((s) => s.includes('SQUID'))).toBe(true);
+    expect(LEVELS.abyss.signs.some((s) => s.includes('ANGLERFISH'))).toBe(true);
+  });
+});
+
 describe('level settings (issue #14)', () => {
   const all = Object.keys(SETTINGS) as LevelSetting[];
 
-  it('the reef is underwater; the beach, the night market, Jiufen and the typhoon coast are dry land', () => {
+  it('the reef and the Midnight Zone are underwater; the beach, the night market, Jiufen and the typhoon coast are dry land', () => {
     expect(all.filter(isLandSetting).sort()).toEqual(['beach', 'jiufen', 'market', 'typhoon']);
   });
 
