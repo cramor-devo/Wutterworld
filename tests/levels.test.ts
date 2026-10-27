@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SONGS } from '../src/audio/music';
 import { GROUND_FILL_ROWS, LEVEL_ROWS, PHYSICS, PHYSICS_DRY, TILE } from '../src/config';
-import { CHAPTERS, nextChapter } from '../src/levels/chapters';
+import { CHAPTERS, nextChapter, titleTagline } from '../src/levels/chapters';
 import { FIRST_LEVEL_ID, getLevel, hasLevel, LEVELS, loadLevel } from '../src/levels';
 import { parseLevel, TILE_COUNT, TILE_INDEX, validateMap } from '../src/levels/parser';
 import { canMountPuffer, levelBouncers, pufferArcCells, pufferTargets } from '../src/levels/puffers';
@@ -44,6 +44,15 @@ describe('parser', () => {
       expect(lvl.tiles[r][2], `filler row ${r} under the puddle`).toBe(TILE_INDEX.sand);
       expect(lvl.solid[r][2]).toBe(true);
     }
+  });
+
+  it('parses festive decor: festoons and party guests, which are harmless and not solid', () => {
+    const map = blank(6, { 1: '.F....', 11: 'P.HH.E' });
+    const lvl = parseLevel(map);
+    expect(lvl.decor.map((d) => d.kind)).toEqual(['festoon', 'guest', 'guest']);
+    expect(lvl.enemies).toEqual([]);
+    expect(lvl.solid[11][2]).toBe(false);
+    expect(lvl.solid[1][1]).toBe(false);
   });
 
   it('parses market platforms: cardboard boxes and stacked oil cans with a cap on top', () => {
@@ -220,8 +229,40 @@ describe('game levels', () => {
     // The glowing creatures lead Wutter up toward the lights of Kenting; the festive home reef (chapter 7) comes next.
     expect(STORIES['chapter-6-end'].panels.map((p) => p.art)).toContain('glow-ascent');
     expect(STORIES['chapter-6-end'].panels.some((p) => p.text.includes('KENTING'))).toBe(true);
-    expect(STORIES['chapter-6-end'].panels.at(-1)?.text).toContain('THANK YOU FOR PLAYING');
-    expect(STORIES['chapter-6-end'].next).toEqual({ type: 'title' });
+    expect(STORIES['chapter-6-end'].panels.at(-1)?.text).toContain('FESTIVE HOME REEF');
+    expect(STORIES['chapter-6-end'].next).toEqual({ type: 'level', id: 'festive-reef' });
+    // The finale: Wutter tells the other reef dwellers what he saw, then THE END and back to the title.
+    expect(LEVELS['festive-reef'].next).toEqual({ type: 'story', id: 'finale' });
+    const finale = STORIES.finale;
+    for (const word of ['SEA STARS', 'SHRIMP', 'CRABS', 'URCHINS', 'SEA CUCUMBERS', 'BEACH', 'NIGHT MARKET', 'JIUFEN', 'TYPHOON', 'DEEP SEA', 'LANTERN LIGHTS']) {
+      expect(finale.panels.some((p) => p.text.includes(word)), word).toBe(true);
+    }
+    expect(finale.panels.at(-1)).toMatchObject({ art: 'the-end' });
+    expect(finale.panels.at(-1)?.text).toContain('THANK YOU FOR PLAYING');
+    expect(finale.next).toEqual({ type: 'title' });
+  });
+
+  it('the whole story runs from the intro through every chapter once, in order, and ends at the title (issue #18)', () => {
+    const levels: string[] = [];
+    const stories = new Set<string>();
+    let step: { type: string; id?: string } = { type: 'story', id: 'intro' };
+    while (step.type !== 'title') {
+      const id = step.id ?? '';
+      if (step.type === 'story') {
+        expect(STORIES[id], `story '${id}'`).toBeDefined();
+        expect(stories.has(id), `story '${id}' is told twice`).toBe(false);
+        stories.add(id);
+        step = STORIES[id].next;
+      } else {
+        expect(hasLevel(id), `level '${id}'`).toBe(true);
+        expect(levels, `level '${id}' is played twice`).not.toContain(id);
+        levels.push(id);
+        step = LEVELS[id].next;
+      }
+    }
+    expect(levels).toEqual(CHAPTERS.map((c) => c.id));
+    expect([...levels].sort()).toEqual(Object.keys(LEVELS).sort());
+    expect([...stories].sort()).toEqual(Object.keys(STORIES).sort());
   });
 });
 
@@ -240,6 +281,12 @@ describe('chapters', () => {
     expect(byId('jiufen')).toMatchObject({ title: 'Lantern Hill', place: 'Jiufen', playable: true });
     expect(byId('typhoon')).toMatchObject({ title: 'Signal No. 8', place: 'Northeast Coast', playable: true });
     expect(byId('abyss')).toMatchObject({ title: 'The Midnight Zone', place: 'Abyssal Sea', playable: true });
+  });
+
+  it('every chapter is playable since the finale, chapter 7 the festive home reef in Kenting (issue #18)', () => {
+    expect(CHAPTERS.find((c) => c.id === 'festive-reef')).toMatchObject({ title: 'Festive Home Reef', place: 'Kenting', playable: true });
+    expect(CHAPTERS.every((c) => c.playable)).toBe(true);
+    expect(titleTagline()).toBe(`${CHAPTERS.length} LEVELS, FROM THE REEF AND BACK HOME`);
   });
 
   it('every playable chapter has a level', () => {
@@ -547,6 +594,42 @@ describe('Midnight Zone (issue #17)', () => {
     expect(abyss().tiles.flat().filter((t) => t === TILE_INDEX.brick).length).toBeGreaterThan(10);
     expect(LEVELS.abyss.signs.some((s) => s.includes('SQUID'))).toBe(true);
     expect(LEVELS.abyss.signs.some((s) => s.includes('ANGLERFISH'))).toBe(true);
+  });
+});
+
+describe('Festive Home Reef (issue #18)', () => {
+  const festive = (extraEnemies = false) => loadLevel('festive-reef', { extraEnemies }).parsed;
+
+  it('is a safe underwater level on the home reef with its own joyful song', () => {
+    const def = LEVELS['festive-reef'];
+    expect(def.setting).toBe('festive-reef');
+    expect(def.safe).toBe(true);
+    expect(isLandSetting('festive-reef')).toBe(false);
+    expect(def.music).toBe('festive');
+    expect(SONGS.festive.bpm).toBeGreaterThan(SONGS.reef.bpm);
+    expect(SETTINGS['festive-reef'].tileset).toBe(SETTINGS.reef.tileset);
+  });
+
+  it('is short and easy: no enemies (not even on hard) and no pits', () => {
+    for (const extra of [false, true]) expect(festive(extra).enemies).toEqual([]);
+    expect(LEVELS['festive-reef'].hardEnemies).toBeUndefined();
+    const lvl = festive();
+    expect(lvl.cols).toBeLessThan(LEVELS['reef-tutorial'].map[0].length);
+    for (let c = 0; c < lvl.cols; c++) expect(lvl.solid[LEVEL_ROWS - 2][c], `pit at column ${c}`).toBe(true);
+  });
+
+  it('can be completed and every pearl and plankton can be reached', () => {
+    const lvl = festive();
+    expect(canReachExit(lvl, REACH)).toBe(true);
+    expect(unreachableThings(lvl, REACH)).toEqual([]);
+    expect(lvl.pickups.filter((p) => p.kind === 'pearl').length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('is decorated with festoons, lanterns and reef dwellers celebrating', () => {
+    const kinds = festive().decor.map((d) => d.kind);
+    expect(kinds.filter((k) => k === 'festoon').length).toBeGreaterThanOrEqual(5);
+    expect(kinds.filter((k) => k === 'lantern').length).toBeGreaterThanOrEqual(3);
+    expect(kinds.filter((k) => k === 'guest').length).toBeGreaterThanOrEqual(10);
   });
 });
 
