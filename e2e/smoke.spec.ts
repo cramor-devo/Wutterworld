@@ -18,6 +18,16 @@ async function waitForScene(page: Page, scene: string, timeout = 15_000) {
   await expect.poll(async () => (await hook(page))?.scene, { timeout }).toBe(scene);
 }
 
+/** Holds right until Wutter is past `x`. Polls instead of a fixed wait, so slow CI runners do not flake. */
+async function walkRightPast(page: Page, x: number) {
+  await page.keyboard.down('ArrowRight');
+  try {
+    await expect.poll(async () => (await hook(page))?.player?.x ?? 0, { timeout: 5_000 }).toBeGreaterThan(x);
+  } finally {
+    await page.keyboard.up('ArrowRight');
+  }
+}
+
 /** Taps (mobile) or clicks (desktop) the middle of the game canvas. */
 async function tapCanvas(page: Page, isMobile: boolean) {
   const box = await page.locator('canvas').boundingBox();
@@ -116,10 +126,7 @@ test('level shortcut loads Beach Escape and Wutter can walk (issue #7)', async (
   if (!isMobile) {
     await page.waitForTimeout(600);
     const startX = (await hook(page))?.player?.x ?? 0;
-    await page.keyboard.down('ArrowRight');
-    await page.waitForTimeout(800);
-    await page.keyboard.up('ArrowRight');
-    expect((await hook(page))?.player?.x ?? 0).toBeGreaterThan(startX + 20);
+    await walkRightPast(page, startX + 20);
   }
   expect(errors).toEqual([]);
 });
@@ -133,10 +140,7 @@ test('level shortcut loads the Night Market and Wutter can walk (issue #14)', as
   if (!isMobile) {
     await page.waitForTimeout(600);
     const startX = (await hook(page))?.player?.x ?? 0;
-    await page.keyboard.down('ArrowRight');
-    await page.waitForTimeout(800);
-    await page.keyboard.up('ArrowRight');
-    expect((await hook(page))?.player?.x ?? 0).toBeGreaterThan(startX + 20);
+    await walkRightPast(page, startX + 20);
   }
   expect(errors).toEqual([]);
 });
@@ -150,10 +154,7 @@ test('level shortcut loads Jiufen and Wutter can walk up the street (issue #15)'
   if (!isMobile) {
     await page.waitForTimeout(600);
     const startX = (await hook(page))?.player?.x ?? 0;
-    await page.keyboard.down('ArrowRight');
-    await page.waitForTimeout(800);
-    await page.keyboard.up('ArrowRight');
-    expect((await hook(page))?.player?.x ?? 0).toBeGreaterThan(startX + 20);
+    await walkRightPast(page, startX + 20);
   }
   // Let the crowd and the masked spirit stroll for a moment.
   await page.waitForTimeout(500);
@@ -171,10 +172,7 @@ test('level shortcut loads the Typhoon, Wutter can walk in the calm and the wind
   if (!isMobile) {
     await page.waitForTimeout(400);
     const startX = (await hook(page))?.player?.x ?? 0;
-    await page.keyboard.down('ArrowRight');
-    await page.waitForTimeout(800);
-    await page.keyboard.up('ArrowRight');
-    expect((await hook(page))?.player?.x ?? 0).toBeGreaterThan(startX + 20);
+    await walkRightPast(page, startX + 20);
   }
   // The first calm is about 4.5 s; then the warning comes and a gust follows.
   await expect.poll(async () => (await hook(page))?.wind, { timeout: 10_000 }).toBe('warning');
@@ -192,10 +190,7 @@ test('level shortcut loads the Midnight Zone and Wutter can swim through the dee
   if (!isMobile) {
     await page.waitForTimeout(400);
     const startX = (await hook(page))?.player?.x ?? 0;
-    await page.keyboard.down('ArrowRight');
-    await page.waitForTimeout(800);
-    await page.keyboard.up('ArrowRight');
-    expect((await hook(page))?.player?.x ?? 0).toBeGreaterThan(startX + 20);
+    await walkRightPast(page, startX + 20);
   }
   // Let the squids and anglerfish run their AI for a moment: no errors.
   await page.waitForTimeout(1500);
@@ -214,10 +209,7 @@ test('level shortcut loads the Festive Home Reef and Wutter can swim to the part
   if (!isMobile) {
     await page.waitForTimeout(400);
     const startX = (await hook(page))?.player?.x ?? 0;
-    await page.keyboard.down('ArrowRight');
-    await page.waitForTimeout(800);
-    await page.keyboard.up('ArrowRight');
-    expect((await hook(page))?.player?.x ?? 0).toBeGreaterThan(startX + 20);
+    await walkRightPast(page, startX + 20);
   }
   // Let the party guests dance and hop for a moment: no errors.
   await page.waitForTimeout(1500);
