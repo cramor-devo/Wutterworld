@@ -25,7 +25,7 @@ import { Health } from '../logic/health';
 import { clampFall, currentAcceleration, type CurrentKind, JumpController, stepHorizontal } from '../logic/movement';
 import { formatScore, LEVEL_CLEAR_BONUS, type PickupKind, Score } from '../logic/score';
 import { THREAD_SPEED, ThreadAbility, threadLifetimeMs } from '../logic/threads';
-import { StickyFeet, StinkyTofu } from '../logic/tofu';
+import { StickyFeet, StinkyTofu, TofuContact } from '../logic/tofu';
 import { WaterTank } from '../logic/water';
 import { wrapText } from '../story';
 import { addBackdrop, addBubbles, type Backdrop, fadeTo, onViewResize, setHook } from './common';
@@ -43,12 +43,9 @@ interface Enemy {
 interface Tofu {
   sprite: Phaser.Types.Physics.Arcade.SpriteWithStaticBody;
   logic: StinkyTofu;
-  /** Last time Wutter stood on it; a touch after a gap is a fresh landing. */
-  lastTouchMs: number;
+  /** Tells a fresh landing apart from Wutter still standing on it. */
+  contact: TofuContact;
 }
-
-/** Contacts closer together than this are Wutter still standing on the tofu, not a new landing. */
-const TOFU_LANDING_GAP_MS = 60;
 
 const STOMP_POINTS = 100;
 const SIGN_RADIUS = 22;
@@ -83,6 +80,8 @@ export class LevelScene extends Phaser.Scene {
   private tofus: Tofu[] = [];
   private tofuGroup!: Phaser.Physics.Arcade.StaticGroup;
   private sticky = new StickyFeet();
+  /** Arcade physics steps run so far; tofu contact is tracked per step, not per millisecond. */
+  private physicsStep = 0;
 
   private keys: Keys | null = null;
   private touch: TouchControls | null = null;
@@ -133,6 +132,11 @@ export class LevelScene extends Phaser.Scene {
     const worldW = this.level.cols * TILE;
     const worldH = this.level.rows * TILE;
     this.physics.world.setBounds(0, 0, worldW, worldH);
+    const countStep = (): void => {
+      this.physicsStep += 1;
+    };
+    this.physics.world.on(Phaser.Physics.Arcade.Events.WORLD_STEP, countStep);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.physics.world.off(Phaser.Physics.Arcade.Events.WORLD_STEP, countStep));
     this.cameras.main.setBounds(0, 0, worldW, worldH).fadeIn(300);
 
     this.backdrop = addBackdrop(this, this.def.setting);
@@ -168,6 +172,7 @@ export class LevelScene extends Phaser.Scene {
     this.enemies = [];
     this.tofus = [];
     this.sticky = new StickyFeet();
+    this.physicsStep = 0;
     this.currents.clear();
     this.hearts = [];
     this.signLines = [];
@@ -345,7 +350,7 @@ export class LevelScene extends Phaser.Scene {
       const sprite = this.tofuGroup.create(t.x, t.y, 'tofu', 0) as Tofu['sprite'];
       sprite.setDepth(2);
       sprite.body.setSize(14, 13).setOffset(1, 3);
-      const tofu: Tofu = { sprite, logic: new StinkyTofu(), lastTouchMs: Number.NEGATIVE_INFINITY };
+      const tofu: Tofu = { sprite, logic: new StinkyTofu(), contact: new TofuContact() };
       this.tofus.push(tofu);
       sprite.setData('tofu', tofu);
     }
@@ -356,10 +361,7 @@ export class LevelScene extends Phaser.Scene {
   private onTofu(tofu: Tofu): void {
     const body = this.player.body;
     if (this.finished || !body.touching.down) return;
-    const now = this.time.now;
-    const landed = now - tofu.lastTouchMs > TOFU_LANDING_GAP_MS;
-    tofu.lastTouchMs = now;
-    if (!landed) return;
+    if (!tofu.contact.touch(this.physicsStep)) return;
     if (tofu.logic.land() === 'bounce') {
       body.setVelocityY(-PHYSICS.pufferBounce);
       this.jump.markAirborneBounce();

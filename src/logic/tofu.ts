@@ -71,3 +71,18 @@ export class StickyFeet {
     return vy * TOFU_TUNING.lowJumpFactor;
   }
 }
+
+/**
+ * Tells a fresh landing on a tofu block apart from Wutter still standing on it. Contact is counted in physics
+ * steps, not wall-clock time, so a low frame rate (long gaps between steps) never looks like a new landing.
+ */
+export class TofuContact {
+  private lastStep = Number.NEGATIVE_INFINITY;
+
+  /** Records contact during physics step `step`; true when the previous step had no contact (a new landing). */
+  touch(step: number): boolean {
+    const landed = step - this.lastStep > 1;
+    this.lastStep = step;
+    return landed;
+  }
+}
