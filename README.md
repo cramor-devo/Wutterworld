@@ -55,7 +55,7 @@ Pick a mode on the title screen. The game remembers your choice.
 | **Scenic** | 5, never lost (you cannot die) | none, hits only push you back | calm: they never chase, puff up or hurt |
 | **Easy** | 10 | 40% less (0.6 heart) | normal |
 | **Normal** (default) | 5 | 1 heart | normal |
-| **Hard** | 5 | 1 heart | extra crabs and triggerfish in Coral Gardens, extra crabs and seagulls on the beach, extra cats and seagulls in the night market |
+| **Hard** | 5 | 1 heart | extra crabs and triggerfish in Coral Gardens, extra crabs and seagulls on the beach, extra cats and seagulls in the night market and Jiufen |
 
 ### Puffer fish
 
@@ -88,6 +88,17 @@ asphalt are yucky, but they still refill the tank. Cardboard boxes and tall soyb
   pounces at the spot where Wutter was. Dodge, then stomp it or stun it with sticky threads.
 - **Seagulls** from the beach followed the fishing truck all the way to Taipei.
 
+### Jiufen: stairs, souvenirs and a masked friend
+
+Lantern Hill in Jiufen is dry land as well. Wutter climbs the covered **Jishan Street** past food stalls (芋圓 taro
+balls, 魚丸湯 fish ball soup, 香腸 sausage, 花生捲冰淇淋 peanut ice cream roll), then the steep stone stairs of
+**Shuqi Road** with its lantern-covered teahouses and the old cinema, and back down towards the sea, all at dusk.
+
+- The street goes **up and down stairs**. Each step is one tile, so Wutter can hop up even with an empty tank.
+- **Souvenirs** are the platforms: pineapple cake boxes, nougat boxes and tea tins.
+- Murky puddles in the steps refill the water tank. Street cats and seagulls are the enemies.
+- A crowd strolls along the street. Look for a quiet **masked spirit** in a black robe: walk up to it and it waves.
+
 ### What is playable now (v0.3.0)
 
 1. **Story intro**: four illustrated panels.
@@ -100,9 +111,12 @@ asphalt are yucky, but they still refill the tank. Cardboard boxes and tall soyb
 6. **Chapter end** story panels: a fishing truck takes Wutter north to Taipei.
 7. **Night Market**, Taipei: lanterns, food stalls with real Traditional Chinese signs, boxes and oil cans to
    climb, stinky tofu to bounce on, street cats and seagulls.
-8. **Thank-you** story panels (to be continued in Jiufen), then back to the title screen.
+8. **Chapter end** story panels: a bus winds up the mountain to Jiufen.
+9. **Lantern Hill**, Jiufen: the covered Jishan Street and the stairs of Shuqi Road, souvenir platforms, a strolling
+   crowd with a masked spirit, street cats and seagulls.
+10. **Thank-you** story panels (a typhoon is coming to the Northeast Coast), then back to the title screen.
 
-Planned route for v1.0.0: Jiufen → Typhoon → The Midnight Zone (deep sea) → a festive
+Planned route for v1.0.0: Typhoon → The Midnight Zone (deep sea) → a festive
 **Home Reef** finale (issues #14 to #18).
 
 ## Development
@@ -128,8 +142,8 @@ The scripts live in `.github/scripts/dev.ps1`.
 
 **Handy URL options:**
 
-- `?level=coral-gardens` (or `?level=reef-tutorial`, `?level=beach`, `?level=night-market`) jumps straight into a
-  level.
+- `?level=coral-gardens` (or `?level=reef-tutorial`, `?level=beach`, `?level=night-market`, `?level=jiufen`)
+  jumps straight into a level.
 - `?difficulty=scenic` (or `easy`, `normal`, `hard`) plays with that difficulty without changing the saved
   choice. Combine options with `&`, for example `?level=coral-gardens&difficulty=hard`.
 - `?touch=1` / `?touch=0` forces the on-screen buttons on or off (and with them the full-screen button).
@@ -163,8 +177,9 @@ Levels are ASCII maps in `src/levels/index.ts`. Every map is 14 rows of 16 px ti
 | `^` `>` `<` | water currents | `S` | tutorial sign |
 | `w` `g` `L` `T` | seaweed, sea fan, stone lantern, paifang gate (decoration) | `.` | water (air on the beach) |
 | `Y` `U` | palm tree, beach umbrella (decoration) | `j` `G` | beached jellyfish, seagull |
-| `~` | puddle (refills the water tank; murky in the market) | `M` | night market gate (decoration) |
-| `b` `B` | cardboard box, soybean oil can (solid; stack `B` for a tall can) | `z` `k` | stinky tofu, street cat |
+| `~` | puddle (refills the water tank; murky in the market and Jiufen) | `M` | night market gate (decoration) |
+| `b` `B` | cardboard box, soybean oil can (solid; stack `B` for a tall can); in Jiufen pineapple cake or nougat box, tea tin | `z` `k` | stinky tofu, street cat |
+| `V` | old cinema (decoration, Jiufen) | | |
 
 The unit tests check that every level parses and that its exit can be reached.
 
