@@ -15,7 +15,7 @@ instructions: |
   8. The PO reviews and merges. Address review comments on the same branch.
 
   Never merge PRs, create tags or releases, or push to main yourself.
-  Tech stack: Phaser 3 + TypeScript + Vite web game (PWA), deployed to GitHub Pages; Vitest unit tests and
+  Tech stack: Phaser 4 (WebGL) + TypeScript + Vite web game (PWA), deployed to GitHub Pages; Vitest unit tests and
   Playwright smoke tests. Keep the Setup/Run/Checks/Archive cleanup logic in .github/scripts/dev.ps1 in sync
   when the stack changes.
 

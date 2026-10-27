@@ -74,6 +74,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- The game now runs on **Phaser 4** (4.2.1, was 3.90) and always draws with WebGL, which every supported browser
+  has. It looks and plays the same. The story pictures stay neatly inside their gold frames with Phaser 4's mask
+  filter, and the Firefox gamepad workaround from [#31](https://github.com/cramor-devo/Wutterworld/issues/31) is
+  gone because Phaser 4 fixes that bug itself. A new end-to-end test checks the WebGL renderer and that story
+  pictures do not spill out of their frame ([#39](https://github.com/cramor-devo/Wutterworld/issues/39)).
 - The Midnight Zone story now continues to the festive home reef (chapter 7) instead of ending the game.
 - The typhoon story now continues to the deep sea (chapter 6: The Midnight Zone) instead of ending the game.
 
