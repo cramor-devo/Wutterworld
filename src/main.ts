@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { audio } from './audio/chiptune';
 import { GAME_HEIGHT, PHYSICS } from './config';
 import { setupFullscreen } from './platform/fullscreenUi';
+import { type GamepadPluginLike, patchGamepadShutdown } from './platform/phaserPatches';
 import { BootScene } from './scenes/BootScene';
 import { desiredViewWidth, watchViewSize } from './scenes/common';
 import { LevelScene } from './scenes/LevelScene';
@@ -15,6 +16,7 @@ const unlock = () => {
 };
 for (const evt of ['pointerup', 'touchend', 'keydown']) window.addEventListener(evt, unlock, { passive: true });
 setupFullscreen();
+patchGamepadShutdown(Phaser.Input.Gamepad.GamepadPlugin.prototype as unknown as GamepadPluginLike);
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
