@@ -10,6 +10,8 @@ interface Hook {
   enemies?: number;
   viewWidth?: number;
   wind?: string;
+  renderer?: string;
+  storyPanel?: { x: number; y: number; w: number; h: number };
 }
 
 const hook = (page: Page) => page.evaluate(() => (window as unknown as { __wutter?: Hook }).__wutter);
@@ -223,6 +225,48 @@ test('leaving a scene with an empty gamepad slot still starts the next scene (is
 
 /** View width the game should pick for a window size (mirrors viewWidthFor in src/config.ts). */
 const expectedViewWidth = (w: number, h: number) => Math.min(576, Math.max(256, Math.round((256 * (w / h)) / 2) * 2));
+
+test('renders with WebGL and the story panel art stays inside its frame (issue #39)', async ({ page, isMobile }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('./');
+  await waitForScene(page, 'Title');
+  expect((await hook(page))?.renderer).toBe('WEBGL');
+  await tapCanvas(page, isMobile);
+  await waitForScene(page, 'Story');
+  // The first panel's reef rocks reach below the panel; only the Mask filter keeps them out of the gap under the frame.
+  await page.waitForTimeout(800);
+  const h = await hook(page);
+  if (!h?.storyPanel || !h.viewWidth) throw new Error('story panel not reported');
+  const shot = (await page.locator('canvas').screenshot()).toString('base64');
+  const odd = await page.evaluate(
+    async ({ png, panel, viewWidth }) => {
+      const img = new Image();
+      img.src = `data:image/png;base64,${png}`;
+      await img.decode();
+      const c = document.createElement('canvas');
+      c.width = img.width;
+      c.height = img.height;
+      const g = c.getContext('2d');
+      if (!g) throw new Error('no 2d context');
+      g.drawImage(img, 0, 0);
+      const s = img.width / viewWidth;
+      const px = (x: number, y: number) => g.getImageData(Math.floor((x + 0.5) * s), Math.floor((y + 0.5) * s), 1, 1).data;
+      // Rows between the gold frame (3 px) and the story text (12 px below the panel) must be plain background.
+      const bad: string[] = [];
+      for (let y = panel.y + panel.h + 4; y < panel.y + panel.h + 10; y++) {
+        for (let x = panel.x; x < panel.x + panel.w; x++) {
+          const [r, gr, b] = px(x, y);
+          if (Math.abs(r - 0x0b) + Math.abs(gr - 0x10) + Math.abs(b - 0x20) > 24) bad.push(`${x},${y}`);
+        }
+      }
+      return bad;
+    },
+    { png: shot, panel: h.storyPanel, viewWidth: h.viewWidth },
+  );
+  expect(odd).toEqual([]);
+  expect(errors).toEqual([]);
+});
 
 test('full-screen button shows on phones only, and tapping it does not start the game', async ({ page, isMobile }) => {
   const errors: string[] = [];
