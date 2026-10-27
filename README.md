@@ -52,7 +52,7 @@ Pick a mode on the title screen. The game remembers your choice.
 | **Scenic** | 5, never lost (you cannot die) | none, hits only push you back | calm: they never chase, puff up or hurt |
 | **Easy** | 10 | 40% less (0.6 heart) | normal |
 | **Normal** (default) | 5 | 1 heart | normal |
-| **Hard** | 5 | 1 heart | extra crabs and triggerfish in Coral Gardens, extra crabs and seagulls on the beach |
+| **Hard** | 5 | 1 heart | extra crabs and triggerfish in Coral Gardens, extra crabs and seagulls on the beach, extra cats and seagulls in the night market |
 
 ### Puffer fish
 
@@ -73,6 +73,18 @@ Hard, and never on Scenic.
   sticky threads.
 - **Crabs** scuttle along the sand, just like on the reef.
 
+### The night market: boxes, stinky tofu and street cats
+
+The Night Market in Taipei is dry land too, so the water tank works just like on the beach. Murky rain puddles in the
+asphalt are yucky, but they still refill the tank. Cardboard boxes and tall soybean oil cans are the platforms.
+
+- **Stinky tofu** blocks are bouncy while they are fresh and hairy. After two bounces the hairs fall off and the
+  bald tofu is sticky: Wutter sticks for about a second and can only do a low hop to get off. The hairs grow back
+  after 6 seconds.
+- **Street cats** stroll along the street. When Wutter comes close, a cat crouches and wiggles its bottom, then
+  pounces at the spot where Wutter was. Dodge, then stomp it or stun it with sticky threads.
+- **Seagulls** from the beach followed the fishing truck all the way to Taipei.
+
 ### What is playable now (v0.3.0)
 
 1. **Story intro**: four illustrated panels.
@@ -82,9 +94,12 @@ Hard, and never on Scenic.
    (land on a triggerfish to defeat it).
 4. **Chapter end** story panels.
 5. **Beach Escape**, Kenting Beach: a dry level with the water tank, crabs, seagulls and beached jellyfish.
-6. **Thank-you** story panels, then back to the title screen.
+6. **Chapter end** story panels: a fishing truck takes Wutter north to Taipei.
+7. **Night Market**, Taipei: lanterns, food stalls with real Traditional Chinese signs, boxes and oil cans to
+   climb, stinky tofu to bounce on, street cats and seagulls.
+8. **Thank-you** story panels (to be continued in Jiufen), then back to the title screen.
 
-Planned route for v1.0.0: Night Market → Jiufen → Typhoon → The Midnight Zone (deep sea) → a festive
+Planned route for v1.0.0: Jiufen → Typhoon → The Midnight Zone (deep sea) → a festive
 **Home Reef** finale (issues #14 to #18).
 
 ## Development
@@ -110,7 +125,8 @@ The scripts live in `.github/scripts/dev.ps1`.
 
 **Handy URL options:**
 
-- `?level=coral-gardens` (or `?level=reef-tutorial`, `?level=beach`) jumps straight into a level.
+- `?level=coral-gardens` (or `?level=reef-tutorial`, `?level=beach`, `?level=night-market`) jumps straight into a
+  level.
 - `?difficulty=scenic` (or `easy`, `normal`, `hard`) plays with that difficulty without changing the saved
   choice. Combine options with `&`, for example `?level=coral-gardens&difficulty=hard`.
 - `?touch=1` / `?touch=0` forces the on-screen buttons on or off (and with them the full-screen button).
@@ -144,7 +160,8 @@ Levels are ASCII maps in `src/levels/index.ts`. Every map is 14 rows of 16 px ti
 | `^` `>` `<` | water currents | `S` | tutorial sign |
 | `w` `g` `L` `T` | seaweed, sea fan, stone lantern, paifang gate (decoration) | `.` | water (air on the beach) |
 | `Y` `U` | palm tree, beach umbrella (decoration) | `j` `G` | beached jellyfish, seagull |
-| `~` | seawater puddle (refills the water tank) | | |
+| `~` | puddle (refills the water tank; murky in the market) | `M` | night market gate (decoration) |
+| `b` `B` | cardboard box, soybean oil can (solid; stack `B` for a tall can) | `z` `k` | stinky tofu, street cat |
 
 The unit tests check that every level parses and that its exit can be reached.
 

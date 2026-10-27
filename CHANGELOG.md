@@ -7,8 +7,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Night Market**, the third level, in Taipei ([#14](https://github.com/cramor-devo/Wutterworld/issues/14)):
+  - A night sky, a city skyline with neon banners, a glowing temple roof and strings of lanterns, a row of food
+    stalls with backlit signs in Traditional Chinese (stinky tofu, skewers, beef noodles, herbal pork ribs, bubble
+    tea, pepper buns, oyster omelettes and grilled squid) and a ring-toss game, and a happy crowd on red and blue
+    stools. An entrance gate reads 夜市. All characters are hand-drawn pixel glyphs.
+  - Dark asphalt with yellow road markings. Murky rain puddles still refill the water tank.
+  - Cardboard boxes and stackable soybean oil cans as platforms.
+  - **Stinky tofu**: bouncy while hairy; after two bounces it goes bald and sticky for a moment (only a low hop gets
+    Wutter off) until the hairs grow back after 6 s.
+  - **Street cats** that crouch and wiggle, then pounce at where Wutter was. Stomp them or stun them with threads.
+  - Seagulls, a lively new chiptune song, and extra cats and seagulls on Hard.
+  - `?level=night-market` URL shortcut and level characters `b`, `B`, `z`, `k` and `M`.
+- New story panels after the night market that tease Jiufen, thank you for playing and return to the title screen.
+
 ### Changed
 
+- The beach story now continues to the night market (chapter 3: Lanterns & Lines) instead of ending the game.
 - Coral Gardens: triggerfish swim 5% slower and can now be defeated by landing on them, also while they chase
   ([#13](https://github.com/cramor-devo/Wutterworld/issues/13)).
 
