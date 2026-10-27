@@ -1,15 +1,25 @@
 /** Native SNES resolution; the canvas is scaled up with nearest-neighbour filtering. */
 export const GAME_WIDTH = 256;
-export const GAME_HEIGHT = 224;
+export const TILE = 16;
+/** Rows in every level map. */
+export const LEVEL_ROWS = 14;
+/**
+ * Extra solid ground rows added under every map, so on a phone the thumbs rest on ground instead of covering
+ * the action and the playfield sits higher on the screen.
+ */
+export const GROUND_FILL_ROWS = 2;
+export const GAME_HEIGHT = (LEVEL_ROWS + GROUND_FILL_ROWS) * TILE; // 256
+/** Height the title and story screens are laid out for; they are centred vertically in GAME_HEIGHT. */
+export const FIXED_LAYOUT_HEIGHT = 224;
+/** Top margin that centres the fixed 224-high title and story layouts. */
+export const FIXED_LAYOUT_TOP = (GAME_HEIGHT - FIXED_LAYOUT_HEIGHT) / 2;
 /**
  * On wide screens (landscape phones) the view grows sideways up to this width instead of showing black bars.
- * 512 covers phones up to about 20.5:9 in full screen (224 * 20.5 / 9 = 510).
+ * 576 covers phones up to about 20.25:9 in full screen (256 * 20.25 / 9 = 576).
  */
-export const MAX_GAME_WIDTH = 512;
-export const TILE = 16;
-export const LEVEL_ROWS = GAME_HEIGHT / TILE; // 14
+export const MAX_GAME_WIDTH = 576;
 
-/** View width for a screen aspect ratio (width / height): height stays 224, width is even and clamped. */
+/** View width for a screen aspect ratio (width / height): height stays GAME_HEIGHT, width is even and clamped. */
 export function viewWidthFor(aspect: number): number {
   if (!Number.isFinite(aspect) || aspect <= 0) return GAME_WIDTH;
   const w = Math.round((GAME_HEIGHT * aspect) / 2) * 2;

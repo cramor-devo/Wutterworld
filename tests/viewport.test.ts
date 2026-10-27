@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { GAME_WIDTH, MAX_GAME_WIDTH, TILE, viewWidthFor } from '../src/config';
-import { touchButtonLayout } from '../src/input/touchLayout';
+import { GAME_HEIGHT, GAME_WIDTH, LEVEL_ROWS, MAX_GAME_WIDTH, TILE, viewWidthFor } from '../src/config';
+import { TOUCH_EDGE_INSET, touchButtonLayout } from '../src/input/touchLayout';
 import { LEVELS, loadLevel } from '../src/levels';
 
 describe('widest view', () => {
@@ -18,28 +18,45 @@ describe('touchButtonLayout', () => {
     const pick = (spots: typeof narrow, name: string) => spots.find((s) => s.name === name)!;
     expect(pick(wide, 'left').x).toBe(pick(narrow, 'left').x);
     expect(pick(wide, 'right').x).toBe(pick(narrow, 'right').x);
-    expect(pick(narrow, 'jump').x).toBe(GAME_WIDTH - 26);
-    expect(pick(wide, 'jump').x).toBe(MAX_GAME_WIDTH - 26);
+    expect(pick(narrow, 'jump').x).toBe(GAME_WIDTH - TOUCH_EDGE_INSET);
+    expect(pick(wide, 'jump').x).toBe(MAX_GAME_WIDTH - TOUCH_EDGE_INSET);
     expect(pick(wide, 'action').x - pick(narrow, 'action').x).toBe(MAX_GAME_WIDTH - GAME_WIDTH);
+  });
+
+  it('keeps every touch area clear of the Android back-gesture edges', () => {
+    // Touch radius is 15 + 8 (see TouchControls); leave at least 16 game pixels to each screen edge.
+    const reach = 23;
+    for (const width of [GAME_WIDTH, MAX_GAME_WIDTH]) {
+      for (const b of touchButtonLayout(width)) {
+        expect(b.x - reach, b.name).toBeGreaterThanOrEqual(16);
+        expect(width - b.x - reach, b.name).toBeGreaterThanOrEqual(16);
+        expect(GAME_HEIGHT - b.y - reach, b.name).toBeGreaterThanOrEqual(8);
+      }
+    }
+  });
+
+  it('sits over the ground, not over the playfield above it', () => {
+    const groundTop = (LEVEL_ROWS - 2) * TILE;
+    for (const b of touchButtonLayout(GAME_WIDTH)) expect(b.y + 1, b.name).toBeGreaterThan(groundTop);
   });
 });
 
 describe('viewWidthFor', () => {
   it('keeps the SNES width on square-ish and portrait screens', () => {
-    expect(viewWidthFor(256 / 224)).toBe(GAME_WIDTH);
+    expect(viewWidthFor(GAME_WIDTH / GAME_HEIGHT)).toBe(GAME_WIDTH);
     expect(viewWidthFor(9 / 19.5)).toBe(GAME_WIDTH);
     expect(viewWidthFor(1)).toBe(GAME_WIDTH);
   });
 
   it('widens for landscape screens and stays even', () => {
     const w = viewWidthFor(16 / 9);
-    expect(w).toBe(398);
+    expect(w).toBe(456);
     expect(w % 2).toBe(0);
   });
 
   it('fills modern 19.5:9 and 20:9 phones', () => {
-    expect(viewWidthFor(19.5 / 9)).toBe(486);
-    expect(viewWidthFor(20 / 9)).toBe(498);
+    expect(viewWidthFor(19.5 / 9)).toBe(554);
+    expect(viewWidthFor(20 / 9)).toBe(568);
   });
 
   it('caps very wide screens', () => {

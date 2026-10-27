@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { StickyFeet, StinkyTofu, TOFU_TUNING } from '../src/logic/tofu';
+import { StickyFeet, StinkyTofu, TOFU_TUNING, TofuContact } from '../src/logic/tofu';
 
 describe('stinky tofu (issue #14)', () => {
   it('bounces twice while fresh, then goes bald and sticks', () => {
@@ -64,5 +64,39 @@ describe('sticky feet', () => {
     f.stick();
     f.release();
     expect(f.stuck).toBe(false);
+  });
+});
+
+describe('tofu contact (PR #20 review)', () => {
+  it('only the first step of unbroken contact is a landing', () => {
+    const c = new TofuContact();
+    expect(c.touch(10)).toBe(true);
+    expect(c.touch(11)).toBe(false);
+    expect(c.touch(12)).toBe(false);
+  });
+
+  it('a step without contact makes the next touch a new landing', () => {
+    const c = new TofuContact();
+    c.touch(10);
+    expect(c.touch(12)).toBe(true);
+  });
+
+  it('at a low frame rate, standing on bald tofu sticks once and lets go after the stick time', () => {
+    // 10 fps: one physics step per 100 ms frame, far more than the old 60 ms wall-clock gap.
+    const frameMs = 100;
+    const tofu = new StinkyTofu();
+    while (tofu.fresh) tofu.land();
+    const contact = new TofuContact();
+    const feet = new StickyFeet();
+    let sticks = 0;
+    for (let step = 1; step <= 20; step++) {
+      feet.update(frameMs);
+      if (contact.touch(step) && tofu.land() === 'stick') {
+        feet.stick();
+        sticks += 1;
+      }
+    }
+    expect(sticks).toBe(1);
+    expect(feet.stuck).toBe(false);
   });
 });

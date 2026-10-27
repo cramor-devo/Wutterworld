@@ -1,4 +1,4 @@
-import { LEVEL_ROWS, TILE } from '../config';
+import { GROUND_FILL_ROWS, LEVEL_ROWS, TILE } from '../config';
 import type { EnemyKind } from '../logic/enemies';
 import type { CurrentKind } from '../logic/movement';
 import type { PickupKind } from '../logic/score';
@@ -166,5 +166,21 @@ export function parseLevel(map: readonly string[], signTexts: readonly string[] 
     level.tiles.push(tileRow);
     level.solid.push(solidRow);
   }
+  addGroundFill(level);
   return level;
+}
+
+/**
+ * Appends GROUND_FILL_ROWS rows under the map that continue the bottom row: ground carries on (sand-top becomes
+ * plain sand) and pits (open bottom cells) stay open down to the bottom of the screen.
+ */
+function addGroundFill(level: ParsedLevel): void {
+  const bottom = level.tiles[level.tiles.length - 1];
+  const bottomSolid = level.solid[level.solid.length - 1];
+  const fill = bottom.map((t, c) => (!bottomSolid[c] ? TILE_INDEX.empty : t === TILE_INDEX.sandTop ? TILE_INDEX.sand : t));
+  for (let i = 0; i < GROUND_FILL_ROWS; i++) {
+    level.tiles.push([...fill]);
+    level.solid.push(fill.map((t) => t !== TILE_INDEX.empty));
+  }
+  level.rows += GROUND_FILL_ROWS;
 }
