@@ -181,6 +181,22 @@ test('level shortcut loads the Typhoon, Wutter can walk in the calm and the wind
   await expect.poll(async () => (await hook(page))?.wind, { timeout: 5_000 }).toBe('gust');
   expect(errors).toEqual([]);
 });
+
+test('leaving a scene with an empty gamepad slot still starts the next scene (issue #31)', async ({ page, isMobile }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  // Like Firefox desktop can: a pad at index 1 and nothing at index 0.
+  await page.addInitScript(() => {
+    const pad = { id: 'test pad', index: 1, connected: true, timestamp: 0, mapping: 'standard', axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false, touched: false, value: 0 })) };
+    Object.defineProperty(navigator, 'getGamepads', { value: () => [null, pad, null, null], configurable: true });
+  });
+  await page.goto('./');
+  await waitForScene(page, 'Title');
+  await tapCanvas(page, isMobile);
+  await waitForScene(page, 'Story');
+  expect(errors).toEqual([]);
+});
+
 /** View width the game should pick for a window size (mirrors viewWidthFor in src/config.ts). */
 const expectedViewWidth = (w: number, h: number) => Math.min(576, Math.max(256, Math.round((256 * (w / h)) / 2) * 2));
 
