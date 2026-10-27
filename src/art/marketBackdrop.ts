@@ -2,6 +2,7 @@ import type Phaser from 'phaser';
 import { bandedGradient, canvasTexture, mulberry32, px } from './canvas';
 import { drawHanzi, type FoodIcon, GATE_TEXT, HANZI_SIZE, hanziWidth, MARKET_SIGNS, type StallSign } from './hanzi';
 import { glow, paperLantern } from './market';
+import { BACKDROP_BASE_HEIGHT } from '../scenes/backdropLayout';
 
 /**
  * The Taipei night market backdrop: a night sky (base), the city with neon banners, a glowing temple and strings
@@ -9,7 +10,7 @@ import { glow, paperLantern } from './market';
  * Every layer tiles seamlessly sideways; colours get brighter from far to near but stay darker than the play layer.
  */
 export function marketBackdropTextures(scene: Phaser.Scene): void {
-  canvasTexture(scene, 'bg-night', 256, 224, 1, nightSky);
+  canvasTexture(scene, 'bg-night', 256, BACKDROP_BASE_HEIGHT, 1, nightSky);
   canvasTexture(scene, 'bg-market-far', FAR_W, FAR_H, 1, cityFar);
   canvasTexture(scene, 'bg-market-mid', MID_W, 110, 1, stallsMid);
   canvasTexture(scene, 'bg-market-near', NEAR_W, 64, 1, crowdNear);
