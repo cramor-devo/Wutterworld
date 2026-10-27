@@ -1,10 +1,12 @@
 import { STUN_MS } from './threads';
 
-export type EnemyKind = 'crab' | 'puffer' | 'triggerfish' | 'jellyfish' | 'seagull' | 'cat';
+export type EnemyKind = 'crab' | 'puffer' | 'triggerfish' | 'jellyfish' | 'seagull' | 'cat' | 'squid' | 'anglerfish';
 /**
  * Puffers cycle patrol (resting) -> warning (shaking) -> inflated on a fixed timer; beached jellyfish do the same
  * with sting instead of inflated. Seagulls go patrol -> warning (squawk) -> dive -> climb -> patrol.
  * Street cats go patrol -> warning (crouch and wiggle) -> pounce -> rest -> patrol.
+ * Giant squids go patrol -> warning (eyes glow) -> lunge -> return -> patrol.
+ * Anglerfish go patrol -> warning (lure flashes) -> dash -> rest -> patrol.
  */
 export type EnemyState =
   | 'patrol'
@@ -15,6 +17,9 @@ export type EnemyState =
   | 'dive'
   | 'climb'
   | 'pounce'
+  | 'lunge'
+  | 'return'
+  | 'dash'
   | 'rest'
   | 'stunned'
   | 'defeated';
@@ -110,6 +115,30 @@ export const ENEMY_TUNING = {
     maxPounceMs: 1500,
     restMs: 1200,
   },
+  squid: {
+    speed: 20,
+    range: 40,
+    /** Lunges when the player is this close in any direction. */
+    noticeDist: 80,
+    warnMs: 700,
+    lungeSpeed: 110,
+    returnSpeed: 40,
+    maxLungeMs: 1200,
+    cooldownMs: 1800,
+  },
+  anglerfish: {
+    speed: 14,
+    range: 40,
+    /** Dashes when the player is ahead within this distance and roughly level with it. */
+    noticeX: 64,
+    verticalSight: 24,
+    warnMs: 700,
+    dashSpeed: 90,
+    dashMs: 600,
+    restMs: 1400,
+    /** One full glow cycle of the lure while patrolling (the warning flashes faster). */
+    lureMs: 1600,
+  },
 } as const;
 
 /** Bob period factor: vy = cos(age / BOB_MS) * bob, so the puffer moves bob * BOB_MS / 1000 px up and down. */
@@ -124,6 +153,8 @@ const PATROL_RANGE: Partial<Record<EnemyKind, number>> = {
   triggerfish: ENEMY_TUNING.triggerfish.range,
   seagull: ENEMY_TUNING.seagull.range,
   cat: ENEMY_TUNING.cat.range,
+  squid: ENEMY_TUNING.squid.range,
+  anglerfish: ENEMY_TUNING.anglerfish.range,
 };
 
 /** Timer an enemy starts (or recovers from a stun) with: bouncers rest first, seagulls wait before diving. */
@@ -131,6 +162,7 @@ function restTimer(kind: EnemyKind): number {
   if (kind === 'puffer') return ENEMY_TUNING.puffer.restMs;
   if (kind === 'jellyfish') return ENEMY_TUNING.jellyfish.restMs;
   if (kind === 'seagull') return ENEMY_TUNING.seagull.cooldownMs;
+  if (kind === 'squid') return ENEMY_TUNING.squid.cooldownMs;
   return 0;
 }
 
@@ -195,6 +227,10 @@ function stepActive(brain: EnemyBrain, ctx: EnemyContext): EnemyIntent {
       return stepSeagull(brain, ctx);
     case 'cat':
       return stepCat(brain, ctx);
+    case 'squid':
+      return stepSquid(brain, ctx);
+    case 'anglerfish':
+      return stepAnglerfish(brain, ctx);
   }
 }
 
@@ -340,6 +376,124 @@ function stepSeagull(brain: EnemyBrain, ctx: EnemyContext): EnemyIntent {
   const dir = patrolDirection(brain, ctx.x, ctx.blocked);
   const vy = Math.max(-t.climbSpeed, Math.min(t.climbSpeed, brain.originY - ctx.y));
   return hit(dir * t.speed, vy);
+}
+
+/**
+ * Giant squid: like the seagull, but it lurks in open water and lunges in any direction.
+ * Warning (eyes glow) -> lunge at where the player was -> glide back to its lair -> cooldown.
+ */
+function stepSquid(brain: EnemyBrain, ctx: EnemyContext): EnemyIntent {
+  const t = ENEMY_TUNING.squid;
+  const hit = (vx: number, vy: number): EnemyIntent => ({ vx, vy, dangerous: true, stompable: true, scale: 1 });
+
+  if (ctx.passive && (brain.state === 'warning' || brain.state === 'lunge')) brain.state = 'return';
+
+  switch (brain.state) {
+    case 'warning':
+      brain.timer -= ctx.dtMs;
+      if (brain.timer <= 0) {
+        brain.state = 'lunge';
+        brain.timer = t.maxLungeMs;
+        brain.targetX = ctx.playerX;
+        brain.targetY = ctx.playerY;
+        brain.dir = ctx.playerX >= ctx.x ? 1 : -1;
+      }
+      return hit(0, 0);
+    case 'lunge': {
+      brain.timer -= ctx.dtMs;
+      const dx = brain.targetX - ctx.x;
+      const dy = brain.targetY - ctx.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < 4 || brain.timer <= 0 || ctx.blocked) {
+        brain.state = 'return';
+        return hit(0, 0);
+      }
+      return hit((dx / dist) * t.lungeSpeed, (dy / dist) * t.lungeSpeed);
+    }
+    case 'return': {
+      const dx = brain.originX - ctx.x;
+      const dy = brain.originY - ctx.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist >= 3) {
+        brain.dir = dx >= 0 ? 1 : -1;
+        return hit((dx / dist) * t.returnSpeed, (dy / dist) * t.returnSpeed);
+      }
+      brain.state = 'patrol';
+      brain.timer = t.cooldownMs;
+      break;
+    }
+    default:
+      break;
+  }
+
+  brain.state = 'patrol';
+  brain.timer -= ctx.dtMs;
+  const near = Math.hypot(ctx.playerX - ctx.x, ctx.playerY - ctx.y) < t.noticeDist;
+  if (!ctx.passive && brain.timer <= 0 && near) {
+    brain.state = 'warning';
+    brain.timer = t.warnMs;
+    return hit(0, 0);
+  }
+  const dir = patrolDirection(brain, ctx.x, ctx.blocked);
+  // Drift slowly up and down while hovering, pulled back to the lair height.
+  const vy = Math.max(-t.returnSpeed, Math.min(t.returnSpeed, brain.originY - ctx.y)) + Math.sin(brain.age / 400) * 6;
+  return hit(dir * t.speed, vy);
+}
+
+/**
+ * Anglerfish: a slow patroller whose glowing lure gives it away. When the player swims in front of it and
+ * level with it, the lure flashes, then it makes one short dash straight ahead and rests.
+ */
+function stepAnglerfish(brain: EnemyBrain, ctx: EnemyContext): EnemyIntent {
+  const t = ENEMY_TUNING.anglerfish;
+  const hit = (vx: number, vy: number): EnemyIntent => ({ vx, vy, dangerous: true, stompable: true, scale: 1 });
+  const homeVy = Math.max(-20, Math.min(20, brain.originY - ctx.y));
+
+  if (ctx.passive && brain.state !== 'patrol') brain.state = 'patrol';
+
+  switch (brain.state) {
+    case 'warning':
+      brain.timer -= ctx.dtMs;
+      if (brain.timer <= 0) {
+        brain.state = 'dash';
+        brain.timer = t.dashMs;
+      }
+      return hit(0, 0);
+    case 'dash':
+      brain.timer -= ctx.dtMs;
+      if (brain.timer <= 0 || ctx.blocked) {
+        brain.state = 'rest';
+        brain.timer = t.restMs;
+        return hit(0, 0);
+      }
+      return hit(brain.dir * t.dashSpeed, 0);
+    case 'rest':
+      brain.timer -= ctx.dtMs;
+      if (brain.timer > 0) return hit(0, homeVy);
+      brain.state = 'patrol';
+      break;
+    default:
+      break;
+  }
+
+  brain.state = 'patrol';
+  const dx = ctx.playerX - ctx.x;
+  const ahead = Math.sign(dx) === brain.dir && Math.abs(dx) < t.noticeX;
+  if (!ctx.passive && ahead && Math.abs(ctx.playerY - ctx.y) < t.verticalSight) {
+    brain.state = 'warning';
+    brain.timer = t.warnMs;
+    return hit(0, 0);
+  }
+  const dir = patrolDirection(brain, ctx.x, ctx.blocked);
+  return hit(dir * t.speed, homeVy);
+}
+
+/** Brightness (0..1) of an anglerfish's lure: a slow pulse while it patrols, rapid flashes as a warning. */
+export function lureGlow(brain: EnemyBrain): number {
+  if (brain.state === 'defeated') return 0;
+  if (brain.state === 'stunned') return 0.2;
+  if (brain.state === 'warning') return Math.floor(brain.age / 90) % 2 === 0 ? 1 : 0.35;
+  return 0.6 + 0.4 * Math.sin((brain.age / ENEMY_TUNING.anglerfish.lureMs) * Math.PI * 2);
 }
 /**
  * Horizontal speed for a leap that starts upward at `leapVy` under `gravity` and comes down through a point

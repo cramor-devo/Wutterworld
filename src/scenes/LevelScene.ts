@@ -18,6 +18,7 @@ import {
   type EnemyKind,
   isBouncer,
   isGroundWalker,
+  lureGlow,
   pufferPhaseForColumn,
   stepEnemy,
   stunEnemy,
@@ -42,6 +43,8 @@ interface Enemy {
   sprite: ArcadeSprite;
   brain: EnemyBrain;
   intent: EnemyIntent;
+  /** Halo for a deep-sea creature's light (the anglerfish's lure, the squid's eyes). */
+  glow?: Phaser.GameObjects.Image;
 }
 
 /** Someone strolling through Jiufen (decor only: no body, never in Wutter's way). */
@@ -75,6 +78,8 @@ const ENEMY_TEXTURE: Record<EnemyKind, string> = {
   jellyfish: 'jellyfish',
   seagull: 'seagull',
   cat: 'cat',
+  squid: 'squid',
+  anglerfish: 'anglerfish',
 };
 
 export class LevelScene extends Phaser.Scene {
@@ -441,12 +446,23 @@ export class LevelScene extends Phaser.Scene {
         // Like crabs, cats walk under world gravity; see stepCat for how the pounce uses it.
         body.setSize(14, 9).setOffset(1, 3);
         sprite.play({ key: 'cat-walk', startFrame: e.col % 2 });
+      } else if (e.kind === 'squid') {
+        body.setAllowGravity(false);
+        body.setSize(12, 14).setOffset(2, 1);
+        sprite.play({ key: 'squid-swim', startFrame: e.col % 2 });
+      } else if (e.kind === 'anglerfish') {
+        body.setAllowGravity(false);
+        body.setSize(12, 9).setOffset(3, 4);
       } else {
         body.setAllowGravity(false);
         body.setSize(12, 8).setOffset(2, 2);
       }
       const phase = isBouncer(e.kind) ? pufferPhaseForColumn(e.col) : 0;
       const enemy: Enemy = { sprite, brain: createBrain(e.kind, e.x, e.y, phase), intent: { vx: 0, vy: 0, dangerous: true, stompable: false, scale: 1 } };
+      if (e.kind === 'squid' || e.kind === 'anglerfish') {
+        const tint = e.kind === 'squid' ? 0xffe27a : 0x9affd8;
+        enemy.glow = this.add.image(e.x, e.y, 'glow').setTint(tint).setAlpha(0).setDepth(7).setBlendMode(Phaser.BlendModes.ADD);
+      }
       sprite.setData('enemy', enemy);
       this.enemies.push(enemy);
     }
@@ -774,7 +790,11 @@ export class LevelScene extends Phaser.Scene {
 
   private updateEnemies(dtMs: number): void {
     for (const e of this.enemies) {
-      if (!e.sprite.active) continue;
+      if (!e.sprite.active) {
+        e.glow?.destroy();
+        e.glow = undefined;
+        continue;
+      }
       const body = e.sprite.body as Body;
       const before = e.brain.state;
       e.intent = stepEnemy(e.brain, {
@@ -795,6 +815,8 @@ export class LevelScene extends Phaser.Scene {
       if (e.brain.state === 'warning' && before !== 'warning') {
         if (e.brain.kind === 'seagull') audio.sfx('squawk');
         else if (e.brain.kind === 'cat') audio.sfx('meow');
+        else if (e.brain.kind === 'squid') audio.sfx('squid');
+        else if (e.brain.kind === 'anglerfish') audio.sfx('lure');
       }
 
       const stunned = e.brain.state === 'stunned';
@@ -803,7 +825,7 @@ export class LevelScene extends Phaser.Scene {
         e.sprite.anims.pause();
       } else if (e.brain.state === 'warning') {
         // About to puff up, sting, dive or pounce: shake and flash so the player can react in time.
-        const shake = e.brain.kind === 'seagull' ? 0 : e.brain.kind === 'cat' ? 4 : 12;
+        const shake = e.brain.kind === 'seagull' || e.brain.kind === 'anglerfish' ? 0 : e.brain.kind === 'cat' || e.brain.kind === 'squid' ? 4 : 12;
         e.sprite.setAngle(Math.sin(this.time.now / 25) * shake);
         if (Math.floor(this.time.now / 120) % 2 === 0) e.sprite.setTint(0xff9a7a);
         else e.sprite.clearTint();
@@ -826,7 +848,28 @@ export class LevelScene extends Phaser.Scene {
           e.sprite.play('cat-walk', true);
           if (e.brain.state === 'rest') e.sprite.anims.pause();
         }
+      } else if (e.brain.kind === 'squid' && !stunned) {
+        // Eyes light up before the lunge; tentacles trail behind while it shoots forward.
+        if (e.brain.state === 'warning') e.sprite.stop().setFrame(2);
+        else if (e.brain.state === 'lunge') e.sprite.stop().setFrame(3);
+        else e.sprite.play('squid-swim', true);
+      } else if (e.brain.kind === 'anglerfish') {
+        e.sprite.setFrame(e.brain.state === 'warning' || e.brain.state === 'dash' ? 1 : 0);
       }
+      this.updateGlow(e);
+    }
+  }
+
+  /** Keeps a deep-sea creature's halo on its light: the lure pulses (and flashes as a warning), the squid's eyes blaze. */
+  private updateGlow(e: Enemy): void {
+    if (!e.glow) return;
+    if (e.brain.kind === 'anglerfish') {
+      // The lure dangles in front of the face: top-left of the texture, mirrored when the fish faces right.
+      const side = e.sprite.flipX ? 1 : -1;
+      e.glow.setPosition(e.sprite.x + side * 6, e.sprite.y - 6).setScale(0.6).setAlpha(lureGlow(e.brain) * 0.9);
+    } else {
+      const lit = e.brain.state === 'warning' || e.brain.state === 'lunge';
+      e.glow.setPosition(e.sprite.x, e.sprite.y - 1).setScale(0.8, 0.5).setAlpha(lit ? 0.8 : 0.15);
     }
   }
 
