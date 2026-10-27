@@ -4,6 +4,7 @@ import { bandedGradient, canvasTexture, mulberry32, px } from './canvas';
 import { CELL_H, CELL_W, FONT_CHARS, GLYPH_W, GLYPHS } from './font';
 import { marketTextures } from './market';
 import { marketBackdropTextures } from './marketBackdrop';
+import { drawPuddle } from './puddle';
 import { ALL_SPRITES, type SpriteDef, spriteSize } from './sprites';
 import { BACKDROP_BASE_HEIGHT, BEACH_SEA_TOP } from '../scenes/backdropLayout';
 
@@ -411,15 +412,21 @@ function beachTextures(scene: Phaser.Scene): void {
     px(ctx, '#efd49a', 0, 74, 512, 16);
   });
 
-  // A seawater puddle sunk into the sand (fills one tile in the sand row).
-  canvasTexture(scene, 'puddle', 16, 16, 1, (ctx) => {
-    px(ctx, '#c9a66a', 0, 0, 16, 16);
-    px(ctx, '#3fb6d3', 1, 5, 14, 11);
-    px(ctx, '#2a8fb0', 1, 12, 14, 4);
-    px(ctx, '#bff4ff', 2, 5, 12, 1);
-    px(ctx, '#ffffff', 4, 7, 3, 1);
-    px(ctx, '#ffffff', 10, 9, 2, 1);
-  });
+  // A seawater puddle in a shallow bowl of sand (fills one tile in the sand row).
+  canvasTexture(scene, 'puddle', 16, 16, 1, (ctx) =>
+    drawPuddle(ctx, {
+      ground: '#e3c283',
+      edge: '#f7e3b0',
+      rim: '#b8935a',
+      water: '#3fb6d3',
+      deep: '#2a8fb0',
+      shine: '#bff4ff',
+      glints: [
+        ['#ffffff', 4, 3, 3],
+        ['#ffffff', 10, 5, 2],
+      ],
+    }),
+  );
 
   canvasTexture(scene, 'palm', 32, 56, 1, (ctx) => {
     // Gently curved trunk with ring marks.
