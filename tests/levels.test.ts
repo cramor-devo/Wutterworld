@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LEVEL_ROWS, PHYSICS, PHYSICS_DRY, TILE } from '../src/config';
+import { GROUND_FILL_ROWS, LEVEL_ROWS, PHYSICS, PHYSICS_DRY, TILE } from '../src/config';
 import { CHAPTERS, nextChapter } from '../src/levels/chapters';
 import { FIRST_LEVEL_ID, getLevel, hasLevel, LEVELS, loadLevel } from '../src/levels';
 import { parseLevel, TILE_INDEX, validateMap } from '../src/levels/parser';
@@ -21,7 +21,7 @@ describe('parser', () => {
     const map = blank(10, { 10: '..^..f....', 11: 'P.S.oOAc.E' });
     const lvl = parseLevel(map, ['HELLO']);
     expect(lvl.cols).toBe(10);
-    expect(lvl.rows).toBe(LEVEL_ROWS);
+    expect(lvl.rows).toBe(LEVEL_ROWS + GROUND_FILL_ROWS);
     expect(lvl.spawn).toMatchObject({ col: 0, row: 11, x: 8, y: 11 * TILE + 8 });
     expect(lvl.exit.col).toBe(9);
     expect(lvl.signs).toEqual([expect.objectContaining({ col: 2, text: 'HELLO' })]);
@@ -38,6 +38,15 @@ describe('parser', () => {
     expect(lvl.puddles).toEqual([expect.objectContaining({ col: 2, row: 12 })]);
     expect(lvl.solid[12][2]).toBe(false);
     expect(lvl.tiles[13][2]).toBe(TILE_INDEX.sandTop);
+  });
+
+  it('adds solid ground rows under the map that continue the bottom row', () => {
+    const map = blank(4, { 11: 'P..E', 13: '=.#=' });
+    const lvl = parseLevel(map);
+    expect(lvl.tiles).toHaveLength(LEVEL_ROWS + GROUND_FILL_ROWS);
+    for (let r = LEVEL_ROWS; r < lvl.rows; r++) expect(lvl.solid[r]).toEqual([true, true, true, true]);
+    expect(lvl.tiles[LEVEL_ROWS]).toEqual([TILE_INDEX.sand, TILE_INDEX.sandTop, TILE_INDEX.rock, TILE_INDEX.sand]);
+    expect(lvl.tiles[LEVEL_ROWS + 1]).toEqual([TILE_INDEX.sand, TILE_INDEX.sand, TILE_INDEX.rock, TILE_INDEX.sand]);
   });
 
   it('uses a sand-top tile only where nothing solid is above', () => {

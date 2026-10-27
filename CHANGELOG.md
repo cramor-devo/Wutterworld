@@ -11,6 +11,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Coral Gardens: triggerfish swim 5% slower and can now be defeated by landing on them, also while they chase
   ([#13](https://github.com/cramor-devo/Wutterworld/issues/13)).
+- Every level has two extra rows of ground at the bottom (the game is now 256 px high instead of 224), so the
+  playfield sits higher and your thumbs rest on the ground instead of covering the action on a phone. Wide
+  phones now fill the screen up to 576 px wide (was 512) ([#21](https://github.com/cramor-devo/Wutterworld/issues/21)).
+- The on-screen buttons sit a little higher and further from the screen edges, so pressing them no longer
+  triggers the Android "back" swipe gesture ([#21](https://github.com/cramor-devo/Wutterworld/issues/21)).
 
 ## [0.3.0] - 2026-10-26
 

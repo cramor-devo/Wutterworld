@@ -1,4 +1,4 @@
-import { LEVEL_ROWS, TILE } from '../config';
+import { GROUND_FILL_ROWS, LEVEL_ROWS, TILE } from '../config';
 import type { EnemyKind } from '../logic/enemies';
 import type { CurrentKind } from '../logic/movement';
 import type { PickupKind } from '../logic/score';
@@ -142,5 +142,21 @@ export function parseLevel(map: readonly string[], signTexts: readonly string[] 
     level.tiles.push(tileRow);
     level.solid.push(solidRow);
   }
+  addGroundFill(level);
   return level;
+}
+
+/**
+ * Appends GROUND_FILL_ROWS solid rows under the map. They continue the bottom row's ground (sand-top becomes
+ * plain sand) and close any gap at the old world floor, so gameplay is unchanged.
+ */
+function addGroundFill(level: ParsedLevel): void {
+  const bottom = level.tiles[level.tiles.length - 1];
+  const fill = bottom.map((t) => (t === TILE_INDEX.sandTop || t === TILE_INDEX.empty ? TILE_INDEX.sand : t));
+  for (let i = 0; i < GROUND_FILL_ROWS; i++) {
+    const row = i === 0 ? bottom.map((t, c) => (t === TILE_INDEX.empty ? TILE_INDEX.sandTop : fill[c])) : fill;
+    level.tiles.push([...row]);
+    level.solid.push(row.map(() => true));
+  }
+  level.rows += GROUND_FILL_ROWS;
 }
