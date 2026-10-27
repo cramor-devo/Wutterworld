@@ -314,7 +314,7 @@ function drawPanel(scene: Phaser.Scene, c: Phaser.GameObjects.Container, art: Pa
       partyDecor(scene, c, g);
       reefFloor(0x2a8a8a);
       img(cx, y + h - 22, 'cucumber', 3);
-      img(cx - 4, y + h - 44, 'party-hat', 2);
+      img(cx - 4, y + h - 41, 'party-hat', 2);
       const guests: [number, string, number?][] = [[-90, 'seastar'], [-62, 'shrimp'], [-34, 'crab'], [38, 'urchin'], [66, 'cucumber', 0xffb0d0], [94, 'seastar']];
       guests.forEach(([dx, key, tint], i) => {
         const s = img(cx + dx, y + h - 18, key, 2).setOrigin(0.5, 1).setFlipX(dx > 0);
@@ -350,7 +350,7 @@ function drawPanel(scene: Phaser.Scene, c: Phaser.GameObjects.Container, art: Pa
       reefFloor(0x2a8a8a);
       c.add(pixelText(scene, cx, y + 40, 'THE END', { scale: 3, originX: 0.5, color: 0xffd25e, shadow: 0xb8332e }));
       img(cx, y + h - 22, 'cucumber', 3);
-      img(cx - 4, y + h - 44, 'party-hat', 2);
+      img(cx - 4, y + h - 41, 'party-hat', 2);
       img(cx - 60, y + h - 18, 'seastar', 2).setOrigin(0.5, 1);
       img(cx + 60, y + h - 18, 'shrimp', 2).setOrigin(0.5, 1).setFlipX(true);
       break;
