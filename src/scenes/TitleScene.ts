@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { pixelText, setPixelText } from '../art/text';
 import { audio } from '../audio/chiptune';
 import { FIXED_LAYOUT_HEIGHT, FIXED_LAYOUT_TOP, GAME_WIDTH } from '../config';
+import { titleTagline } from '../levels/chapters';
 import { cycleDifficulty, type Difficulty, DIFFICULTIES, DIFFICULTY_ORDER, isDifficulty, loadDifficulty, saveDifficulty } from '../logic/difficulty';
 import { addBackdrop, addBubbles, addBrandLogo, centreFixedLayout, fadeTo, onViewResize, setHook } from './common';
 
@@ -50,6 +51,7 @@ export class TitleScene extends Phaser.Scene {
 
     pixelText(this, GAME_WIDTH / 2, 30, 'WUTTERWORLD', { color: 0xffd25e, shadow: 0xb8332e, scale: 3, originX: 0.5 });
     pixelText(this, GAME_WIDTH / 2, 60, "A SEA CUCUMBER'S JOURNEY", { color: 0xbff4ff, originX: 0.5 });
+    pixelText(this, GAME_WIDTH / 2, 69, titleTagline(), { color: 0x7fb8d0, shadow: null, originX: 0.5 });
 
     const hero = this.add.sprite(GAME_WIDTH / 2, 98, 'cucumber').setScale(3).play('cucumber-crawl');
     this.tweens.add({ targets: hero, y: 94, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.inOut' });

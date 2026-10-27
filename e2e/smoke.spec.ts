@@ -202,6 +202,28 @@ test('level shortcut loads the Midnight Zone and Wutter can swim through the dee
   expect(errors).toEqual([]);
 });
 
+test('level shortcut loads the Festive Home Reef and Wutter can swim to the party (issue #18)', async ({ page, isMobile }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('./?level=festive-reef');
+  await waitForScene(page, 'Level');
+  const start = await hook(page);
+  expect(start?.level).toBe('festive-reef');
+  // Safe and easy: nobody to fight, not even on the default difficulty.
+  expect(start?.enemies).toBe(0);
+  if (!isMobile) {
+    await page.waitForTimeout(400);
+    const startX = (await hook(page))?.player?.x ?? 0;
+    await page.keyboard.down('ArrowRight');
+    await page.waitForTimeout(800);
+    await page.keyboard.up('ArrowRight');
+    expect((await hook(page))?.player?.x ?? 0).toBeGreaterThan(startX + 20);
+  }
+  // Let the party guests dance and hop for a moment: no errors.
+  await page.waitForTimeout(1500);
+  expect(errors).toEqual([]);
+});
+
 test('leaving a scene with an empty gamepad slot still starts the next scene (issue #31)', async ({ page, isMobile }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));

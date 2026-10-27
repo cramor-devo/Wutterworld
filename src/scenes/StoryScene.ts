@@ -297,5 +297,78 @@ function drawPanel(scene: Phaser.Scene, c: Phaser.GameObjects.Container, art: Pa
       img(cx + 4, y + 70, 'cucumber', 2).setAngle(-90);
       break;
     }
+    case 'homecoming': {
+      // The home reef from above: lanterns and bunting all over it, glowing coral, and Wutter sinking home.
+      bands([0x2a3f86, 0x1f4a8a, 0x175a8c, 0x136a8e]);
+      g.fillStyle(0xffb347, 0.6);
+      for (let i = 0; i < 7; i++) g.fillRect(x + 12 + i * 32, y + 3, 6, 2);
+      partyDecor(scene, c, g);
+      reefFloor(0x2a8a8a);
+      for (let i = 0; i < 6; i++) g.fillStyle(i % 2 ? 0xff7ac8 : 0x7af0d8, 0.35).fillCircle(x + 20 + i * 38, y + h - 18, 8);
+      img(cx + 30, y + 54, 'cucumber', 2).setAngle(-150);
+      break;
+    }
+    case 'reef-party': {
+      // The reef dwellers in party hats, gathered around Wutter.
+      bands([0x1f4a8a, 0x175a8c, 0x136a8e]);
+      partyDecor(scene, c, g);
+      reefFloor(0x2a8a8a);
+      img(cx, y + h - 22, 'cucumber', 3);
+      img(cx - 4, y + h - 41, 'party-hat', 2);
+      const guests: [number, string, number?][] = [[-90, 'seastar'], [-62, 'shrimp'], [-34, 'crab'], [38, 'urchin'], [66, 'cucumber', 0xffb0d0], [94, 'seastar']];
+      guests.forEach(([dx, key, tint], i) => {
+        const s = img(cx + dx, y + h - 18, key, 2).setOrigin(0.5, 1).setFlipX(dx > 0);
+        if (tint) s.setTint(tint);
+        img(cx + dx, y + h - 16 - s.displayHeight, 'party-hat', 2).setOrigin(0.5, 1);
+        if (i % 2) s.setY(s.y - 2);
+      });
+      break;
+    }
+    case 'memories': {
+      // Wutter's journey in little bubbles: the beach, the night market and Jiufen's tea houses.
+      bands([0x1f4a8a, 0x175a8c, 0x136a8e]);
+      reefFloor(0x2a8a8a);
+      const bubble = (bx: number, by: number, sky: number, ground: number) => {
+        g.fillStyle(sky).fillCircle(bx, by, 22);
+        g.fillStyle(ground).fillRect(bx - 16, by + 6, 32, 10);
+        g.lineStyle(2, 0xe8f4ff, 0.8).strokeCircle(bx, by, 22);
+      };
+      bubble(cx - 70, y + 38, 0xffdca3, 0xe3c283);
+      img(cx - 70, y + 42, 'palm', 1).setScale(0.5);
+      bubble(cx, y + 30, 0x161a48, 0x3b2a20);
+      for (let i = 0; i < 3; i++) img(cx - 12 + i * 12, y + 22, 'paper-lantern', 1);
+      bubble(cx + 70, y + 38, 0xd8a08a, 0x3a5a4a);
+      for (let i = 0; i < 3; i++) g.fillStyle(0x3a2a2a).fillRect(cx + 58 + i * 8, y + 36 - i * 4, 7, 6);
+      for (let i = 0; i < 4; i++) img(cx + 10 + i * 6, y + 70 - i * 8, 'bubble', 1);
+      img(cx + 4, y + h - 22, 'cucumber', 3);
+      break;
+    }
+    case 'the-end': {
+      // Night over the festive reef, with THE END in big letters.
+      bands([0x1a2a5c, 0x1f3a78, 0x1f4a8a]);
+      partyDecor(scene, c, g);
+      reefFloor(0x2a8a8a);
+      c.add(pixelText(scene, cx, y + 40, 'THE END', { scale: 3, originX: 0.5, color: 0xffd25e, shadow: 0xb8332e }));
+      img(cx, y + h - 22, 'cucumber', 3);
+      img(cx - 4, y + h - 41, 'party-hat', 2);
+      img(cx - 60, y + h - 18, 'seastar', 2).setOrigin(0.5, 1);
+      img(cx + 60, y + h - 18, 'shrimp', 2).setOrigin(0.5, 1).setFlipX(true);
+      break;
+    }
+  }
+}
+
+/** Bunting and paper lanterns strung across the top of a panel (the festive home reef). */
+function partyDecor(scene: Phaser.Scene, c: Phaser.GameObjects.Container, g: Phaser.GameObjects.Graphics): void {
+  const { x, y, w } = PANEL;
+  const flags = [0xe63946, 0xffd25e, 0x4fc3d9, 0xff7ac8, 0x7ad860];
+  g.lineStyle(1, 0xd8c8a0).lineBetween(x, y + 6, x + w, y + 6);
+  for (let i = 0; i < w / 12; i++) {
+    g.fillStyle(flags[i % flags.length]).fillTriangle(x + i * 12 + 1, y + 6, x + i * 12 + 9, y + 6, x + i * 12 + 5, y + 13);
+  }
+  for (let i = 0; i < 4; i++) {
+    const lx = x + 28 + i * 56;
+    g.fillStyle(0xff6a3d, 0.3).fillCircle(lx, y + 18, 9);
+    c.add(scene.add.image(lx, y + 18, 'paper-lantern'));
   }
 }

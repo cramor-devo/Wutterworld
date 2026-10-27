@@ -59,10 +59,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - A slow, eerie but friendly chiptune song, and extra squids and anglerfish on Hard.
   - `?level=abyss` URL shortcut and level characters `Q` (squid) and `n` (anglerfish).
 - New story panels after the Midnight Zone: Wutter follows the glowing creatures up toward the lantern lights of
-  Kenting, to be continued, thank you for playing, then back to the title screen.
+  Kenting and sees the home reef glowing.
+- **Festive Home Reef**, the finale, back in Kenting ([#18](https://github.com/cramor-devo/Wutterworld/issues/18)):
+  - The home reef decorated for a party: bunting and red paper lanterns, glowing coral, and a twilight backdrop with
+    lanterns on the waves and the old temple hung with lantern strings.
+  - Sea stars, shrimp, crabs, urchins and other sea cucumbers in party hats dance and hop along the way.
+  - Short, easy and safe: no enemies (not even on Hard) and no pits; plankton, pearls and a party current.
+  - A joyful, faster remix of the reef song.
+  - `?level=festive-reef` URL shortcut and level characters `F` (festoon) and `H` (party guest).
+- **Closing story**: Wutter tells the other reef dwellers about the beach, the night market, Jiufen, the typhoon,
+  the deep sea and the lantern lights it finally saw. Then THE END, thank you for playing, and back to the title
+  screen. The whole story now runs from the intro through all 8 levels to the end.
+- The title screen says the whole journey is playable: 8 levels, from the reef and back home.
 
 ### Changed
 
+- The Midnight Zone story now continues to the festive home reef (chapter 7) instead of ending the game.
 - The typhoon story now continues to the deep sea (chapter 6: The Midnight Zone) instead of ending the game.
 
 - The Jiufen story now continues to the typhoon (chapter 5: Signal No. 8) instead of ending the game.

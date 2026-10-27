@@ -306,6 +306,39 @@ const ABYSS: LevelDef = {
   next: { type: 'story', id: 'chapter-6-end' },
 };
 
+// The finale: Wutter is back on the home reef, which is decorated for a party. Short, easy and safe: no enemies, no
+// pits, just pearls, plankton and the other reef dwellers dancing under lanterns and bunting.
+const FESTIVE_REEF: LevelDef = {
+  id: 'festive-reef',
+  name: 'FESTIVE HOME REEF',
+  place: 'KENTING, TAIWAN',
+  safe: true,
+  setting: 'festive-reef',
+  music: 'festive',
+  signs: [
+    'WELCOME HOME, WUTTER! THE WHOLE REEF HAS COME OUT TO CELEBRATE. NOTHING HERE WILL HURT YOU TONIGHT.',
+    'THE SHRIMP BLEW A PARTY CURRENT JUST FOR YOU. RIDE IT UP FOR THE SHINY PEARLS!',
+    'EVERYONE IS WAITING AT THE TIDE-POOL LIGHT. THEY CANNOT WAIT TO HEAR YOUR STORY!',
+  ],
+  map: [
+    '................................................................................................',
+    '....F..........F..........F..........F..........F..........F..........F..........F..............',
+    '................................................................................................',
+    '...............................OO...............................................................',
+    '...............................^^...............................................................',
+    '...............................^^...............O...............................................',
+    '...............................^^.o............>>>>...........O.................................',
+    '...............................^^.CC............................................................',
+    '....................ooo........^^.CC........oo...............A..................................',
+    '....................###........^^.CC........RR..............CCCC................................',
+    '...............o.o.o...........^^.CC........RR........o.o.o.............o.o.o.o.o.o.............',
+    '.P.S.L.w..HH.H..........g.H..S.^^.CC.HL.H...RR..w.H.H.....H......Hg..S.L.HH.HH.H.HH.H.L.T..E.L..',
+    '================================================================================================',
+    '================================================================================================',
+  ],
+  next: { type: 'story', id: 'finale' },
+};
+
 export const LEVELS: Record<string, LevelDef> = {
   [HOME_REEF.id]: HOME_REEF,
   [CORAL_GARDENS.id]: CORAL_GARDENS,
@@ -314,6 +347,7 @@ export const LEVELS: Record<string, LevelDef> = {
   [JIUFEN.id]: JIUFEN,
   [TYPHOON.id]: TYPHOON,
   [ABYSS.id]: ABYSS,
+  [FESTIVE_REEF.id]: FESTIVE_REEF,
 };
 export const FIRST_LEVEL_ID = HOME_REEF.id;
 

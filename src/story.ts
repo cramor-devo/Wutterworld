@@ -1,7 +1,23 @@
 import type { NextStep } from './levels';
 
 /** Which illustration the story scene draws behind the text. */
-export type PanelArt = 'reef-night' | 'surface-lights' | 'hungry-mouths' | 'threads' | 'tide-pool' | 'beach-ahead' | 'market-lights' | 'jiufen-hills' | 'typhoon-clouds' | 'big-wave' | 'deep-sea' | 'glow-ascent';
+export type PanelArt =
+  | 'reef-night'
+  | 'surface-lights'
+  | 'hungry-mouths'
+  | 'threads'
+  | 'tide-pool'
+  | 'beach-ahead'
+  | 'market-lights'
+  | 'jiufen-hills'
+  | 'typhoon-clouds'
+  | 'big-wave'
+  | 'deep-sea'
+  | 'glow-ascent'
+  | 'homecoming'
+  | 'reef-party'
+  | 'memories'
+  | 'the-end';
 
 export interface StoryPanel {
   art: PanelArt;
@@ -76,7 +92,19 @@ export const STORIES: Record<string, Story> = {
     panels: [
       { art: 'deep-sea', text: 'THE GLOWING JELLYFISH ROSE IN A SLOW, SHINING CLOUD, AND WUTTER FLOATED UP WITH THEM.' },
       { art: 'glow-ascent', text: 'UP AND UP, THE WATER TURNED FROM BLACK TO BLUE. FAR ABOVE, FAMILIAR LIGHTS WERE DANCING.' },
-      { art: 'surface-lights', text: 'THE LANTERN LIGHTS OF KENTING! HOME AT LAST... TO BE CONTINUED. THANK YOU FOR PLAYING!' },
+      { art: 'surface-lights', text: 'THE LANTERN LIGHTS OF KENTING! WUTTER WAS ALMOST HOME AGAIN.' },
+      { art: 'homecoming', text: 'BUT WHY WAS THE HOME REEF GLOWING SO BRIGHTLY? CHAPTER 7: FESTIVE HOME REEF!' },
+    ],
+    next: { type: 'level', id: 'festive-reef' },
+  },
+  finale: {
+    id: 'finale',
+    panels: [
+      { art: 'reef-party', text: 'SEA STARS, SHRIMP, CRABS, URCHINS AND SEA CUCUMBERS GATHERED AROUND WUTTER. TELL US!' },
+      { art: 'memories', text: 'WUTTER TOLD THEM ABOUT THE SUNNY BEACH, THE BUSY NIGHT MARKET AND THE TEA HOUSES OF JIUFEN.' },
+      { art: 'big-wave', text: 'ABOUT THE TYPHOON, THE GIANT WAVE AND THE DEEP SEA, WHERE EVEN THE FISH CARRY LIGHTS.' },
+      { art: 'surface-lights', text: 'I FINALLY SAW THE LANTERN LIGHTS UP CLOSE, SAID WUTTER. BUT THE BEST LIGHT IS HOME.' },
+      { art: 'the-end', text: 'THANK YOU FOR PLAYING WUTTERWORLD!' },
     ],
     next: { type: 'title' },
   },

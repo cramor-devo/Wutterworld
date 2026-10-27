@@ -85,6 +85,16 @@ const ENEMY_TEXTURE: Record<EnemyKind, string> = {
   anglerfish: 'anglerfish',
 };
 
+/** The reef dwellers celebrating Wutter's homecoming ('H'): sea stars, shrimp, crabs, urchins and sea cucumbers. */
+const PARTY_GUESTS: readonly { key: string; anim: string; tint?: number }[] = [
+  { key: 'seastar', anim: 'seastar-dance' },
+  { key: 'shrimp', anim: 'shrimp-flick' },
+  { key: 'crab', anim: 'crab-walk' },
+  { key: 'urchin', anim: 'urchin-twinkle' },
+  // Another sea cucumber, pinker than Wutter.
+  { key: 'cucumber', anim: 'cucumber-crawl', tint: 0xffb0d0 },
+];
+
 export class LevelScene extends Phaser.Scene {
   private def!: LevelDef;
   /** Look of the level's setting (tileset, puddles, lanterns, banner). */
@@ -260,6 +270,8 @@ export class LevelScene extends Phaser.Scene {
       else if (d.kind === 'palm' || d.kind === 'umbrella') this.add.image(d.x, bottom, d.kind).setOrigin(0.5, 1).setDepth(-2);
       else if (d.kind === 'market-gate') this.addMarketGate(d.x, bottom);
       else if (d.kind === 'cinema') this.addCinema(d.x, bottom);
+      else if (d.kind === 'festoon') this.add.image(d.x, d.y - TILE / 2, 'festoon').setOrigin(0.5, 0).setDepth(-3);
+      else if (d.kind === 'guest') this.addGuest(d.x, bottom, d.col);
       else this.add.image(d.x, bottom, this.style.gate).setOrigin(0.5, 1).setDepth(-3);
     }
     this.level.signs.forEach((s, i) => {
@@ -291,6 +303,18 @@ export class LevelScene extends Phaser.Scene {
       const halo = this.add.image(hx, hy, 'glow').setTint(tint).setScale(scale).setAlpha(0.7).setDepth(-3).setBlendMode(Phaser.BlendModes.ADD);
       this.tweens.add({ targets: halo, alpha: 0.45, duration: 1000 + (hx % 7) * 60, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
     }
+  }
+
+  /**
+   * A reef dweller in a party hat at the homecoming (decor, it never hurts): which one depends on the column. They
+   * dance in place and hop now and then, each to its own beat.
+   */
+  private addGuest(x: number, bottom: number, col: number): void {
+    const guest = PARTY_GUESTS[col % PARTY_GUESTS.length];
+    const sprite = this.add.sprite(x, bottom, guest.key).setOrigin(0.5, 1).setDepth(-2).setFlipX(col % 2 === 1).play(guest.anim);
+    if (guest.tint) sprite.setTint(guest.tint);
+    const hat = this.add.image(x + (col % 2 === 1 ? -2 : 2), bottom - sprite.height + 1, 'party-hat').setOrigin(0.5, 1).setDepth(-2);
+    this.tweens.add({ targets: [sprite, hat], y: '-=5', duration: 220, yoyo: true, repeat: -1, repeatDelay: 500 + (col % 4) * 150, delay: (col * 97) % 700, ease: 'Sine.out' });
   }
 
   /** Jiufen's old cinema (96x88 texture), its red sign glowing softly. */

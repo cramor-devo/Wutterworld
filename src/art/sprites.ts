@@ -521,6 +521,99 @@ export const ANGLERFISH: SpriteDef = {
   ],
 };
 
+// Friendly reef dwellers at the homecoming party (festive home reef). Two frames each, so they can dance.
+export const SEA_STAR: SpriteDef = {
+  palette: { k: OUTLINE, i: OUTLINE, o: '#ff7a4a', O: '#ffd08a' },
+  frames: [
+    [
+      '.....k.....',
+      '....kok....',
+      '....kOk....',
+      'kkkkkokkkkk',
+      'kOooioiooOk',
+      '.koooooook.',
+      '..kooOook..',
+      '..kok.kok..',
+      '.kok...kok.',
+      '.kk.....kk.',
+    ],
+    [
+      '.....k.....',
+      '....kok....',
+      '....kOk....',
+      'kkkkkokkkkk',
+      'kOooioiooOk',
+      '.koooooook.',
+      '..kooOook..',
+      '..kok.kok..',
+      'kok.....kok',
+      'kk.......kk',
+    ],
+  ],
+};
+
+export const SHRIMP: SpriteDef = {
+  palette: { k: OUTLINE, i: OUTLINE, p: '#ff7a8a', P: '#ffe0e4' },
+  frames: [
+    [
+      '...........kk.',
+      '....kkkkkkk..k',
+      '..kkppppppPkk.',
+      '.kpppppppppiPk',
+      'kpPpPpPpppppk.',
+      'kkk.kpppppk...',
+      '.k...k.k.k....',
+      '..............',
+    ],
+    [
+      '...........kk.',
+      '....kkkkkkk..k',
+      '..kkppppppPkk.',
+      '.kpppppppppiPk',
+      '.kPpPpPpppppk.',
+      '.kk.kpppppk...',
+      '..k..k.k.k....',
+      '..............',
+    ],
+  ],
+};
+
+export const URCHIN: SpriteDef = {
+  palette: { k: OUTLINE, u: '#7a4ab8', U: '#b088e8', e: '#ffffff', y: '#fff27a' },
+  frames: [
+    [
+      '.k..k..k..k.',
+      '..k.k..k.k..',
+      'k..kkkkkk..k',
+      '.kkuuuuuukk.',
+      'kkuuUuuuuukk',
+      '.kueuuuueuk.',
+      'kkuuuuuuuukk',
+      '.kkuuuuuukk.',
+      'k..kkkkkk..k',
+      '............',
+    ],
+    [
+      '.y..k..y..k.',
+      '..k.k..k.k..',
+      'y..kkkkkk..y',
+      '.kkuuuuuukk.',
+      'kkuuUuuuuukk',
+      '.kueuuuueuk.',
+      'kkuuuuuuuukk',
+      '.kkuuuuuukk.',
+      'y..kkkkkk..y',
+      '............',
+    ],
+  ],
+};
+
+/** A little party hat for the reef dwellers at the homecoming. */
+export const PARTY_HAT: SpriteDef = {
+  palette: { r: '#e63946', y: '#f2c94c', W: '#ffffff' },
+  frames: [['..W..', '..r..', '.ryr.', '.rrr.', 'ryrry', 'yyyyy']],
+};
+
 export const ALL_SPRITES: Record<string, SpriteDef> = {
   cucumber: SEA_CUCUMBER,
   crab: CRAB,
@@ -542,6 +635,10 @@ export const ALL_SPRITES: Record<string, SpriteDef> = {
   'shield-icon': SHIELD_ICON,
   sign: SIGN,
   lantern: STONE_LANTERN,
+  seastar: SEA_STAR,
+  shrimp: SHRIMP,
+  urchin: URCHIN,
+  'party-hat': PARTY_HAT,
 };
 
 /** Returns a list of problems (empty when the sprite is valid). */

@@ -2,7 +2,7 @@
  * Where a level takes place. The reef is underwater; every other setting is dry land, where Wutter carries a water
  * tank and refills it in puddles. New land settings only need a row in `SETTINGS`.
  */
-export type LevelSetting = 'reef' | 'beach' | 'market' | 'jiufen' | 'typhoon' | 'abyss';
+export type LevelSetting = 'reef' | 'beach' | 'market' | 'jiufen' | 'typhoon' | 'abyss' | 'festive-reef';
 
 export interface BackdropKeys {
   base: string;
@@ -139,6 +139,20 @@ export const SETTINGS: Record<LevelSetting, SettingStyle> = {
     lantern: 'lantern',
     // Black-blue water with marine snow; a seamount with lanternfish far away, glowing jellyfish over the floor closer by.
     backdrop: { base: 'bg-abyss', far: 'bg-abyss-far', mid: 'bg-abyss-mid', farH: 160, midH: 110, haze: { color: 0x040a1c, far: 0.2, mid: 0.12 } },
+  },
+  'festive-reef': {
+    land: false,
+    bubbles: true,
+    clearBanner: 'WELCOME HOME!',
+    // The home reef's own sand, rock, coral and ruins; lit red paper lanterns instead of stone ones.
+    tileset: 'tiles',
+    puddle: 'puddle',
+    gate: 'gate',
+    lantern: 'market-lantern',
+    lanternGlow: { dx: 5, dy: -27 },
+    // Twilight water with lanterns on the waves; coral and the temple hung with lanterns far away, glowing coral and
+    // dancing reef dwellers under streamers closer by.
+    backdrop: { base: 'bg-festive', far: 'bg-festive-far', mid: 'bg-festive-mid', farH: 130, midH: 100, haze: { color: 0x2a3f86, far: 0.2, mid: 0.12 } },
   },
 };
 
