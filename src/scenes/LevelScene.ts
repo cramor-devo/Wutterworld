@@ -25,6 +25,7 @@ import { Health } from '../logic/health';
 import { clampFall, currentAcceleration, type CurrentKind, JumpController, stepHorizontal } from '../logic/movement';
 import { formatScore, LEVEL_CLEAR_BONUS, type PickupKind, Score } from '../logic/score';
 import { THREAD_SPEED, ThreadAbility, threadLifetimeMs } from '../logic/threads';
+import { StickyFeet, StinkyTofu } from '../logic/tofu';
 import { WaterTank } from '../logic/water';
 import { wrapText } from '../story';
 import { addBackdrop, addBubbles, type Backdrop, fadeTo, onViewResize, setHook } from './common';
@@ -38,6 +39,16 @@ interface Enemy {
   brain: EnemyBrain;
   intent: EnemyIntent;
 }
+
+interface Tofu {
+  sprite: Phaser.Types.Physics.Arcade.SpriteWithStaticBody;
+  logic: StinkyTofu;
+  /** Last time Wutter stood on it; a touch after a gap is a fresh landing. */
+  lastTouchMs: number;
+}
+
+/** Contacts closer together than this are Wutter still standing on the tofu, not a new landing. */
+const TOFU_LANDING_GAP_MS = 60;
 
 const STOMP_POINTS = 100;
 const SIGN_RADIUS = 22;
@@ -69,6 +80,9 @@ export class LevelScene extends Phaser.Scene {
   private pickups!: Phaser.Physics.Arcade.Group;
   private threadsGroup!: Phaser.Physics.Arcade.Group;
   private currents = new Map<string, CurrentKind>();
+  private tofus: Tofu[] = [];
+  private tofuGroup!: Phaser.Physics.Arcade.StaticGroup;
+  private sticky = new StickyFeet();
 
   private keys: Keys | null = null;
   private touch: TouchControls | null = null;
@@ -131,8 +145,10 @@ export class LevelScene extends Phaser.Scene {
     this.buildPickups();
     this.buildPlayer();
     this.buildEnemies();
+    this.buildTofu();
     this.threadsGroup = this.physics.add.group({ allowGravity: false });
     this.physics.add.collider(this.threadsGroup, this.layer, (t) => (t as Phaser.GameObjects.Sprite).destroy());
+    this.physics.add.collider(this.threadsGroup, this.tofuGroup, (t) => (t as Phaser.GameObjects.Sprite).destroy());
     this.physics.add.overlap(this.threadsGroup, this.enemyGroup, (t, e) => this.onThreadHit(t as ArcadeSprite, e as ArcadeSprite));
 
     this.cameras.main.startFollow(this.player, true, 0.15, 0.15);
@@ -150,6 +166,8 @@ export class LevelScene extends Phaser.Scene {
 
   private resetState(): void {
     this.enemies = [];
+    this.tofus = [];
+    this.sticky = new StickyFeet();
     this.currents.clear();
     this.hearts = [];
     this.signLines = [];
@@ -304,6 +322,55 @@ export class LevelScene extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.enemyGroup, (_p, e) => this.onEnemyContact((e as ArcadeSprite).getData('enemy') as Enemy));
   }
 
+  /** Stinky tofu blocks: static platforms that bounce Wutter while hairy and hold on to her once bald. */
+  private buildTofu(): void {
+    this.tofuGroup = this.physics.add.staticGroup();
+    for (const t of this.level.tofu) {
+      const sprite = this.tofuGroup.create(t.x, t.y, 'tofu', 0) as Tofu['sprite'];
+      sprite.setDepth(2);
+      sprite.body.setSize(14, 13).setOffset(1, 3);
+      const tofu: Tofu = { sprite, logic: new StinkyTofu(), lastTouchMs: Number.NEGATIVE_INFINITY };
+      this.tofus.push(tofu);
+      sprite.setData('tofu', tofu);
+    }
+    this.physics.add.collider(this.player, this.tofuGroup, (_p, s) => this.onTofu((s as Tofu['sprite']).getData('tofu') as Tofu));
+    this.physics.add.collider(this.enemyGroup, this.tofuGroup);
+  }
+
+  private onTofu(tofu: Tofu): void {
+    const body = this.player.body;
+    if (this.finished || !body.touching.down) return;
+    const now = this.time.now;
+    const landed = now - tofu.lastTouchMs > TOFU_LANDING_GAP_MS;
+    tofu.lastTouchMs = now;
+    if (!landed) return;
+    if (tofu.logic.land() === 'bounce') {
+      body.setVelocityY(-PHYSICS.pufferBounce);
+      this.jump.markAirborneBounce();
+      audio.sfx('jump');
+      this.tweens.add({ targets: tofu.sprite, scaleY: 0.8, duration: 70, yoyo: true });
+    } else {
+      this.sticky.stick();
+      audio.sfx('splash');
+    }
+    this.puffStink(tofu.sprite.x, tofu.sprite.y - 8);
+  }
+
+  /** A little green whiff of stink rising off the tofu. */
+  private puffStink(x: number, y: number): void {
+    for (const dx of [-4, 3]) {
+      const puff = this.add.image(x + dx, y, 'stink').setAlpha(0.8).setDepth(3);
+      this.tweens.add({ targets: puff, y: y - 14, x: x + dx * 2, alpha: 0, scale: 1.6, duration: 700, onComplete: () => puff.destroy() });
+    }
+  }
+
+  private updateTofu(dtMs: number): void {
+    for (const t of this.tofus) {
+      t.logic.update(dtMs);
+      t.sprite.setFrame(t.logic.fresh ? Math.min(t.logic.bounces, 1) : 2);
+    }
+  }
+
   // ---------- HUD ----------
 
   private buildHud(): void {
@@ -421,6 +488,7 @@ export class LevelScene extends Phaser.Scene {
     this.health.update(dtMs);
     this.threads.update(dtMs);
     this.updateEnemies(dtMs);
+    this.updateTofu(dtMs);
     setHook({ player: { x: Math.round(this.player.x), y: Math.round(this.player.y) }, score: this.score.value, hearts: this.health.hearts });
 
     if (this.finished) return;
@@ -434,9 +502,16 @@ export class LevelScene extends Phaser.Scene {
     const grounded = body.blocked.down || body.touching.down;
     this.updateTank(dtMs);
     const p = this.physicsNow;
+    this.sticky.update(dtMs);
+    if (!grounded) this.sticky.release();
 
     if (body.blocked.left || body.blocked.right) this.walkVx = 0;
     this.walkVx = stepHorizontal(this.walkVx, input, dt);
+    // Bald stinky tofu holds Wutter's feet: no walking until it lets go.
+    if (this.sticky.stuck) {
+      this.walkVx = 0;
+      this.driftVx = 0;
+    }
 
     const current = this.currentAt(this.player.x, this.player.y);
     let vy = body.velocity.y;
@@ -450,8 +525,10 @@ export class LevelScene extends Phaser.Scene {
 
     const jumpVy = this.jump.update(dtMs, grounded, this.edges.pressed.jump, input.jump, vy);
     if (jumpVy !== null) {
-      if (jumpVy === -p.jumpVelocity) audio.sfx('jump');
-      vy = jumpVy;
+      const takeOff = jumpVy === -p.jumpVelocity;
+      if (takeOff) audio.sfx('jump');
+      // Sticky tofu only lets go for a low hop.
+      vy = takeOff ? this.sticky.jump(jumpVy) : jumpVy;
     }
     body.setVelocityY(clampFall(vy, p.maxFall));
 
@@ -589,6 +666,7 @@ export class LevelScene extends Phaser.Scene {
     audio.sfx(result === 'shield' ? 'shield' : 'hit');
     this.cameras.main.shake(120, 0.01);
     const away = this.player.x < enemy.sprite.x ? -1 : 1;
+    this.sticky.release();
     this.walkVx = away * PHYSICS.walkSpeed * 1.5;
     pBody.setVelocityY(-120);
     if (result === 'dead') this.die();

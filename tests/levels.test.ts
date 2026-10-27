@@ -3,10 +3,9 @@ import { LEVEL_ROWS, PHYSICS, PHYSICS_DRY, TILE } from '../src/config';
 import { CHAPTERS, nextChapter } from '../src/levels/chapters';
 import { FIRST_LEVEL_ID, getLevel, hasLevel, LEVELS, loadLevel } from '../src/levels';
 import { parseLevel, TILE_COUNT, TILE_INDEX, validateMap } from '../src/levels/parser';
-import { canMountPuffer, pufferArcCells, pufferTargets } from '../src/levels/puffers';
+import { canMountPuffer, levelBouncers, pufferArcCells, pufferTargets } from '../src/levels/puffers';
 import { canReachExit, reachableCells, unreachableThings } from '../src/levels/reachability';
 import { isLandSetting, type LevelSetting, SETTINGS } from '../src/levels/settings';
-import { isBouncer } from '../src/logic/enemies';
 import { jumpApexHeight } from '../src/logic/movement';
 import { STORIES } from '../src/story';
 
@@ -50,6 +49,19 @@ describe('parser', () => {
     expect(lvl.tiles[9][3]).toBe(TILE_INDEX.oilTop);
     expect(lvl.tiles[10][3]).toBe(TILE_INDEX.oilBody);
     expect(lvl.tiles[11][4]).toBe(TILE_INDEX.oilTop);
+  });
+
+  it('parses street cats and stinky tofu blocks, which have their own bodies instead of grid tiles', () => {
+    const map = blank(6, { 10: '...z..', 11: 'P.kz.E' });
+    const lvl = parseLevel(map);
+    expect(lvl.enemies.map((e) => e.kind)).toEqual(['cat']);
+    expect(lvl.tofu.map((t) => [t.col, t.row])).toEqual([
+      [3, 10],
+      [3, 11],
+    ]);
+    expect(lvl.solid[11][3]).toBe(false);
+    expect(lvl.tiles[11][3]).toBe(TILE_INDEX.empty);
+    expect(levelBouncers(lvl).map((b) => b.kind)).toEqual(['tofu', 'tofu']);
   });
 
   it('every tile index fits in the tileset', () => {
@@ -214,15 +226,15 @@ describe('pufferfish placement (issue #3)', () => {
     expect(apex).toBeGreaterThan(jumpApexHeight() * 1.5);
   });
 
-  it.each(levels)('every puffer and jellyfish in %s can be mounted from reachable ground', (_id, lvl) => {
-    for (const p of lvl.enemies.filter((e) => isBouncer(e.kind))) {
-      expect(canMountPuffer(lvl, p, REACH), `puffer at ${p.col},${p.row}`).toBe(true);
+  it.each(levels)('every puffer, jellyfish and stinky tofu in %s can be mounted from reachable ground', (_id, lvl) => {
+    for (const p of levelBouncers(lvl)) {
+      expect(canMountPuffer(lvl, p, REACH), `${p.kind} at ${p.col},${p.row}`).toBe(true);
     }
   });
 
-  it.each(levels)('every puffer and jellyfish in %s bounces the player to a pearl or a sideways current', (_id, lvl) => {
-    for (const p of lvl.enemies.filter((e) => isBouncer(e.kind))) {
-      expect(pufferTargets(lvl, p).length, `puffer at ${p.col},${p.row}`).toBeGreaterThan(0);
+  it.each(levels)('every puffer, jellyfish and stinky tofu in %s bounces the player to a pearl or a sideways current', (_id, lvl) => {
+    for (const p of levelBouncers(lvl)) {
+      expect(pufferTargets(lvl, p).length, `${p.kind} at ${p.col},${p.row}`).toBeGreaterThan(0);
     }
   });
 
@@ -242,7 +254,7 @@ describe('everything can be reached', () => {
 
   it.each(cases)('every pickup and enemy in %s (hard extras: %s) can be reached', (id, extraEnemies) => {
     const lvl = loadLevel(id, { extraEnemies }).parsed;
-    const viaPuffers = lvl.enemies.filter((e) => isBouncer(e.kind)).flatMap((p) => [...pufferArcCells(lvl, p)]);
+    const viaPuffers = levelBouncers(lvl).flatMap((p) => [...pufferArcCells(lvl, p)]);
     expect(unreachableThings(lvl, REACH, viaPuffers)).toEqual([]);
   });
 
