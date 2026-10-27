@@ -100,6 +100,16 @@ export const SONGS = {
       'D2 D3 D2 D3 | D2 D3 D2 D3 | A#1 A#2 A#1 A#2 | C2 C3 C2 C3 | D2 D3 D2 D3 | D2 D3 D2 D3 | A#1 A#2 C2 C3 | D2 D3 D2 D3 | ' +
       'F2 F3 F2 F3 | F2 F3 F2 F3 | A#1 A#2 A#1 A#2 | C2 C3 C2 C3 | D2 D3 D2 D3 | A#1 A#2 A#1 A#2 | C2 C3 C2 C3 | D2 D3 A1 A2',
   },
+  // Slow and eerie but friendly for the Midnight Zone: E minor, long floating notes over deep, held drones.
+  abyss: {
+    bpm: 80,
+    lead:
+      'B4 - - E5 | G5 - - - | F#5 - E5 D5 | E5 - - . | B4 - - D5 | E5 - G5 - | A5 - G5 E5 | D5 - - . | ' +
+      'G5 - - A5 | B5 - - - | A5 - G5 E5 | G5 - - . | E5 - D5 B4 | D5 - E5 - | G5 - F#5 D5 | E5 - - .',
+    bass:
+      'E2 - - - | B2 - - - | C3 - - - | B2 - - - | E2 - - - | G2 - - - | A2 - - - | B2 - - - | ' +
+      'C3 - - - | G2 - - - | A2 - - - | B2 - - - | C3 - - - | D3 - - - | B2 - - - | E2 - - -',
+  },
 } satisfies Record<string, Song>;
 
 export type SongId = keyof typeof SONGS;
