@@ -39,6 +39,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Background layers are slightly hazed, more with distance, so Wutter and the enemies stand out and the scenery
   has more depth ([#25](https://github.com/cramor-devo/Wutterworld/issues/25)).
 
+### Fixed
+
+- Kenting Beach: the far hills meet the sea again with no pale sky band in between. The backdrop's base picture
+  is no longer stretched to the taller screen; the strip below it continues its bottom colour
+  ([#27](https://github.com/cramor-devo/Wutterworld/issues/27)).
+
 ## [0.3.0] - 2026-10-26
 
 ### Added
