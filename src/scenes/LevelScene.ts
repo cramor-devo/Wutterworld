@@ -9,7 +9,18 @@ import { TouchControls, wantsTouchControls } from '../input/touch';
 import { isLandSetting, type LevelDef, loadLevel, SETTINGS, type SettingStyle } from '../levels';
 import { type ParsedLevel, TILE_COUNT } from '../levels/parser';
 import { DIFFICULTIES, type DifficultySettings, isDifficulty, loadDifficulty } from '../logic/difficulty';
-import { createBrain, defeatEnemy, type EnemyBrain, type EnemyIntent, type EnemyKind, isBouncer, pufferPhaseForColumn, stepEnemy, stunEnemy } from '../logic/enemies';
+import {
+  createBrain,
+  defeatEnemy,
+  type EnemyBrain,
+  type EnemyIntent,
+  type EnemyKind,
+  isBouncer,
+  isGroundWalker,
+  pufferPhaseForColumn,
+  stepEnemy,
+  stunEnemy,
+} from '../logic/enemies';
 import { Health } from '../logic/health';
 import { clampFall, currentAcceleration, type CurrentKind, JumpController, stepHorizontal } from '../logic/movement';
 import { formatScore, LEVEL_CLEAR_BONUS, type PickupKind, Score } from '../logic/score';
@@ -41,6 +52,7 @@ const ENEMY_TEXTURE: Record<EnemyKind, string> = {
   triggerfish: 'triggerfish',
   jellyfish: 'jellyfish',
   seagull: 'seagull',
+  cat: 'cat',
 };
 
 export class LevelScene extends Phaser.Scene {
@@ -275,6 +287,10 @@ export class LevelScene extends Phaser.Scene {
         body.setAllowGravity(false);
         body.setSize(12, 8).setOffset(2, 3);
         sprite.play({ key: 'seagull-flap', startFrame: e.col % 2 });
+      } else if (e.kind === 'cat') {
+        // Like crabs, cats walk under world gravity; see stepCat for how the pounce uses it.
+        body.setSize(14, 9).setOffset(1, 3);
+        sprite.play({ key: 'cat-walk', startFrame: e.col % 2 });
       } else {
         body.setAllowGravity(false);
         body.setSize(12, 8).setOffset(2, 2);
@@ -491,19 +507,26 @@ export class LevelScene extends Phaser.Scene {
         dtMs,
         blocked: body.blocked.left || body.blocked.right,
         passive: this.difficulty.passiveEnemies,
+        grounded: body.blocked.down,
       });
       body.setVelocityX(e.intent.vx);
-      if (e.brain.kind !== 'crab') body.setVelocityY(e.intent.vy);
-      if (Math.abs(e.intent.vx) > 1) e.sprite.setFlipX(e.brain.kind === 'crab' ? false : e.intent.vx > 0);
-      if (e.brain.kind === 'seagull' && e.brain.state === 'warning' && before !== 'warning') audio.sfx('squawk');
+      // Ground walkers fall under world gravity; a non-zero vy is a one-off jump impulse.
+      if (!isGroundWalker(e.brain.kind) || e.intent.vy !== 0) body.setVelocityY(e.intent.vy);
+      if (e.brain.kind === 'cat') e.sprite.setFlipX(e.brain.dir > 0);
+      else if (Math.abs(e.intent.vx) > 1) e.sprite.setFlipX(e.brain.kind === 'crab' ? false : e.intent.vx > 0);
+      if (e.brain.state === 'warning' && before !== 'warning') {
+        if (e.brain.kind === 'seagull') audio.sfx('squawk');
+        else if (e.brain.kind === 'cat') audio.sfx('meow');
+      }
 
       const stunned = e.brain.state === 'stunned';
       if (stunned) {
         e.sprite.setTint(0xb0b0d0).setAngle(Math.sin(this.time.now / 60) * 10);
         e.sprite.anims.pause();
       } else if (e.brain.state === 'warning') {
-        // About to puff up, sting or dive: shake and flash so the player can react in time.
-        e.sprite.setAngle(e.brain.kind === 'seagull' ? 0 : Math.sin(this.time.now / 25) * 12);
+        // About to puff up, sting, dive or pounce: shake and flash so the player can react in time.
+        const shake = e.brain.kind === 'seagull' ? 0 : e.brain.kind === 'cat' ? 4 : 12;
+        e.sprite.setAngle(Math.sin(this.time.now / 25) * shake);
         if (Math.floor(this.time.now / 120) % 2 === 0) e.sprite.setTint(0xff9a7a);
         else e.sprite.clearTint();
       } else {
@@ -517,6 +540,14 @@ export class LevelScene extends Phaser.Scene {
         else body.setSize(12, 8).setOffset(2, 2);
       } else if (e.brain.kind === 'jellyfish') {
         e.sprite.setTexture(e.brain.state === 'sting' ? 'jellyfish-sting' : 'jellyfish');
+      } else if (e.brain.kind === 'cat' && !stunned) {
+        // Crouch and wiggle before a pounce, stretch out mid-air, otherwise walk (frozen while resting).
+        if (e.brain.state === 'warning') e.sprite.play('cat-wiggle', true);
+        else if (e.brain.state === 'pounce') e.sprite.stop().setFrame(4);
+        else {
+          e.sprite.play('cat-walk', true);
+          if (e.brain.state === 'rest') e.sprite.anims.pause();
+        }
       }
     }
   }

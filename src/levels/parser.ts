@@ -16,6 +16,7 @@ import type { PickupKind } from '../logic/score';
  *   Y  palm tree      U  beach umbrella
  * Night market (on land, '=' is drawn with the setting's own ground, e.g. asphalt):
  *   b  cardboard box of foodstuff    B  soybean oil can (stack them for a tall can; the top one gets the cap)
+ *   k  street cat (crouches, then pounces)
  */
 export const SOLID_CHARS = ['#', '=', 'C', 'R', 'b', 'B'] as const;
 
@@ -62,7 +63,7 @@ export interface ParsedLevel {
 }
 
 const PICKUPS: Record<string, PickupKind> = { o: 'plankton', O: 'pearl', A: 'anemone' };
-const ENEMIES: Record<string, EnemyKind> = { c: 'crab', f: 'puffer', t: 'triggerfish', j: 'jellyfish', G: 'seagull' };
+const ENEMIES: Record<string, EnemyKind> = { c: 'crab', f: 'puffer', t: 'triggerfish', j: 'jellyfish', G: 'seagull', k: 'cat' };
 const CURRENTS: Record<string, CurrentKind> = { '^': 'up', '>': 'right', '<': 'left' };
 const DECOR: Record<string, DecorKind> = { w: 'seaweed', g: 'seafan', L: 'lantern', T: 'gate', Y: 'palm', U: 'umbrella' };
 const KNOWN = new Set(['.', 'P', 'E', 'S', '~', ...SOLID_CHARS, ...Object.keys(PICKUPS), ...Object.keys(ENEMIES), ...Object.keys(CURRENTS), ...Object.keys(DECOR)]);

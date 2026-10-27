@@ -5,8 +5,10 @@ import {
   ENEMY_TUNING,
   type EnemyContext,
   isBouncer,
+  isGroundWalker,
   JELLYFISH_CYCLE_MS,
   PUFFER_CYCLE_MS,
+  pounceVelocity,
   pufferPhaseForColumn,
   stepEnemy,
   stunEnemy,
@@ -265,5 +267,138 @@ describe('seagull', () => {
     b.state = 'dive';
     expect(stepEnemy(b, ctx({ y: 120, passive: true })).dangerous).toBe(false);
     expect(b.state).toBe('climb');
+  });
+});
+
+describe('street cat (issue #14)', () => {
+  const T = ENEMY_TUNING.cat;
+  const near = { playerX: 150, playerY: 100 };
+
+  it('is a ground walker that patrols slowly and hurts on touch', () => {
+    expect(isGroundWalker('cat')).toBe(true);
+    expect(isGroundWalker('seagull')).toBe(false);
+    const b = createBrain('cat', 100, 100);
+    const i = stepEnemy(b, ctx());
+    expect(b.state).toBe('patrol');
+    expect(Math.abs(i.vx)).toBe(T.speed);
+    expect(i.vy).toBe(0);
+    expect(i.dangerous).toBe(true);
+    expect(i.stompable).toBe(true);
+  });
+
+  it('turns around at walls', () => {
+    const b = createBrain('cat', 100, 100);
+    const dir = Math.sign(stepEnemy(b, ctx()).vx);
+    expect(Math.sign(stepEnemy(b, ctx({ blocked: true })).vx)).toBe(-dir);
+  });
+
+  it('ignores players far away, high above, or while it is in the air', () => {
+    const b = createBrain('cat', 100, 100);
+    stepEnemy(b, ctx({ playerX: 100 + T.noticeX + 10, playerY: 100 }));
+    stepEnemy(b, ctx({ playerX: 120, playerY: 100 - T.verticalSight - 10 }));
+    stepEnemy(b, ctx({ ...near, grounded: false }));
+    expect(b.state).toBe('patrol');
+  });
+
+  it('crouches and wiggles for warnMs, facing the player, before pouncing', () => {
+    const b = createBrain('cat', 100, 100);
+    stepEnemy(b, ctx(near));
+    expect(b.state).toBe('warning');
+    expect(b.dir).toBe(1);
+    const crouch = stepEnemy(b, ctx({ ...near, dtMs: T.warnMs - 20 }));
+    expect(b.state).toBe('warning');
+    expect(crouch.vx).toBe(0);
+    expect(crouch.dangerous).toBe(true);
+  });
+
+  it('locks onto where the player was when the wiggle ends and leaps with one upward impulse', () => {
+    const b = createBrain('cat', 100, 100);
+    stepEnemy(b, ctx(near));
+    const leap = stepEnemy(b, ctx({ playerX: 160, playerY: 90, dtMs: T.warnMs }));
+    expect(b.state).toBe('pounce');
+    expect(b.targetX).toBe(160);
+    expect(b.targetY).toBe(90);
+    expect(leap.vy).toBe(-T.leapVy);
+    expect(leap.vx).toBeGreaterThan(0);
+    // Later frames leave vy to gravity and keep the locked speed, even if the player moves away.
+    const mid = stepEnemy(b, ctx({ x: 110, y: 80, playerX: 20, grounded: false }));
+    expect(mid.vy).toBe(0);
+    expect(mid.vx).toBe(leap.vx);
+    expect(mid.stompable).toBe(true);
+  });
+
+  it('aims its arc so it comes down on the locked target', () => {
+    for (const [dx, dy] of [
+      [40, 0],
+      [-60, 0],
+      [50, -16],
+      [30, 24],
+    ]) {
+      const vx = pounceVelocity(dx, dy);
+      // Simulate the leap: the impulse, then constant vx under gravity, until it falls back through dy.
+      let x = 0;
+      let y = 0;
+      let vy = -T.leapVy;
+      const dt = 1 / 1000;
+      for (let i = 0; i < 5000 && !(vy > 0 && y >= dy); i++) {
+        vy += T.gravity * dt;
+        x += vx * dt;
+        y += vy * dt;
+      }
+      expect(x).toBeCloseTo(dx, 0);
+    }
+  });
+
+  it('caps the leap speed for far targets and aims at the peak for targets too high', () => {
+    expect(pounceVelocity(1000, 0)).toBe(T.maxLeapVx);
+    expect(pounceVelocity(-1000, 0)).toBe(-T.maxLeapVx);
+    expect(pounceVelocity(20, -500)).toBeCloseTo(20 / (T.leapVy / T.gravity));
+  });
+
+  it('stops moving sideways when it hits a wall mid-leap', () => {
+    const b = createBrain('cat', 100, 100);
+    b.state = 'pounce';
+    b.leapVx = 80;
+    expect(stepEnemy(b, ctx({ blocked: true, grounded: false })).vx).toBe(0);
+  });
+
+  it('lands, rests for restMs, then patrols again', () => {
+    const b = createBrain('cat', 100, 100);
+    b.state = 'pounce';
+    b.leapVx = 80;
+    // Still on the ground on the take-off frame: not landed yet.
+    stepEnemy(b, ctx({ ...near, dtMs: 16 }));
+    expect(b.state).toBe('pounce');
+    stepEnemy(b, ctx({ ...near, grounded: false, dtMs: 200 }));
+    const land = stepEnemy(b, ctx({ ...near, grounded: true }));
+    expect(b.state).toBe('rest');
+    expect(land.vx).toBe(0);
+    expect(land.dangerous).toBe(true);
+    stepEnemy(b, ctx({ ...near, dtMs: T.restMs - 20 }));
+    expect(b.state).toBe('rest');
+    stepEnemy(b, ctx({ dtMs: 40 }));
+    expect(b.state).toBe('patrol');
+  });
+
+  it('gives up a pounce that never lands', () => {
+    const b = createBrain('cat', 100, 100);
+    b.state = 'pounce';
+    stepEnemy(b, ctx({ grounded: false, dtMs: T.maxPounceMs }));
+    expect(b.state).toBe('rest');
+  });
+
+  it('never pounces and is harmless in scenic mode', () => {
+    const b = createBrain('cat', 100, 100);
+    for (let i = 0; i < 10; i++) expect(stepEnemy(b, ctx({ ...near, dtMs: 300, passive: true })).dangerous).toBe(false);
+    expect(b.state).toBe('patrol');
+  });
+
+  it('is stunned by threads and freezes on the ground', () => {
+    const b = createBrain('cat', 100, 100);
+    stunEnemy(b);
+    const i = stepEnemy(b, ctx(near));
+    expect(i).toMatchObject({ vx: 0, vy: 0, dangerous: false, stompable: true });
+    stepEnemy(b, ctx({ dtMs: STUN_MS }));
+    expect(b.state).toBe('patrol');
   });
 });
