@@ -19,13 +19,18 @@ export interface BackdropLayout {
   midY: number;
 }
 
-/** Where the backdrop layers go when the parallax layers stand on `bottom`. */
-export function backdropLayout(bottom: number, viewHeight = GAME_HEIGHT): BackdropLayout {
+/** Where the backdrop layers go when the parallax layers (of the given heights) stand on `bottom`. */
+export function backdropLayout(
+  bottom: number,
+  farH = BACKDROP_FAR_HEIGHT,
+  midH = BACKDROP_MID_HEIGHT,
+  viewHeight = GAME_HEIGHT,
+): BackdropLayout {
   return {
     baseHeight: BACKDROP_BASE_HEIGHT,
     fillY: BACKDROP_BASE_HEIGHT,
     fillHeight: Math.max(0, viewHeight - BACKDROP_BASE_HEIGHT),
-    farY: bottom - BACKDROP_FAR_HEIGHT,
-    midY: bottom - BACKDROP_MID_HEIGHT,
+    farY: bottom - farH,
+    midY: bottom - midH,
   };
 }

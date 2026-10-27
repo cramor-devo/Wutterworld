@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { FIXED_LAYOUT_TOP, GAME_HEIGHT, GAME_WIDTH, viewWidthFor } from '../config';
-import type { LevelSetting } from '../levels';
+import { type LevelSetting, SETTINGS } from '../levels';
 import { BACKDROP_FAR_HEIGHT, BACKDROP_MID_HEIGHT, backdropLayout } from './backdropLayout';
 
 /** State exposed for the Playwright smoke test and for debugging in the browser console. */
@@ -33,24 +33,30 @@ export function setHook(patch: Partial<WutterHook>): void {
 export interface Backdrop {
   far: Phaser.GameObjects.TileSprite;
   mid: Phaser.GameObjects.TileSprite;
+  /** Optional closest layer (the night market crowd), between the mid layer and the play layer. */
+  near: Phaser.GameObjects.TileSprite | null;
   scroll(x: number): void;
   /** Stretches the layers to a new view width. */
   resize(width: number): void;
 }
 
-const BACKDROP_KEYS: Record<LevelSetting, { base: string; far: string; mid: string }> = {
-  reef: { base: 'bg-water', far: 'bg-far', mid: 'bg-mid' },
-  beach: { base: 'bg-sky', far: 'bg-beach-far', mid: 'bg-beach-mid' },
-};
+/** Default far and mid layer heights, and the height of the optional near layer (which hugs the ground). */
+const FAR_H = BACKDROP_FAR_HEIGHT;
+const MID_H = BACKDROP_MID_HEIGHT;
+const NEAR_H = 64;
 
 /**
- * Underwater (or sunny beach) backdrop with two parallax layers, fixed to the camera. The layers stand on
- * `bottom`: in levels that is the top of the extra ground rows, so the scenery is not hidden behind them.
+ * The setting's backdrop, fixed to the camera: a base picture, two parallax layers (far and mid) and, where the
+ * setting has one, a third, faster near layer. Every layer texture tiles seamlessly sideways. The layers stand on
+ * `bottom`: in levels that is the top of the extra ground rows, so the scenery is not hidden behind them. Haze
+ * veils mute the layers more with distance, so Wutter and the enemies stand out.
  */
 export function addBackdrop(scene: Phaser.Scene, setting: LevelSetting = 'reef', bottom = GAME_HEIGHT): Backdrop {
   const w = scene.scale.width;
-  const keys = BACKDROP_KEYS[setting];
-  const layout = backdropLayout(bottom);
+  const keys = SETTINGS[setting].backdrop;
+  const farH = keys.farH ?? FAR_H;
+  const midH = keys.midH ?? MID_H;
+  const layout = backdropLayout(bottom, farH, midH);
   const base = scene.add.image(0, 0, keys.base).setOrigin(0).setScrollFactor(0).setDepth(-30).setDisplaySize(w, layout.baseHeight);
   // Below the base, continue its last row instead of stretching it (stretching moves the horizon, see #27).
   const edge = scene.textures.getPixel(0, layout.baseHeight - 1, keys.base);
@@ -59,20 +65,30 @@ export function addBackdrop(scene: Phaser.Scene, setting: LevelSetting = 'reef',
     .setOrigin(0)
     .setScrollFactor(0)
     .setDepth(-30);
-  const far = scene.add.tileSprite(0, layout.farY, w, BACKDROP_FAR_HEIGHT, keys.far).setOrigin(0).setScrollFactor(0).setDepth(-20);
-  const mid = scene.add.tileSprite(0, layout.midY, w, BACKDROP_MID_HEIGHT, keys.mid).setOrigin(0).setScrollFactor(0).setDepth(-15);
+  const far = scene.add.tileSprite(0, layout.farY, w, farH, keys.far).setOrigin(0).setScrollFactor(0).setDepth(-20);
+  const mid = scene.add.tileSprite(0, layout.midY, w, midH, keys.mid).setOrigin(0).setScrollFactor(0).setDepth(-15);
+  const near = keys.near ? scene.add.tileSprite(0, bottom - NEAR_H, w, NEAR_H, keys.near).setOrigin(0).setScrollFactor(0).setDepth(-12) : null;
+  // Haze veils just in front of each layer; they stack, so the farthest layers are the most muted.
+  const veil = (alpha: number, depth: number) =>
+    scene.add.rectangle(0, 0, w, GAME_HEIGHT, keys.haze.color, alpha).setOrigin(0).setScrollFactor(0).setDepth(depth);
+  const veils = [veil(keys.haze.far, -19), veil(keys.haze.mid, -14)];
+  if (near && keys.haze.near) veils.push(veil(keys.haze.near, -11));
   return {
     far,
     mid,
+    near,
     scroll(x: number) {
       far.tilePositionX = x * 0.2;
       mid.tilePositionX = x * 0.45;
+      if (near) near.tilePositionX = x * 0.7;
     },
     resize(width: number) {
       base.setDisplaySize(width, layout.baseHeight);
       fill.setSize(width, layout.fillHeight);
-      far.setSize(width, BACKDROP_FAR_HEIGHT);
-      mid.setSize(width, BACKDROP_MID_HEIGHT);
+      far.setSize(width, farH);
+      mid.setSize(width, midH);
+      near?.setSize(width, NEAR_H);
+      for (const v of veils) v.setSize(width, GAME_HEIGHT);
     },
   };
 }

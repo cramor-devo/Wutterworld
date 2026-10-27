@@ -1,11 +1,30 @@
 import { STUN_MS } from './threads';
 
-export type EnemyKind = 'crab' | 'puffer' | 'triggerfish' | 'jellyfish' | 'seagull';
+export type EnemyKind = 'crab' | 'puffer' | 'triggerfish' | 'jellyfish' | 'seagull' | 'cat';
 /**
  * Puffers cycle patrol (resting) -> warning (shaking) -> inflated on a fixed timer; beached jellyfish do the same
  * with sting instead of inflated. Seagulls go patrol -> warning (squawk) -> dive -> climb -> patrol.
+ * Street cats go patrol -> warning (crouch and wiggle) -> pounce -> rest -> patrol.
  */
-export type EnemyState = 'patrol' | 'warning' | 'inflated' | 'sting' | 'chase' | 'dive' | 'climb' | 'stunned' | 'defeated';
+export type EnemyState =
+  | 'patrol'
+  | 'warning'
+  | 'inflated'
+  | 'sting'
+  | 'chase'
+  | 'dive'
+  | 'climb'
+  | 'pounce'
+  | 'rest'
+  | 'stunned'
+  | 'defeated';
+
+/** Enemies that walk on the ground under world gravity: the scene only sets their vy for jump impulses. */
+export const GROUND_WALKERS: readonly EnemyKind[] = ['crab', 'cat'];
+
+export function isGroundWalker(kind: EnemyKind): boolean {
+  return GROUND_WALKERS.includes(kind);
+}
 
 /** Enemies the player can bounce on while they rest. */
 export const BOUNCERS: readonly EnemyKind[] = ['puffer', 'jellyfish'];
@@ -25,9 +44,11 @@ export interface EnemyBrain {
   range: number;
   /** Time since spawn, used for bobbing. */
   age: number;
-  /** Where a diving seagull is heading (locked when its warning squawk ends). */
+  /** Where a diving seagull or pouncing cat is heading (locked when its warning ends). */
   targetX: number;
   targetY: number;
+  /** Horizontal speed of a cat's pounce, worked out once when it leaps. */
+  leapVx: number;
 }
 
 export interface EnemyContext {
@@ -40,6 +61,8 @@ export interface EnemyContext {
   blocked: boolean;
   /** Scenic mode: enemies never chase or puff up and are harmless to touch. */
   passive?: boolean;
+  /** True when a ground walker stands on something (defaults to true). */
+  grounded?: boolean;
 }
 
 export interface EnemyIntent {
@@ -71,6 +94,22 @@ export const ENEMY_TUNING = {
     maxDiveMs: 1600,
     cooldownMs: 1500,
   },
+  cat: {
+    speed: 18,
+    range: 32,
+    /** Pounces when the player is within this horizontal distance and roughly level with it. */
+    noticeX: 72,
+    verticalSight: 40,
+    warnMs: 600,
+    /** Upward speed of the leap; the world gravity below bends it into an arc. */
+    leapVy: 190,
+    gravity: 420,
+    maxLeapVx: 110,
+    /** A pounce counts as landed once the cat is grounded after this long in the air (or after maxPounceMs). */
+    minAirMs: 120,
+    maxPounceMs: 1500,
+    restMs: 1200,
+  },
 } as const;
 
 /** Bob period factor: vy = cos(age / BOB_MS) * bob, so the puffer moves bob * BOB_MS / 1000 px up and down. */
@@ -84,6 +123,7 @@ const PATROL_RANGE: Partial<Record<EnemyKind, number>> = {
   crab: ENEMY_TUNING.crab.range,
   triggerfish: ENEMY_TUNING.triggerfish.range,
   seagull: ENEMY_TUNING.seagull.range,
+  cat: ENEMY_TUNING.cat.range,
 };
 
 /** Timer an enemy starts (or recovers from a stun) with: bouncers rest first, seagulls wait before diving. */
@@ -101,7 +141,7 @@ function restTimer(kind: EnemyKind): number {
 export function createBrain(kind: EnemyKind, x: number, y: number, phaseMs = 0): EnemyBrain {
   const range = PATROL_RANGE[kind] ?? 0;
   const timer = isBouncer(kind) ? restTimer(kind) + Math.max(0, phaseMs) : 0;
-  return { kind, state: 'patrol', dir: -1, timer, originX: x, originY: y, range, age: 0, targetX: x, targetY: y };
+  return { kind, state: 'patrol', dir: -1, timer, originX: x, originY: y, range, age: 0, targetX: x, targetY: y, leapVx: 0 };
 }
 
 /** Spreads bouncer phases over one cycle based on the spawn column. */
@@ -133,7 +173,7 @@ export function stepEnemy(brain: EnemyBrain, ctx: EnemyContext): EnemyIntent {
       brain.timer = restTimer(brain.kind);
     }
     // Stunned fish and birds slowly sink; stunned crabs and beached jellyfish freeze.
-    const vy = brain.kind === 'crab' || brain.kind === 'jellyfish' ? 0 : 12;
+    const vy = isGroundWalker(brain.kind) || brain.kind === 'jellyfish' ? 0 : 12;
     return { vx: 0, vy, dangerous: false, stompable: true, scale: 1 };
   }
 
@@ -153,6 +193,8 @@ function stepActive(brain: EnemyBrain, ctx: EnemyContext): EnemyIntent {
       return stepJellyfish(brain, ctx);
     case 'seagull':
       return stepSeagull(brain, ctx);
+    case 'cat':
+      return stepCat(brain, ctx);
   }
 }
 
@@ -298,4 +340,67 @@ function stepSeagull(brain: EnemyBrain, ctx: EnemyContext): EnemyIntent {
   const dir = patrolDirection(brain, ctx.x, ctx.blocked);
   const vy = Math.max(-t.climbSpeed, Math.min(t.climbSpeed, brain.originY - ctx.y));
   return hit(dir * t.speed, vy);
+}
+/**
+ * Horizontal speed for a leap that starts upward at `leapVy` under `gravity` and comes down through a point
+ * `dx` px across and `dy` px lower (negative dy = higher). Targets above the arc's peak are aimed at the peak.
+ */
+export function pounceVelocity(dx: number, dy: number): number {
+  const t = ENEMY_TUNING.cat;
+  const disc = t.leapVy * t.leapVy + 2 * t.gravity * dy;
+  const airMs = disc > 0 ? (t.leapVy + Math.sqrt(disc)) / t.gravity : t.leapVy / t.gravity;
+  return Math.max(-t.maxLeapVx, Math.min(t.maxLeapVx, dx / airMs));
+}
+
+/**
+ * Cats walk the ground under world gravity, so a pounce is a single upward impulse (vy = -leapVy on the first
+ * frame) plus a constant leapVx; every other frame returns vy 0, which the scene leaves to gravity.
+ */
+function stepCat(brain: EnemyBrain, ctx: EnemyContext): EnemyIntent {
+  const t = ENEMY_TUNING.cat;
+  const grounded = ctx.grounded ?? true;
+  const hit = (vx: number, vy = 0): EnemyIntent => ({ vx, vy, dangerous: true, stompable: true, scale: 1 });
+
+  if (ctx.passive && brain.state !== 'pounce') brain.state = 'patrol';
+
+  switch (brain.state) {
+    case 'warning':
+      // Crouch and wiggle; the leap aims at where the player is when the wiggle ends.
+      brain.timer -= ctx.dtMs;
+      brain.dir = ctx.playerX >= ctx.x ? 1 : -1;
+      if (brain.timer > 0) return hit(0);
+      brain.state = 'pounce';
+      brain.timer = 0;
+      brain.targetX = ctx.playerX;
+      brain.targetY = ctx.playerY;
+      brain.leapVx = pounceVelocity(brain.targetX - ctx.x, brain.targetY - ctx.y);
+      return hit(brain.leapVx, -t.leapVy);
+    case 'pounce':
+      brain.timer += ctx.dtMs;
+      if (ctx.blocked) brain.leapVx = 0;
+      if ((grounded && brain.timer >= t.minAirMs) || brain.timer >= t.maxPounceMs) {
+        brain.state = 'rest';
+        brain.timer = t.restMs;
+        return hit(0);
+      }
+      return hit(brain.leapVx);
+    case 'rest':
+      brain.timer -= ctx.dtMs;
+      if (brain.timer > 0) return hit(0);
+      brain.state = 'patrol';
+      break;
+    default:
+      break;
+  }
+
+  const dx = ctx.playerX - ctx.x;
+  const level = Math.abs(ctx.playerY - ctx.y) < t.verticalSight;
+  if (!ctx.passive && grounded && level && Math.abs(dx) < t.noticeX) {
+    brain.state = 'warning';
+    brain.timer = t.warnMs;
+    brain.dir = dx >= 0 ? 1 : -1;
+    return hit(0);
+  }
+  const dir = patrolDirection(brain, ctx.x, ctx.blocked);
+  return hit(dir * t.speed);
 }

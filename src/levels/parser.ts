@@ -14,8 +14,13 @@ import type { PickupKind } from '../logic/score';
  * Beach:
  *   j  beached jellyfish (bouncer)  G  seagull     ~  seawater puddle (refills the water tank; put it in the sand row)
  *   Y  palm tree      U  beach umbrella
+ * Night market (on land, '=' is drawn with the setting's own ground, e.g. asphalt):
+ *   b  cardboard box of foodstuff    B  soybean oil can (stack them for a tall can; the top one gets the cap)
+ *   k  street cat (crouches, then pounces)
+ *   z  stinky tofu block (bouncy while hairy, sticky once bald; not part of the tile grid)
+ *   M  night market entrance gate (decor; the plaque reads 夜市)
  */
-export const SOLID_CHARS = ['#', '=', 'C', 'R'] as const;
+export const SOLID_CHARS = ['#', '=', 'C', 'R', 'b', 'B'] as const;
 
 export const TILE_INDEX = {
   empty: -1,
@@ -24,9 +29,16 @@ export const TILE_INDEX = {
   rock: 2,
   coral: 3,
   brick: 4,
+  box: 5,
+  boxAlt: 6,
+  oilBody: 7,
+  oilTop: 8,
 } as const;
 
-export type DecorKind = 'seaweed' | 'seafan' | 'lantern' | 'gate' | 'palm' | 'umbrella';
+/** Number of slots in every tileset; all of them are solid. */
+export const TILE_COUNT = 9;
+
+export type DecorKind = 'seaweed' | 'seafan' | 'lantern' | 'gate' | 'palm' | 'umbrella' | 'market-gate';
 
 export interface Spot {
   col: number;
@@ -50,13 +62,15 @@ export interface ParsedLevel {
   decor: (Spot & { kind: DecorKind })[];
   /** Seawater puddles that refill the water tank on the beach. */
   puddles: Spot[];
+  /** Stinky tofu blocks: springy, then sticky platforms with their own bodies (not solid in the grid). */
+  tofu: Spot[];
 }
 
 const PICKUPS: Record<string, PickupKind> = { o: 'plankton', O: 'pearl', A: 'anemone' };
-const ENEMIES: Record<string, EnemyKind> = { c: 'crab', f: 'puffer', t: 'triggerfish', j: 'jellyfish', G: 'seagull' };
+const ENEMIES: Record<string, EnemyKind> = { c: 'crab', f: 'puffer', t: 'triggerfish', j: 'jellyfish', G: 'seagull', k: 'cat' };
 const CURRENTS: Record<string, CurrentKind> = { '^': 'up', '>': 'right', '<': 'left' };
-const DECOR: Record<string, DecorKind> = { w: 'seaweed', g: 'seafan', L: 'lantern', T: 'gate', Y: 'palm', U: 'umbrella' };
-const KNOWN = new Set(['.', 'P', 'E', 'S', '~', ...SOLID_CHARS, ...Object.keys(PICKUPS), ...Object.keys(ENEMIES), ...Object.keys(CURRENTS), ...Object.keys(DECOR)]);
+const DECOR: Record<string, DecorKind> = { w: 'seaweed', g: 'seafan', L: 'lantern', T: 'gate', Y: 'palm', U: 'umbrella', M: 'market-gate' };
+const KNOWN = new Set(['.', 'P', 'E', 'S', '~', 'z', ...SOLID_CHARS, ...Object.keys(PICKUPS), ...Object.keys(ENEMIES), ...Object.keys(CURRENTS), ...Object.keys(DECOR)]);
 
 function spot(col: number, row: number): Spot {
   return { col, row, x: col * TILE + TILE / 2, y: row * TILE + TILE / 2 };
@@ -103,6 +117,7 @@ export function parseLevel(map: readonly string[], signTexts: readonly string[] 
     signs: [],
     decor: [],
     puddles: [],
+    tofu: [],
   };
   let signIndex = 0;
 
@@ -126,6 +141,13 @@ export function parseLevel(map: readonly string[], signTexts: readonly string[] 
         case 'R':
           tileRow.push(TILE_INDEX.brick);
           break;
+        case 'b':
+          // Two box prints, alternated so rows of boxes do not look copy-pasted.
+          tileRow.push((c + r) % 2 === 0 ? TILE_INDEX.box : TILE_INDEX.boxAlt);
+          break;
+        case 'B':
+          tileRow.push(above === 'B' ? TILE_INDEX.oilBody : TILE_INDEX.oilTop);
+          break;
         default:
           tileRow.push(TILE_INDEX.empty);
       }
@@ -134,6 +156,7 @@ export function parseLevel(map: readonly string[], signTexts: readonly string[] 
       else if (ch === 'E') level.exit = s;
       else if (ch === 'S') level.signs.push({ ...s, text: signTexts[signIndex++] });
       else if (ch === '~') level.puddles.push(s);
+      else if (ch === 'z') level.tofu.push(s);
       else if (PICKUPS[ch]) level.pickups.push({ ...s, kind: PICKUPS[ch] });
       else if (ENEMIES[ch]) level.enemies.push({ ...s, kind: ENEMIES[ch] });
       else if (CURRENTS[ch]) level.currents.push({ ...s, kind: CURRENTS[ch] });

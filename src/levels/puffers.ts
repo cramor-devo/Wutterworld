@@ -1,5 +1,5 @@
 import { PHYSICS, TILE } from '../config';
-import { type EnemyKind, PUFFER_BOB_PX } from '../logic/enemies';
+import { type EnemyKind, isBouncer, PUFFER_BOB_PX } from '../logic/enemies';
 import type { ParsedLevel, Spot } from './parser';
 import { reachableCells } from './reachability';
 
@@ -7,6 +7,7 @@ import { reachableCells } from './reachability';
  * Body geometry used in LevelScene (sprite centre to body edge, in px).
  * Player: 16x10 sprite, 14x8 body at offset (1,1). Puffer: 16x12 sprite, 12x8 body at offset (2,2).
  * Jellyfish: 16x10 sprite placed 3 px below the tile centre (resting on the ground), 14x6 body at offset (1,4).
+ * Stinky tofu: 16x16 static sprite on its tile, 14x13 body at offset (1,3).
  */
 export const PLAYER_HALF_W = 7;
 export const PLAYER_HALF_H = 4;
@@ -15,17 +16,27 @@ const PUFFER_HALF_W = 6;
 /** A beached jellyfish's body top sits this far below its tile centre; it does not bob. */
 export const JELLYFISH_TOP_OFFSET = 2;
 const JELLYFISH_HALF_W = 7;
+/** A stinky tofu block's body top sits this far above its tile centre. */
+export const TOFU_TOP_OFFSET = 5;
+const TOFU_HALF_W = 7;
 
-/** A pufferfish or beached jellyfish to bounce on. */
-export type Bouncer = Spot & { kind?: EnemyKind };
+/** A pufferfish, beached jellyfish or (hairy) stinky tofu block to bounce on. */
+export type Bouncer = Spot & { kind?: EnemyKind | 'tofu' };
+
+/** Every bouncer enemy plus every stinky tofu block in a level. */
+export function levelBouncers(level: ParsedLevel): Bouncer[] {
+  return [...level.enemies.filter((e) => isBouncer(e.kind)), ...level.tofu.map((t): Bouncer => ({ ...t, kind: 'tofu' }))];
+}
 
 /** Top of the bouncer's body at the highest or lowest point of its bob. */
 function bouncerTop(b: Bouncer, at: 'high' | 'low'): number {
   if (b.kind === 'jellyfish') return b.y + JELLYFISH_TOP_OFFSET;
+  if (b.kind === 'tofu') return b.y - TOFU_TOP_OFFSET;
   return b.y + (at === 'high' ? -PUFFER_BOB_PX : PUFFER_BOB_PX) - PUFFER_TOP;
 }
 
 function bouncerHalfW(b: Bouncer): number {
+  if (b.kind === 'tofu') return TOFU_HALF_W;
   return b.kind === 'jellyfish' ? JELLYFISH_HALF_W : PUFFER_HALF_W;
 }
 const PEARL_HALF = 4;

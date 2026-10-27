@@ -28,4 +28,11 @@ describe('backdropLayout', () => {
       expect(l.fillY + l.fillHeight).toBe(GAME_HEIGHT);
     }
   });
+
+  it('stands taller layers (night market) on the ground line without stretching the base', () => {
+    const l = backdropLayout(LEVEL_ROWS * TILE, 190, 110);
+    expect(l.baseHeight).toBe(BACKDROP_BASE_HEIGHT);
+    expect(l.farY + 190).toBe(LEVEL_ROWS * TILE);
+    expect(l.midY + 110).toBe(LEVEL_ROWS * TILE);
+  });
 });
