@@ -1,8 +1,10 @@
+import type { SongId } from '../audio/music';
 import { TILE } from '../config';
 import type { EnemyKind } from '../logic/enemies';
 import { parseLevel, type ParsedLevel } from './parser';
+import type { LevelSetting } from './settings';
 
-export type LevelSetting = 'reef' | 'beach';
+export { isLandSetting, type LevelSetting, SETTINGS, type SettingStyle } from './settings';
 
 export type NextStep = { type: 'level'; id: string } | { type: 'story'; id: string };
 
@@ -12,9 +14,9 @@ export interface LevelDef {
   place: string;
   /** Hits never cost hearts (tutorial). */
   safe: boolean;
-  /** Underwater reef, or the dry beach with its water tank, sky backdrop and land gravity when dry. */
+  /** Underwater reef, or dry land (beach, night market) with a water tank and land gravity when dry. */
   setting: LevelSetting;
-  music: 'reef' | 'gardens' | 'beach';
+  music: SongId;
   map: readonly string[];
   signs: readonly string[];
   /** Extra enemies that only appear on hard difficulty (tile column/row, like the map). */

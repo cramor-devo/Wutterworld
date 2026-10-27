@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { LEVEL_ROWS, PHYSICS, PHYSICS_DRY, TILE } from '../src/config';
 import { CHAPTERS, nextChapter } from '../src/levels/chapters';
 import { FIRST_LEVEL_ID, getLevel, hasLevel, LEVELS, loadLevel } from '../src/levels';
-import { parseLevel, TILE_INDEX, validateMap } from '../src/levels/parser';
+import { parseLevel, TILE_COUNT, TILE_INDEX, validateMap } from '../src/levels/parser';
 import { canMountPuffer, pufferArcCells, pufferTargets } from '../src/levels/puffers';
 import { canReachExit, reachableCells, unreachableThings } from '../src/levels/reachability';
+import { isLandSetting, type LevelSetting, SETTINGS } from '../src/levels/settings';
 import { isBouncer } from '../src/logic/enemies';
 import { jumpApexHeight } from '../src/logic/movement';
 import { STORIES } from '../src/story';
@@ -38,6 +39,21 @@ describe('parser', () => {
     expect(lvl.puddles).toEqual([expect.objectContaining({ col: 2, row: 12 })]);
     expect(lvl.solid[12][2]).toBe(false);
     expect(lvl.tiles[13][2]).toBe(TILE_INDEX.sandTop);
+  });
+
+  it('parses market platforms: cardboard boxes and stacked oil cans with a cap on top', () => {
+    const map = blank(6, { 9: '...B..', 10: '...B..', 11: 'P.bbBE' });
+    const lvl = parseLevel(map);
+    expect(lvl.solid[11].slice(2, 5)).toEqual([true, true, true]);
+    expect([TILE_INDEX.box, TILE_INDEX.boxAlt]).toContain(lvl.tiles[11][2]);
+    expect(lvl.tiles[11][2]).not.toBe(lvl.tiles[11][3]);
+    expect(lvl.tiles[9][3]).toBe(TILE_INDEX.oilTop);
+    expect(lvl.tiles[10][3]).toBe(TILE_INDEX.oilBody);
+    expect(lvl.tiles[11][4]).toBe(TILE_INDEX.oilTop);
+  });
+
+  it('every tile index fits in the tileset', () => {
+    for (const i of Object.values(TILE_INDEX)) expect(i).toBeLessThan(TILE_COUNT);
   });
 
   it('uses a sand-top tile only where nothing solid is above', () => {
@@ -253,5 +269,24 @@ describe('hard mode (issue #4)', () => {
       expect(lvl.solid[e.row][e.col], `${e.kind} at ${e.col},${e.row}`).toBe(false);
       if (e.kind === 'crab') expect(lvl.solid[e.row + 1][e.col], `crab at ${e.col},${e.row}`).toBe(true);
     }
+  });
+});
+
+describe('level settings (issue #14)', () => {
+  const all = Object.keys(SETTINGS) as LevelSetting[];
+
+  it('the reef is underwater; the beach and the night market are dry land', () => {
+    expect(all.filter(isLandSetting).sort()).toEqual(['beach', 'market']);
+  });
+
+  it('every setting has its own level-clear banner', () => {
+    const banners = all.map((s) => SETTINGS[s].clearBanner);
+    expect(new Set(banners).size).toBe(all.length);
+    expect(SETTINGS.market.clearBanner).toBe('MARKET CLEAR!');
+  });
+
+  it('market puddles look murky, beach puddles keep their seawater', () => {
+    expect(SETTINGS.market.puddle).not.toBe(SETTINGS.beach.puddle);
+    expect(SETTINGS.market.tileset).not.toBe(SETTINGS.beach.tileset);
   });
 });

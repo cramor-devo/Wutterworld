@@ -14,8 +14,10 @@ import type { PickupKind } from '../logic/score';
  * Beach:
  *   j  beached jellyfish (bouncer)  G  seagull     ~  seawater puddle (refills the water tank; put it in the sand row)
  *   Y  palm tree      U  beach umbrella
+ * Night market (on land, '=' is drawn with the setting's own ground, e.g. asphalt):
+ *   b  cardboard box of foodstuff    B  soybean oil can (stack them for a tall can; the top one gets the cap)
  */
-export const SOLID_CHARS = ['#', '=', 'C', 'R'] as const;
+export const SOLID_CHARS = ['#', '=', 'C', 'R', 'b', 'B'] as const;
 
 export const TILE_INDEX = {
   empty: -1,
@@ -24,7 +26,14 @@ export const TILE_INDEX = {
   rock: 2,
   coral: 3,
   brick: 4,
+  box: 5,
+  boxAlt: 6,
+  oilBody: 7,
+  oilTop: 8,
 } as const;
+
+/** Number of slots in every tileset; all of them are solid. */
+export const TILE_COUNT = 9;
 
 export type DecorKind = 'seaweed' | 'seafan' | 'lantern' | 'gate' | 'palm' | 'umbrella';
 
@@ -125,6 +134,13 @@ export function parseLevel(map: readonly string[], signTexts: readonly string[] 
           break;
         case 'R':
           tileRow.push(TILE_INDEX.brick);
+          break;
+        case 'b':
+          // Two box prints, alternated so rows of boxes do not look copy-pasted.
+          tileRow.push((c + r) % 2 === 0 ? TILE_INDEX.box : TILE_INDEX.boxAlt);
+          break;
+        case 'B':
+          tileRow.push(above === 'B' ? TILE_INDEX.oilBody : TILE_INDEX.oilTop);
           break;
         default:
           tileRow.push(TILE_INDEX.empty);

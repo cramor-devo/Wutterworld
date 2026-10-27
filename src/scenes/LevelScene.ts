@@ -6,8 +6,8 @@ import { createKeys, type Keys, readGamepad, readKeys } from '../input/devices';
 import { controlScheme, withButtonLabels } from '../input/labels';
 import { InputEdges, mergeInputs } from '../input/state';
 import { TouchControls, wantsTouchControls } from '../input/touch';
-import { type LevelDef, loadLevel } from '../levels';
-import type { ParsedLevel } from '../levels/parser';
+import { isLandSetting, type LevelDef, loadLevel, SETTINGS, type SettingStyle } from '../levels';
+import { type ParsedLevel, TILE_COUNT } from '../levels/parser';
 import { DIFFICULTIES, type DifficultySettings, isDifficulty, loadDifficulty } from '../logic/difficulty';
 import { createBrain, defeatEnemy, type EnemyBrain, type EnemyIntent, type EnemyKind, isBouncer, pufferPhaseForColumn, stepEnemy, stunEnemy } from '../logic/enemies';
 import { Health } from '../logic/health';
@@ -45,6 +45,8 @@ const ENEMY_TEXTURE: Record<EnemyKind, string> = {
 
 export class LevelScene extends Phaser.Scene {
   private def!: LevelDef;
+  /** Look of the level's setting (tileset, puddles, lanterns, banner). */
+  private style!: SettingStyle;
   private difficulty!: DifficultySettings;
   private level!: ParsedLevel;
   private player!: ArcadeSprite;
@@ -62,7 +64,7 @@ export class LevelScene extends Phaser.Scene {
   private jump = new JumpController();
   private threads = new ThreadAbility();
   private health!: Health;
-  /** Only on dry levels (the beach); null underwater. */
+  /** Only on dry land (beach, night market); null underwater. */
   private tank: WaterTank | null = null;
   private physicsNow: Physics = PHYSICS;
   private score!: Score;
@@ -79,7 +81,7 @@ export class LevelScene extends Phaser.Scene {
   private scoreText!: Phaser.GameObjects.Container;
   private hudBar!: Phaser.GameObjects.Rectangle;
   private levelName!: Phaser.GameObjects.Container;
-  /** Right edge of the left HUD items (hearts, charge bar and, on the beach, the water tank). */
+  /** Right edge of the left HUD items (hearts, charge bar and, on land, the water tank). */
   private hudLeftEnd = 0;
   private signFrame!: Phaser.GameObjects.Graphics;
   private chargeBar!: Phaser.GameObjects.Rectangle;
@@ -98,6 +100,7 @@ export class LevelScene extends Phaser.Scene {
     this.difficulty = DIFFICULTIES[isDifficulty(chosen) ? chosen : loadDifficulty()];
     const loaded = loadLevel(data.id, { extraEnemies: this.difficulty.extraEnemies });
     this.def = loaded.def;
+    this.style = SETTINGS[this.def.setting];
     this.level = loaded.parsed;
     this.resetState();
 
@@ -107,7 +110,7 @@ export class LevelScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, worldW, worldH).fadeIn(300);
 
     this.backdrop = addBackdrop(this, this.def.setting);
-    if (this.def.setting === 'reef') addBubbles(this);
+    if (this.style.bubbles) addBubbles(this);
     this.buildDecor();
     this.buildTiles();
     this.buildPuddles();
@@ -147,7 +150,7 @@ export class LevelScene extends Phaser.Scene {
     this.health = new Health({ maxHearts: d.maxHearts, damage: d.damage, safe: this.def.safe || d.immortal });
     this.startScore = (this.registry.get('score') as number | undefined) ?? 0;
     this.score = new Score(this.startScore);
-    this.tank = this.def.setting === 'beach' ? new WaterTank(d.waterDrainMs) : null;
+    this.tank = isLandSetting(this.def.setting) ? new WaterTank(d.waterDrainMs) : null;
     this.physicsNow = PHYSICS;
     this.tankBar = null;
     this.walkVx = 0;
@@ -160,11 +163,11 @@ export class LevelScene extends Phaser.Scene {
 
   private buildTiles(): void {
     const map = this.make.tilemap({ data: this.level.tiles, tileWidth: TILE, tileHeight: TILE });
-    const tileset = map.addTilesetImage('tiles', 'tiles', TILE, TILE, 0, 0);
+    const tileset = map.addTilesetImage('tiles', this.style.tileset, TILE, TILE, 0, 0);
     if (!tileset) throw new Error('tileset missing');
     const layer = map.createLayer(0, tileset, 0, 0);
     if (!layer) throw new Error('tile layer missing');
-    this.layer = layer.setCollisionBetween(0, 4).setDepth(0);
+    this.layer = layer.setCollisionBetween(0, TILE_COUNT - 1).setDepth(0);
   }
 
   private buildDecor(): void {
@@ -172,10 +175,9 @@ export class LevelScene extends Phaser.Scene {
       const bottom = d.y + TILE / 2;
       if (d.kind === 'seaweed') this.add.sprite(d.x, bottom, 'seaweed').setOrigin(0.5, 1).setDepth(-2).play({ key: 'seaweed-sway', startFrame: d.col % 2 });
       else if (d.kind === 'seafan') this.add.image(d.x, bottom, 'seafan').setOrigin(0.5, 1).setDepth(-2);
-      else if (d.kind === 'lantern') this.add.image(d.x, bottom, 'lantern').setOrigin(0.5, 1).setDepth(-2);
+      else if (d.kind === 'lantern') this.addLantern(d.x, bottom);
       else if (d.kind === 'palm' || d.kind === 'umbrella') this.add.image(d.x, bottom, d.kind).setOrigin(0.5, 1).setDepth(-2);
-      // Underwater gates are overgrown; on dry land they are clean.
-      else this.add.image(d.x, bottom, this.def.setting === 'reef' ? 'gate' : 'gate-clean').setOrigin(0.5, 1).setDepth(-3);
+      else this.add.image(d.x, bottom, this.style.gate).setOrigin(0.5, 1).setDepth(-3);
     }
     this.level.signs.forEach((s, i) => {
       this.add.image(s.x, s.y + TILE / 2, 'sign').setOrigin(0.5, 1).setDepth(-1);
@@ -184,13 +186,22 @@ export class LevelScene extends Phaser.Scene {
     });
   }
 
+  /** Stone lantern, or a lit paper lantern with a soft, breathing halo (Wutter loves lanterns). */
+  private addLantern(x: number, bottom: number): void {
+    this.add.image(x, bottom, this.style.lantern).setOrigin(0.5, 1).setDepth(-2);
+    const at = this.style.lanternGlow;
+    if (!at) return;
+    const halo = this.add.image(x + at.dx, bottom + at.dy, 'glow').setTint(0xff9a4a).setAlpha(0.8).setDepth(-2).setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({ targets: halo, alpha: 0.5, scale: 0.9, duration: 900 + (x % 5) * 80, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+  }
+
   private puddleGroup: Phaser.GameObjects.Zone[] = [];
 
-  /** Seawater puddles sunk into the sand; walking through one refills the water tank. */
+  /** Puddles sunk into the ground (seawater on the beach, murky rain water in the market); they refill the tank. */
   private buildPuddles(): void {
     this.puddleGroup = [];
     for (const p of this.level.puddles) {
-      this.add.image(p.x, p.y, 'puddle').setDepth(1);
+      this.add.image(p.x, p.y, this.style.puddle).setDepth(1);
       const zone = this.add.zone(p.x, p.y - TILE / 2, TILE, TILE * 1.5);
       this.physics.add.existing(zone, true);
       this.puddleGroup.push(zone);
@@ -439,7 +450,7 @@ export class LevelScene extends Phaser.Scene {
     this.player.setAlpha(this.health.invulnerable && Math.floor(this.time.now / 80) % 2 === 0 ? 0.3 : 1);
   }
 
-  /** Drains the beach water tank; a dry Wutter is heavier and jumps lower. */
+  /** Drains the water tank on land; a dry Wutter is heavier and jumps lower. */
   private updateTank(dtMs: number): void {
     if (!this.tank) return;
     this.tank.update(dtMs);
@@ -581,7 +592,7 @@ export class LevelScene extends Phaser.Scene {
     this.tweens.add({ targets: this.player, y: this.player.y - 40, alpha: 0, duration: 1400 });
     const banner = this.add.container(this.scale.width / 2, 92).setScrollFactor(0).setDepth(160);
     banner.add(this.add.rectangle(0, 8, this.scale.width, 32, 0x0b1020, 0.7));
-    banner.add(pixelText(this, 0, 0, this.def.setting === 'beach' ? 'BEACH CLEAR!' : 'REEF CLEAR!', { color: 0xffd25e, scale: 2, originX: 0.5 }));
+    banner.add(pixelText(this, 0, 0, this.style.clearBanner, { color: 0xffd25e, scale: 2, originX: 0.5 }));
     setHook({ scene: 'LevelClear' });
     this.time.delayedCall(2200, () => {
       const next = this.def.next;
