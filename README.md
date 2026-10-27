@@ -123,6 +123,13 @@ creatures glow, so the level itself is always easy to see.
   then it dashes a short way ahead and rests. Stay above or below it, or stomp it.
 - Ride the up-currents to the old shipwreck and, at the end, up to the exit.
 
+### Festive Home Reef: the finale
+
+Wutter is back home in Kenting, and the whole reef is throwing a party. The finale is short, easy and safe: no
+enemies (not even on Hard), no pits, just plankton and pearls to collect under bunting and red paper lanterns, while
+sea stars, shrimp, crabs, urchins and other sea cucumbers dance in party hats. At the tide-pool light, Wutter tells
+them everything it saw on its journey. Then: **THE END**, thank you for playing, and back to the title screen.
+
 ### What is playable now (v0.3.0)
 
 1. **Story intro**: four illustrated panels.
@@ -144,9 +151,14 @@ creatures glow, so the level itself is always easy to see.
 12. **Chapter end** story panels: a huge wave sweeps Wutter into the deep sea, where something is glowing.
 13. **The Midnight Zone**, Abyssal Sea: dark water with glowing creatures, giant squids that warn and lunge, and
     anglerfish with a glowing lure.
-14. **Thank-you** story panels (Wutter rises toward the lantern lights of Kenting), then back to the title screen.
+14. **Chapter end** story panels: Wutter rises with the glowing jellyfish toward the lantern lights of Kenting.
+15. **Festive Home Reef**, Kenting: the home reef decorated for a party, with dancing reef dwellers in party hats.
+    Short, easy and safe.
+16. **Closing story**: Wutter tells the other reef dwellers about its journey, then **THE END**, thank you for
+    playing, and back to the title screen.
 
-Planned route for v1.0.0: a festive **Home Reef** finale (issue #18).
+The whole story can be played from start to finish: 8 levels, from the home reef up into the world above and back
+home again.
 
 ## Development
 
@@ -172,7 +184,7 @@ The scripts live in `.github/scripts/dev.ps1`.
 **Handy URL options:**
 
 - `?level=coral-gardens` (or `?level=reef-tutorial`, `?level=beach`, `?level=night-market`, `?level=jiufen`, `?level=typhoon`,
-  `?level=abyss`)
+  `?level=abyss`, `?level=festive-reef`)
   jumps straight into a level.
 - `?difficulty=scenic` (or `easy`, `normal`, `hard`) plays with that difficulty without changing the saved
   choice. Combine options with `&`, for example `?level=coral-gardens&difficulty=hard`.
@@ -210,6 +222,7 @@ Levels are ASCII maps in `src/levels/index.ts`. Every map is 14 rows of 16 px ti
 | `~` | puddle (refills the water tank; murky in the market and Jiufen, rain-filled on the typhoon coast) | `M` | night market gate (decoration) |
 | `b` `B` | cardboard box, soybean oil can (solid; stack `B` for a tall can); in Jiufen pineapple cake or nougat box, tea tin; on the typhoon coast sandbags and a bollard | `z` `k` | stinky tofu, street cat |
 | `V` | old cinema (decoration, Jiufen) | `Q` `n` | giant squid, anglerfish |
+| `F` | festoon of bunting with a lantern (decoration, festive reef) | `H` | party guest: a reef dweller in a party hat (decoration, harmless) |
 
 The unit tests check that every level parses and that its exit can be reached.
 
