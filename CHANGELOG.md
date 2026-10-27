@@ -18,6 +18,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The on-screen buttons sit a little higher and further from the screen edges, so pressing them no longer
   triggers the Android "back" swipe gesture ([#21](https://github.com/cramor-devo/Wutterworld/issues/21)).
 
+### Fixed
+
+- Kenting Beach: the far hills meet the sea again with no pale sky band in between. The backdrop's base picture
+  is no longer stretched to the taller screen; the strip below it continues its bottom colour
+  ([#27](https://github.com/cramor-devo/Wutterworld/issues/27)).
+
 ## [0.3.0] - 2026-10-26
 
 ### Added

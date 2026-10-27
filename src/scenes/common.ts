@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { FIXED_LAYOUT_TOP, GAME_HEIGHT, GAME_WIDTH, viewWidthFor } from '../config';
 import type { LevelSetting } from '../levels';
+import { BACKDROP_FAR_HEIGHT, BACKDROP_MID_HEIGHT, backdropLayout } from './backdropLayout';
 
 /** State exposed for the Playwright smoke test and for debugging in the browser console. */
 export interface WutterHook {
@@ -49,9 +50,17 @@ const BACKDROP_KEYS: Record<LevelSetting, { base: string; far: string; mid: stri
 export function addBackdrop(scene: Phaser.Scene, setting: LevelSetting = 'reef', bottom = GAME_HEIGHT): Backdrop {
   const w = scene.scale.width;
   const keys = BACKDROP_KEYS[setting];
-  const base = scene.add.image(0, 0, keys.base).setOrigin(0).setScrollFactor(0).setDepth(-30).setDisplaySize(w, GAME_HEIGHT);
-  const far = scene.add.tileSprite(0, bottom - 120, w, 120, keys.far).setOrigin(0).setScrollFactor(0).setDepth(-20);
-  const mid = scene.add.tileSprite(0, bottom - 90, w, 90, keys.mid).setOrigin(0).setScrollFactor(0).setDepth(-15);
+  const layout = backdropLayout(bottom);
+  const base = scene.add.image(0, 0, keys.base).setOrigin(0).setScrollFactor(0).setDepth(-30).setDisplaySize(w, layout.baseHeight);
+  // Below the base, continue its last row instead of stretching it (stretching moves the horizon, see #27).
+  const edge = scene.textures.getPixel(0, layout.baseHeight - 1, keys.base);
+  const fill = scene.add
+    .rectangle(0, layout.fillY, w, layout.fillHeight, edge ? edge.color : 0)
+    .setOrigin(0)
+    .setScrollFactor(0)
+    .setDepth(-30);
+  const far = scene.add.tileSprite(0, layout.farY, w, BACKDROP_FAR_HEIGHT, keys.far).setOrigin(0).setScrollFactor(0).setDepth(-20);
+  const mid = scene.add.tileSprite(0, layout.midY, w, BACKDROP_MID_HEIGHT, keys.mid).setOrigin(0).setScrollFactor(0).setDepth(-15);
   return {
     far,
     mid,
@@ -60,9 +69,10 @@ export function addBackdrop(scene: Phaser.Scene, setting: LevelSetting = 'reef',
       mid.tilePositionX = x * 0.45;
     },
     resize(width: number) {
-      base.setDisplaySize(width, GAME_HEIGHT);
-      far.setSize(width, 120);
-      mid.setSize(width, 90);
+      base.setDisplaySize(width, layout.baseHeight);
+      fill.setSize(width, layout.fillHeight);
+      far.setSize(width, BACKDROP_FAR_HEIGHT);
+      mid.setSize(width, BACKDROP_MID_HEIGHT);
     },
   };
 }
