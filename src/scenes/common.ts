@@ -18,6 +18,8 @@ export interface WutterHook {
   viewWidth?: number;
   /** Typhoon wind phase ('calm', 'warning' or 'gust'); undefined in levels without a storm. */
   wind?: string;
+  /** Dev builds only: finishes the running level, so e2e tests can walk the whole story. */
+  finishLevel?: () => void;
 }
 
 declare global {

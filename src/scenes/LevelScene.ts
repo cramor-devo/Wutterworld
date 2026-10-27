@@ -181,8 +181,10 @@ export class LevelScene extends Phaser.Scene {
     const countStep = (): void => {
       this.physicsStep += 1;
     };
-    this.physics.world.on(Phaser.Physics.Arcade.Events.WORLD_STEP, countStep);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.physics.world.off(Phaser.Physics.Arcade.Events.WORLD_STEP, countStep));
+    // Keep our own reference: Arcade's SHUTDOWN handler runs first and sets `this.physics.world` to null.
+    const world = this.physics.world;
+    world.on(Phaser.Physics.Arcade.Events.WORLD_STEP, countStep);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => world.off(Phaser.Physics.Arcade.Events.WORLD_STEP, countStep));
     this.cameras.main.setBounds(0, 0, worldW, worldH).fadeIn(300);
 
     this.backdrop = addBackdrop(this, this.def.setting, LEVEL_ROWS * TILE);
@@ -215,6 +217,7 @@ export class LevelScene extends Phaser.Scene {
     onViewResize(this, (w) => this.relayout(w));
     audio.play(this.def.music);
     setHook({ scene: 'Level', level: this.def.id, touch: !!this.touch, difficulty: this.difficulty.id, enemies: this.enemies.length, wind: this.wind?.state.phase });
+    if (import.meta.env.DEV) setHook({ finishLevel: () => this.complete() });
   }
 
   private resetState(): void {
