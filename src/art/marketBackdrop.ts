@@ -10,13 +10,15 @@ import { glow, paperLantern } from './market';
  */
 export function marketBackdropTextures(scene: Phaser.Scene): void {
   canvasTexture(scene, 'bg-night', 256, 224, 1, nightSky);
-  canvasTexture(scene, 'bg-market-far', FAR_W, 150, 1, cityFar);
+  canvasTexture(scene, 'bg-market-far', FAR_W, FAR_H, 1, cityFar);
   canvasTexture(scene, 'bg-market-mid', MID_W, 110, 1, stallsMid);
   canvasTexture(scene, 'bg-market-near', NEAR_W, 64, 1, crowdNear);
   canvasTexture(scene, 'market-gate', 112, 104, 1, marketGate);
 }
 
 const FAR_W = 512;
+/** Tall, so the skyline, the temple and the lantern strings rise above the stalls (keep in sync with settings.ts). */
+const FAR_H = 190;
 /** Wide enough for every stall sign plus the game stall, so the row only repeats every 1024 px. */
 const MID_W = 1024;
 const NEAR_W = 512;
@@ -64,19 +66,19 @@ function cityFar(ctx: CanvasRenderingContext2D): void {
   neonBanner(ctx, 176, 52, '夜市', '#3fe0ff');
   neonBanner(ctx, 452, 40, '烤魷魚', '#ffd23f');
   // Strings of round lanterns sagging across the street.
-  lanternString(ctx, 10, 6, 32, ['#e63946', '#ff8a3d']);
-  lanternString(ctx, 30, 8, 64, ['#ff8a3d', '#e63946', '#ffd23f']);
+  lanternString(ctx, 40, 6, 32, ['#e63946', '#ff8a3d']);
+  lanternString(ctx, 62, 8, 64, ['#ff8a3d', '#e63946', '#ffd23f']);
 }
 
 function building(ctx: CanvasRenderingContext2D, x: number, top: number, w: number, rnd: () => number): void {
   const shade = ['#1c1836', '#221c40', '#191530', '#272046'][Math.floor(rnd() * 4)];
-  px(ctx, shade, x, top, w, 150 - top);
+  px(ctx, shade, x, top, w, FAR_H - top);
   px(ctx, '#2e2752', x, top, w, 1);
-  px(ctx, '#120f24', x + w - 1, top, 1, 150 - top);
+  px(ctx, '#120f24', x + w - 1, top, 1, FAR_H - top);
   // Rooftop water tank or antenna, very Taipei.
   if (rnd() < 0.5) px(ctx, '#2a2448', x + 4, top - 4, 6, 4);
   else px(ctx, '#2a2448', x + w - 6, top - 7, 1, 7);
-  for (let wy = top + 4; wy < 140; wy += 6) {
+  for (let wy = top + 4; wy < FAR_H - 10; wy += 6) {
     for (let wx = x + 3; wx < x + w - 4; wx += 5) {
       if (rnd() < 0.42) px(ctx, WINDOW_COLORS[Math.floor(rnd() * WINDOW_COLORS.length)], wx, wy, 2, 3);
       else px(ctx, '#2c2550', wx, wy, 2, 3);
@@ -99,9 +101,9 @@ function neonBanner(ctx: CanvasRenderingContext2D, x: number, y: number, text: s
  * swallowtail roofs with upswept ridge ends, red walls and lit doors.
  */
 function temple(ctx: CanvasRenderingContext2D, x: number): void {
-  glow(ctx, x + 40, x === 0 ? 70 : 72, 46, '#ffb347');
+  glow(ctx, x + 40, 72, 46, '#ffb347');
   // Walls and doors.
-  px(ctx, '#7a2422', x + 10, 84, 60, 66);
+  px(ctx, '#7a2422', x + 10, 84, 60, FAR_H - 84);
   px(ctx, '#5a1a1a', x + 10, 84, 60, 2);
   for (const dx of [18, 34, 50]) {
     px(ctx, '#ffcf6a', x + dx, 98, 10, 16);

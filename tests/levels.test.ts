@@ -141,6 +141,15 @@ describe('game levels', () => {
     expect(kinds('reef-tutorial').has('triggerfish')).toBe(false);
     expect([...kinds('coral-gardens')].sort()).toEqual(['crab', 'puffer', 'triggerfish']);
     expect([...kinds('beach')].sort()).toEqual(['crab', 'jellyfish', 'seagull']);
+    expect([...kinds('night-market')].sort()).toEqual(['cat', 'seagull']);
+  });
+
+  it('the night market is a dangerous market level with stinky tofu', () => {
+    const def = LEVELS['night-market'];
+    expect(def.setting).toBe('market');
+    expect(def.safe).toBe(false);
+    expect(loadLevel('night-market').parsed.tofu.length).toBeGreaterThanOrEqual(3);
+    expect(loadLevel('night-market').parsed.decor.some((d) => d.kind === 'market-gate')).toBe(true);
   });
 
   it('only the beach is a beach level', () => {
@@ -151,11 +160,15 @@ describe('game levels', () => {
     expect(STORIES.intro.next).toEqual({ type: 'level', id: FIRST_LEVEL_ID });
   });
 
-  it('chapter 1 leads to the beach, and the beach ends on the thank-you story', () => {
+  it('chapter 1 leads to the beach, the beach to the night market, and the market ends on the thank-you story', () => {
     expect(STORIES['chapter-1-end'].next).toEqual({ type: 'level', id: 'beach' });
     expect(LEVELS.beach.next).toEqual({ type: 'story', id: 'chapter-2-end' });
-    expect(STORIES['chapter-2-end'].next).toEqual({ type: 'title' });
-    expect(STORIES['chapter-2-end'].panels.at(-1)?.text).toContain('THANK YOU FOR PLAYING');
+    expect(STORIES['chapter-2-end'].next).toEqual({ type: 'level', id: 'night-market' });
+    expect(STORIES['chapter-2-end'].panels.at(-1)?.text).toContain('LANTERNS & LINES');
+    expect(LEVELS['night-market'].next).toEqual({ type: 'story', id: 'chapter-3-end' });
+    expect(STORIES['chapter-3-end'].next).toEqual({ type: 'title' });
+    expect(STORIES['chapter-3-end'].panels.at(-1)?.text).toContain('JIUFEN');
+    expect(STORIES['chapter-3-end'].panels.at(-1)?.text).toContain('THANK YOU FOR PLAYING');
   });
 });
 
@@ -183,8 +196,8 @@ describe('level lookup', () => {
   });
 });
 
-describe('beach water tank (issue #7)', () => {
-  const beach = (extraEnemies: boolean) => loadLevel('beach', { extraEnemies }).parsed;
+describe.each(['beach', 'night-market'])('%s water tank (issues #7, #14)', (id) => {
+  const beach = (extraEnemies: boolean) => loadLevel(id, { extraEnemies }).parsed;
 
   it('a dry Wutter jumps two tiles, a wet one three', () => {
     expect(DRY_REACH.up).toBe(2);
@@ -267,19 +280,19 @@ describe('everything can be reached', () => {
 });
 
 describe('hard mode (issue #4)', () => {
-  it('adds extra enemies to Coral Gardens and the beach, not the tutorial', () => {
-    for (const id of ['coral-gardens', 'beach']) {
+  it('adds extra enemies to Coral Gardens, the beach and the night market, not the tutorial', () => {
+    for (const id of ['coral-gardens', 'beach', 'night-market']) {
       const base = loadLevel(id).parsed.enemies.length;
       expect(loadLevel(id, { extraEnemies: true }).parsed.enemies.length).toBeGreaterThan(base);
     }
     expect(loadLevel('reef-tutorial', { extraEnemies: true }).parsed.enemies).toEqual(loadLevel('reef-tutorial').parsed.enemies);
   });
 
-  it.each(['coral-gardens', 'beach'])('places extra enemies in %s in open space, with crabs standing on the ground', (id) => {
+  it.each(['coral-gardens', 'beach', 'night-market'])('places extra enemies in %s in open space, with crabs and cats standing on the ground', (id) => {
     const lvl = loadLevel(id, { extraEnemies: true }).parsed;
     for (const e of LEVELS[id].hardEnemies ?? []) {
       expect(lvl.solid[e.row][e.col], `${e.kind} at ${e.col},${e.row}`).toBe(false);
-      if (e.kind === 'crab') expect(lvl.solid[e.row + 1][e.col], `crab at ${e.col},${e.row}`).toBe(true);
+      if (e.kind === 'crab' || e.kind === 'cat') expect(lvl.solid[e.row + 1][e.col], `${e.kind} at ${e.col},${e.row}`).toBe(true);
     }
   });
 });

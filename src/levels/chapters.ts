@@ -13,7 +13,7 @@ export const CHAPTERS: readonly Chapter[] = [
   { id: 'reef-tutorial', title: 'Home Reef', place: 'Kenting', playable: true },
   { id: 'coral-gardens', title: 'Coral Gardens', place: 'Green Island', playable: true },
   { id: 'beach', title: 'Beach Escape', place: 'Kenting Beach', playable: true },
-  { id: 'night-market', title: 'Lanterns & Lines', place: 'Taipei Night Market', playable: false },
+  { id: 'night-market', title: 'Lanterns & Lines', place: 'Taipei Night Market', playable: true },
   { id: 'temple', title: "Lion's Dance", place: 'Jiufen', playable: false },
   { id: 'typhoon', title: 'Signal No. 8', place: 'Taipei Rooftops', playable: false },
   { id: 'abyss', title: 'The Midnight Zone', place: 'Abyssal Sea', playable: false },

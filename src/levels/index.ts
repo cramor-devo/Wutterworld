@@ -140,10 +140,50 @@ const BEACH: LevelDef = {
   next: { type: 'story', id: 'chapter-2-end' },
 };
 
+// Night Market, Taipei: lanterns, food stalls and stinky tofu. Boxes and oil cans are the platforms, street cats pounce.
+const NIGHT_MARKET: LevelDef = {
+  id: 'night-market',
+  name: 'NIGHT MARKET',
+  place: 'TAIPEI, TAIWAN',
+  safe: false,
+  setting: 'market',
+  music: 'market',
+  signs: [
+    'NIGHT MARKET! BOXES AND OIL CANS MAKE GOOD STEPS. MURKY PUDDLES ARE YUCKY, BUT THEY STILL REFILL YOUR TANK.',
+    'STINKY TOFU! HAIRY TOFU IS BOUNCY. AFTER TWO HOPS IT GOES BALD AND STICKY: TAP JUMP ({JUMP}) TO HOP OFF. THE HAIRS GROW BACK.',
+    'STREET CATS CROUCH AND WIGGLE, THEN POUNCE. DODGE, THEN STOMP THEM OR SHOOT THREADS ({ACTION}).',
+    'SO MANY LANTERNS! WUTTER COULD STAY ALL NIGHT, BUT THE EXIT LIGHT IS JUST AHEAD.',
+  ],
+  hardEnemies: [
+    { kind: 'cat', col: 45, row: 11 },
+    { kind: 'seagull', col: 70, row: 4 },
+    { kind: 'cat', col: 90, row: 11 },
+    { kind: 'seagull', col: 116, row: 5 },
+  ],
+  map: [
+    '..................................................................................................................................',
+    '..................................................................................................................................',
+    '..................................................................................................................................',
+    '..................................................................................................................................',
+    '.....................................................G......................................................G.....................',
+    '....................................................................................G.............................................',
+    '.....................o.........O................................O...............................O................o................',
+    '.....................o............o..................................O..................oo.......................o................',
+    '...................o..........o.o................................o.....................o........o...............o.................',
+    '.....................B............B.....................o............b.................B.........................B................',
+    '...................b.B............B................o....B............b................BB........................bB................',
+    '.P.S....M.oo.L....bb.B......S..z.bBb...L..S.....k..b....Bbo.....zz..bb...k..A.L......bBB.....k..z....SL..k....bbbB...L...oo..E.L..',
+    '===============~=========~============~=====================~===================~==================~===================~==========',
+    '==================================================================================================================================',
+  ],
+  next: { type: 'story', id: 'chapter-3-end' },
+};
+
 export const LEVELS: Record<string, LevelDef> = {
   [HOME_REEF.id]: HOME_REEF,
   [CORAL_GARDENS.id]: CORAL_GARDENS,
   [BEACH.id]: BEACH,
+  [NIGHT_MARKET.id]: NIGHT_MARKET,
 };
 export const FIRST_LEVEL_ID = HOME_REEF.id;
 

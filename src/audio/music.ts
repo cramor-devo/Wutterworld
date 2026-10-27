@@ -70,6 +70,16 @@ export const SONGS = {
     lead: 'G5 - E5 D5 | B4 - D5 - | E5 G5 A5 G5 | E5 - - . | D5 - B4 A4 | G4 - A4 B4 | D5 E5 D5 B4 | G4 - - .',
     bass: 'G2 . D3 . | G2 . D3 . | C3 . G3 . | C3 . G3 . | D3 . A3 . | E3 . B3 . | D3 . A3 . | G2 . D3 .',
   },
+  // Lively and bright for the night market: D major pentatonic over a walking, festive bass.
+  market: {
+    bpm: 138,
+    lead:
+      'D5 E5 F#5 A5 | B5 A5 F#5 - | A5 - F#5 E5 | D5 - B4 - | D5 E5 F#5 A5 | B5 - D6 - | B5 A5 F#5 E5 | F#5 - - . | ' +
+      'A5 B5 A5 F#5 | E5 F#5 D5 - | E5 - F#5 A5 | B5 - A5 - | D6 B5 A5 F#5 | A5 F#5 E5 D5 | E5 - F#5 E5 | D5 - - .',
+    bass:
+      'D3 . A3 . | D3 . A3 . | B2 . F#3 . | B2 . F#3 . | G2 . D3 . | G2 . D3 . | A2 . E3 . | A2 . E3 . | ' +
+      'D3 . A3 . | B2 . F#3 . | G2 . D3 . | A2 . E3 . | B2 . F#3 . | G2 . D3 . | A2 . E3 . | D3 . A3 D3',
+  },
 } satisfies Record<string, Song>;
 
 export type SongId = keyof typeof SONGS;

@@ -210,5 +210,24 @@ function drawPanel(scene: Phaser.Scene, c: Phaser.GameObjects.Container, art: Pa
       img(cx, y + h - 38, 'cucumber', 2);
       break;
     }
+    case 'jiufen-hills': {
+      // Misty green mountains over the sea, with Jiufen's tea houses stepped up the slope.
+      bands([0x5a4a7a, 0x8a6a8a, 0xd8a08a, 0xf2c8a0], y, 64);
+      g.fillStyle(0x6a8aa8).fillRect(x, y + 64, w, h - 64);
+      g.fillStyle(0x3a5a4a).fillTriangle(x, y + h, x + 80, y + 28, x + 190, y + h);
+      g.fillStyle(0x2a4a3c).fillTriangle(x + 60, y + h, x + 170, y + 20, x + w, y + h);
+      g.fillStyle(0xffffff, 0.25).fillRect(x, y + 50, w, 6).fillRect(x, y + 70, w, 4);
+      for (let i = 0; i < 6; i++) {
+        const hx = x + 96 + i * 18;
+        const hy = y + 44 + i * 9;
+        g.fillStyle(0x3a2a2a).fillRect(hx, hy, 16, 12);
+        g.fillStyle(0x1a1a22).fillRect(hx - 2, hy - 3, 20, 3);
+        g.fillStyle(0xffd27a).fillRect(hx + 4, hy + 4, 3, 3);
+        g.fillStyle(0xff6a3d, 0.3).fillCircle(hx + 14, hy + 6, 5);
+        g.fillStyle(0xe63946).fillRect(hx + 12, hy + 4, 4, 4);
+      }
+      img(x + 36, y + h - 18, 'cucumber', 2);
+      break;
+    }
   }
 }

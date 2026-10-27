@@ -67,7 +67,7 @@ export const SETTINGS: Record<LevelSetting, SettingStyle> = {
     lantern: 'market-lantern',
     lanternGlow: { dx: 5, dy: -27 },
     // Taller layers so the city skyline and the food stalls (signs, awnings, vendors) show above the ground.
-    backdrop: { base: 'bg-night', far: 'bg-market-far', mid: 'bg-market-mid', near: 'bg-market-near', farH: 150, midH: 110 },
+    backdrop: { base: 'bg-night', far: 'bg-market-far', mid: 'bg-market-mid', near: 'bg-market-near', farH: 190, midH: 110 },
   },
 };
 
