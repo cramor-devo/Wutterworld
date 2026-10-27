@@ -228,5 +228,12 @@ The unit tests check that every level parses and that its exit can be reached.
 
 ## License
 
-See [LICENSE](LICENSE). The Devoteam name and "AI Augmented" badge (`public/brand/`) are Devoteam trademarks and
-are not covered by that license.
+Wutterworld has two licenses, both held by C Ramos Rodriguez and Devoteam:
+
+- **Code:** the [MIT license](LICENSE).
+- **Creative content:** the story, characters, level designs, art and music are **All rights reserved**. See
+  [LICENSE-CONTENT.md](LICENSE-CONTENT.md) for the files this covers. `tests/license.test.ts` checks that list.
+
+Versions published before this change were released under CC0 1.0 Universal, and that still applies to those
+versions. The Devoteam name and "AI Augmented" badge (`public/brand/`) are Devoteam trademarks and are not covered by
+either license.

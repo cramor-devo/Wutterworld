@@ -7,6 +7,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- The license is now split ([#41](https://github.com/cramor-devo/Wutterworld/issues/41)). The code is under the MIT
+  license. The story, characters, level designs, art and music are "All rights reserved" (see `LICENSE-CONTENT.md`).
+  Both are held by C Ramos Rodriguez and Devoteam. Earlier versions remain under CC0 1.0 Universal.
+
 ## [1.0.0] - 2026-10-27
 
 ### Added
