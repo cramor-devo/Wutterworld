@@ -331,6 +331,13 @@ describe('giant squid (issue #17)', () => {
     b.timer = T.maxLungeMs;
     stepEnemy(b, ctx({ dtMs: T.maxLungeMs }));
     expect(b.state).toBe('return');
+    // Lunging up into the underside of the wreck ends the lunge at once.
+    b.state = 'lunge';
+    b.timer = T.maxLungeMs;
+    b.targetX = 100;
+    b.targetY = 0;
+    stepEnemy(b, ctx({ blockedVertical: true }));
+    expect(b.state).toBe('return');
   });
 
   it('can be stomped or stunned, and sinks while stunned', () => {

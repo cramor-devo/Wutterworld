@@ -809,6 +809,7 @@ export class LevelScene extends Phaser.Scene {
         playerY: this.player.y,
         dtMs,
         blocked: body.blocked.left || body.blocked.right,
+        blockedVertical: body.blocked.up || body.blocked.down,
         passive: this.difficulty.passiveEnemies,
         grounded: body.blocked.down,
       });

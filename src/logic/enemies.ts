@@ -64,6 +64,8 @@ export interface EnemyContext {
   dtMs: number;
   /** True when the body hit a wall this frame. */
   blocked: boolean;
+  /** True when the body hit a ceiling or floor this frame (ends a squid lunge). */
+  blockedVertical?: boolean;
   /** Scenic mode: enemies never chase or puff up and are harmless to touch. */
   passive?: boolean;
   /** True when a ground walker stands on something (defaults to true). */
@@ -404,7 +406,7 @@ function stepSquid(brain: EnemyBrain, ctx: EnemyContext): EnemyIntent {
       const dx = brain.targetX - ctx.x;
       const dy = brain.targetY - ctx.y;
       const dist = Math.hypot(dx, dy);
-      if (dist < 4 || brain.timer <= 0 || ctx.blocked) {
+      if (dist < 4 || brain.timer <= 0 || ctx.blocked || ctx.blockedVertical) {
         brain.state = 'return';
         return hit(0, 0);
       }
