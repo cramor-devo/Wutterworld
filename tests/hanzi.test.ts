@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GATE_TEXT, HANZI, HANZI_SIZE, hanziWidth, MARKET_SIGNS } from '../src/art/hanzi';
+import { FOOD_ICON_PALETTE_KEYS, FOOD_ICONS } from '../src/art/marketBackdrop';
 
 describe('night market pixel glyphs (issue #14)', () => {
   it('every glyph is a 12x12 grid of ink and empty pixels', () => {
@@ -34,5 +35,19 @@ describe('night market pixel glyphs (issue #14)', () => {
   it('measures a line of glyphs with 1 px gaps', () => {
     expect(hanziWidth('夜市')).toBe(25);
     expect(hanziWidth('')).toBe(0);
+  });
+});
+
+describe('night market food icons (issue #14)', () => {
+  it('every stall sign has a 12x12 food icon drawn with palette colours only', () => {
+    const allowed = new Set(['.', ...FOOD_ICON_PALETTE_KEYS]);
+    for (const sign of MARKET_SIGNS) {
+      const rows = FOOD_ICONS[sign.food];
+      expect(rows.length, sign.food).toBe(12);
+      for (const row of rows) {
+        expect(row.length, `${sign.food}: ${row}`).toBe(12);
+        for (const ch of row) expect(allowed.has(ch), `${sign.food}: ${ch}`).toBe(true);
+      }
+    }
   });
 });

@@ -39,7 +39,9 @@ export interface Backdrop {
   resize(width: number): void;
 }
 
-/** Height of the optional near layer; it hugs the bottom of the screen, behind the ground tiles. */
+/** Default far and mid layer heights, and the height of the optional near layer (which hugs the ground). */
+const FAR_H = 120;
+const MID_H = 90;
 const NEAR_H = 64;
 
 /**
@@ -50,8 +52,10 @@ export function addBackdrop(scene: Phaser.Scene, setting: LevelSetting = 'reef')
   const w = scene.scale.width;
   const keys = SETTINGS[setting].backdrop;
   const base = scene.add.image(0, 0, keys.base).setOrigin(0).setScrollFactor(0).setDepth(-30).setDisplaySize(w, GAME_HEIGHT);
-  const far = scene.add.tileSprite(0, GAME_HEIGHT - 120, w, 120, keys.far).setOrigin(0).setScrollFactor(0).setDepth(-20);
-  const mid = scene.add.tileSprite(0, GAME_HEIGHT - 90, w, 90, keys.mid).setOrigin(0).setScrollFactor(0).setDepth(-15);
+  const farH = keys.farH ?? FAR_H;
+  const midH = keys.midH ?? MID_H;
+  const far = scene.add.tileSprite(0, GAME_HEIGHT - farH, w, farH, keys.far).setOrigin(0).setScrollFactor(0).setDepth(-20);
+  const mid = scene.add.tileSprite(0, GAME_HEIGHT - midH, w, midH, keys.mid).setOrigin(0).setScrollFactor(0).setDepth(-15);
   const near = keys.near ? scene.add.tileSprite(0, GAME_HEIGHT - NEAR_H, w, NEAR_H, keys.near).setOrigin(0).setScrollFactor(0).setDepth(-12) : null;
   return {
     far,
@@ -64,8 +68,8 @@ export function addBackdrop(scene: Phaser.Scene, setting: LevelSetting = 'reef')
     },
     resize(width: number) {
       base.setDisplaySize(width, GAME_HEIGHT);
-      far.setSize(width, 120);
-      mid.setSize(width, 90);
+      far.setSize(width, farH);
+      mid.setSize(width, midH);
       near?.setSize(width, NEAR_H);
     },
   };

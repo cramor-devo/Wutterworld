@@ -207,6 +207,7 @@ export class LevelScene extends Phaser.Scene {
       else if (d.kind === 'seafan') this.add.image(d.x, bottom, 'seafan').setOrigin(0.5, 1).setDepth(-2);
       else if (d.kind === 'lantern') this.addLantern(d.x, bottom);
       else if (d.kind === 'palm' || d.kind === 'umbrella') this.add.image(d.x, bottom, d.kind).setOrigin(0.5, 1).setDepth(-2);
+      else if (d.kind === 'market-gate') this.addMarketGate(d.x, bottom);
       else this.add.image(d.x, bottom, this.style.gate).setOrigin(0.5, 1).setDepth(-3);
     }
     this.level.signs.forEach((s, i) => {
@@ -223,6 +224,21 @@ export class LevelScene extends Phaser.Scene {
     if (!at) return;
     const halo = this.add.image(x + at.dx, bottom + at.dy, 'glow').setTint(0xff9a4a).setAlpha(0.8).setDepth(-2).setBlendMode(Phaser.BlendModes.ADD);
     this.tweens.add({ targets: halo, alpha: 0.5, scale: 0.9, duration: 900 + (x % 5) * 80, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+  }
+
+  /** The night market's entrance gate (112x104 texture), with breathing halos on its plaque and two lanterns. */
+  private addMarketGate(x: number, bottom: number): void {
+    this.add.image(x, bottom, 'market-gate').setOrigin(0.5, 1).setDepth(-3);
+    const top = bottom - 104;
+    const halos: [number, number, number, number][] = [
+      [x, top + 25, 0xffc860, 2.2],
+      [x - 30, top + 52, 0xff9a4a, 1],
+      [x + 30, top + 52, 0xff9a4a, 1],
+    ];
+    for (const [hx, hy, tint, scale] of halos) {
+      const halo = this.add.image(hx, hy, 'glow').setTint(tint).setScale(scale).setAlpha(0.7).setDepth(-3).setBlendMode(Phaser.BlendModes.ADD);
+      this.tweens.add({ targets: halo, alpha: 0.45, duration: 1000 + (hx % 7) * 60, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+    }
   }
 
   private puddleGroup: Phaser.GameObjects.Zone[] = [];

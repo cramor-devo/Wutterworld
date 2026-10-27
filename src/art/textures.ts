@@ -3,6 +3,7 @@ import { TILE_COUNT } from '../levels/parser';
 import { bandedGradient, canvasTexture, mulberry32, px } from './canvas';
 import { CELL_H, CELL_W, FONT_CHARS, GLYPH_W, GLYPHS } from './font';
 import { marketTextures } from './market';
+import { marketBackdropTextures } from './marketBackdrop';
 import { ALL_SPRITES, type SpriteDef, spriteSize } from './sprites';
 
 export { mulberry32 } from './canvas';
@@ -330,6 +331,7 @@ export function generateTextures(scene: Phaser.Scene): void {
   backgroundTextures(scene);
   beachTextures(scene);
   marketTextures(scene);
+  marketBackdropTextures(scene);
   decorTextures(scene);
 }
 

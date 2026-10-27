@@ -10,6 +10,9 @@ export interface BackdropKeys {
   mid: string;
   /** Optional third parallax layer, closest to the play layer. */
   near?: string;
+  /** Layer heights in px, measured up from the bottom of the screen (default 120 and 90). */
+  farH?: number;
+  midH?: number;
 }
 
 export interface SettingStyle {
@@ -63,7 +66,8 @@ export const SETTINGS: Record<LevelSetting, SettingStyle> = {
     gate: 'gate-clean',
     lantern: 'market-lantern',
     lanternGlow: { dx: 5, dy: -27 },
-    backdrop: { base: 'bg-night', far: 'bg-market-far', mid: 'bg-market-mid', near: 'bg-market-near' },
+    // Taller layers so the city skyline and the food stalls (signs, awnings, vendors) show above the ground.
+    backdrop: { base: 'bg-night', far: 'bg-market-far', mid: 'bg-market-mid', near: 'bg-market-near', farH: 150, midH: 110 },
   },
 };
 
