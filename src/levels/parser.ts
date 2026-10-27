@@ -147,16 +147,16 @@ export function parseLevel(map: readonly string[], signTexts: readonly string[] 
 }
 
 /**
- * Appends GROUND_FILL_ROWS solid rows under the map. They continue the bottom row's ground (sand-top becomes
- * plain sand) and close any gap at the old world floor, so gameplay is unchanged.
+ * Appends GROUND_FILL_ROWS rows under the map that continue the bottom row: ground carries on (sand-top becomes
+ * plain sand) and pits (open bottom cells) stay open down to the bottom of the screen.
  */
 function addGroundFill(level: ParsedLevel): void {
   const bottom = level.tiles[level.tiles.length - 1];
-  const fill = bottom.map((t) => (t === TILE_INDEX.sandTop || t === TILE_INDEX.empty ? TILE_INDEX.sand : t));
+  const bottomSolid = level.solid[level.solid.length - 1];
+  const fill = bottom.map((t, c) => (!bottomSolid[c] ? TILE_INDEX.empty : t === TILE_INDEX.sandTop ? TILE_INDEX.sand : t));
   for (let i = 0; i < GROUND_FILL_ROWS; i++) {
-    const row = i === 0 ? bottom.map((t, c) => (t === TILE_INDEX.empty ? TILE_INDEX.sandTop : fill[c])) : fill;
-    level.tiles.push([...row]);
-    level.solid.push(row.map(() => true));
+    level.tiles.push([...fill]);
+    level.solid.push(fill.map((t) => t !== TILE_INDEX.empty));
   }
   level.rows += GROUND_FILL_ROWS;
 }
