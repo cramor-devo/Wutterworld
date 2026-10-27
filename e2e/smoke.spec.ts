@@ -28,6 +28,17 @@ async function tapCanvas(page: Page, isMobile: boolean) {
   else await page.mouse.click(x, y);
 }
 
+/** Holds the right arrow until Wutter has moved at least 20 px; polling keeps slow CI runners from flaking. */
+async function expectWalksRight(page: Page) {
+  const startX = (await hook(page))?.player?.x ?? 0;
+  await page.keyboard.down('ArrowRight');
+  try {
+    await expect.poll(async () => (await hook(page))?.player?.x ?? 0, { timeout: 5_000 }).toBeGreaterThan(startX + 20);
+  } finally {
+    await page.keyboard.up('ArrowRight');
+  }
+}
+
 test('boots, plays the intro story and starts the reef tutorial', async ({ page, isMobile }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
@@ -66,12 +77,7 @@ test('boots, plays the intro story and starts the reef tutorial', async ({ page,
 
   if (!isMobile) {
     await page.waitForTimeout(600);
-    const startX = (await hook(page))?.player?.x ?? 0;
-    await page.keyboard.down('ArrowRight');
-    await page.waitForTimeout(1200);
-    await page.keyboard.up('ArrowRight');
-    const endX = (await hook(page))?.player?.x ?? 0;
-    expect(endX).toBeGreaterThan(startX + 20);
+    await expectWalksRight(page);
   }
 
   expect(errors).toEqual([]);
@@ -115,11 +121,7 @@ test('level shortcut loads Beach Escape and Wutter can walk (issue #7)', async (
   expect((await hook(page))?.level).toBe('beach');
   if (!isMobile) {
     await page.waitForTimeout(600);
-    const startX = (await hook(page))?.player?.x ?? 0;
-    await page.keyboard.down('ArrowRight');
-    await page.waitForTimeout(800);
-    await page.keyboard.up('ArrowRight');
-    expect((await hook(page))?.player?.x ?? 0).toBeGreaterThan(startX + 20);
+    await expectWalksRight(page);
   }
   expect(errors).toEqual([]);
 });
@@ -132,11 +134,7 @@ test('level shortcut loads the Night Market and Wutter can walk (issue #14)', as
   expect((await hook(page))?.level).toBe('night-market');
   if (!isMobile) {
     await page.waitForTimeout(600);
-    const startX = (await hook(page))?.player?.x ?? 0;
-    await page.keyboard.down('ArrowRight');
-    await page.waitForTimeout(800);
-    await page.keyboard.up('ArrowRight');
-    expect((await hook(page))?.player?.x ?? 0).toBeGreaterThan(startX + 20);
+    await expectWalksRight(page);
   }
   expect(errors).toEqual([]);
 });
@@ -149,11 +147,7 @@ test('level shortcut loads Jiufen and Wutter can walk up the street (issue #15)'
   expect((await hook(page))?.level).toBe('jiufen');
   if (!isMobile) {
     await page.waitForTimeout(600);
-    const startX = (await hook(page))?.player?.x ?? 0;
-    await page.keyboard.down('ArrowRight');
-    await page.waitForTimeout(800);
-    await page.keyboard.up('ArrowRight');
-    expect((await hook(page))?.player?.x ?? 0).toBeGreaterThan(startX + 20);
+    await expectWalksRight(page);
   }
   // Let the crowd and the masked spirit stroll for a moment.
   await page.waitForTimeout(500);
@@ -170,11 +164,7 @@ test('level shortcut loads the Typhoon, Wutter can walk in the calm and the wind
   expect(start?.wind).toBe('calm');
   if (!isMobile) {
     await page.waitForTimeout(400);
-    const startX = (await hook(page))?.player?.x ?? 0;
-    await page.keyboard.down('ArrowRight');
-    await page.waitForTimeout(800);
-    await page.keyboard.up('ArrowRight');
-    expect((await hook(page))?.player?.x ?? 0).toBeGreaterThan(startX + 20);
+    await expectWalksRight(page);
   }
   // The first calm is about 4.5 s; then the warning comes and a gust follows.
   await expect.poll(async () => (await hook(page))?.wind, { timeout: 10_000 }).toBe('warning');
@@ -191,11 +181,7 @@ test('level shortcut loads the Midnight Zone and Wutter can swim through the dee
   expect(start?.level).toBe('abyss');
   if (!isMobile) {
     await page.waitForTimeout(400);
-    const startX = (await hook(page))?.player?.x ?? 0;
-    await page.keyboard.down('ArrowRight');
-    await page.waitForTimeout(800);
-    await page.keyboard.up('ArrowRight');
-    expect((await hook(page))?.player?.x ?? 0).toBeGreaterThan(startX + 20);
+    await expectWalksRight(page);
   }
   // Let the squids and anglerfish run their AI for a moment: no errors.
   await page.waitForTimeout(1500);
@@ -213,11 +199,7 @@ test('level shortcut loads the Festive Home Reef and Wutter can swim to the part
   expect(start?.enemies).toBe(0);
   if (!isMobile) {
     await page.waitForTimeout(400);
-    const startX = (await hook(page))?.player?.x ?? 0;
-    await page.keyboard.down('ArrowRight');
-    await page.waitForTimeout(800);
-    await page.keyboard.up('ArrowRight');
-    expect((await hook(page))?.player?.x ?? 0).toBeGreaterThan(startX + 20);
+    await expectWalksRight(page);
   }
   // Let the party guests dance and hop for a moment: no errors.
   await page.waitForTimeout(1500);
@@ -284,5 +266,43 @@ test('rotating re-fits the view without a reload, on the title and during a leve
   await expect.poll(viewWidth).toBe(expectedViewWidth(size.width, size.height));
   await page.waitForTimeout(500);
   expect((await hook(page))?.level).toBe('coral-gardens');
+  expect(errors).toEqual([]);
+});
+
+test('the whole story connects: title, all eight levels, the finale and back to the title (issue #37)', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'one browser is enough to walk the story chain');
+  test.setTimeout(180_000);
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  const order = ['reef-tutorial', 'coral-gardens', 'beach', 'night-market', 'jiufen', 'typhoon', 'abyss', 'festive-reef'];
+  const played: string[] = [];
+
+  await page.goto('./');
+  await waitForScene(page, 'Title');
+  await tapCanvas(page, false);
+  await waitForScene(page, 'Story');
+  for (;;) {
+    const h = await hook(page);
+    if (h?.scene === 'Title') break;
+    if (h?.scene === 'Level' && h.level && played.at(-1) !== h.level) {
+      played.push(h.level);
+      await page.evaluate(() => (window as unknown as { __wutter: { finishLevel: () => void } }).__wutter.finishLevel());
+      // Before the fix, leaving the level crashed and left a black screen.
+      const current = h.level;
+      await expect
+        .poll(async () => {
+          const next = await hook(page);
+          return next?.scene === 'Story' || (next?.scene === 'Level' && next.level !== current);
+        }, { timeout: 15_000 })
+        .toBe(true);
+    } else if (h?.scene === 'Story') {
+      await tapCanvas(page, false);
+      await page.waitForTimeout(250);
+    } else {
+      await page.waitForTimeout(250);
+    }
+    expect(errors).toEqual([]);
+  }
+  expect(played).toEqual(order);
   expect(errors).toEqual([]);
 });
