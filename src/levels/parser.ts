@@ -19,6 +19,9 @@ import type { PickupKind } from '../logic/score';
  *   k  street cat (crouches, then pounces)
  *   z  stinky tofu block (bouncy while hairy, sticky once bald; not part of the tile grid)
  *   M  night market entrance gate (decor; the plaque reads 夜市)
+ * Jiufen (stone stairs are '=' columns of different heights; 'b' and 'B' are drawn as souvenirs by its tileset):
+ *   b  pineapple-cake or nougat gift box   B  tea tin (stack them for a tall tin; the top one gets the lid)
+ *   V  the old cinema (decor, after Shengping Theatre)
  */
 export const SOLID_CHARS = ['#', '=', 'C', 'R', 'b', 'B'] as const;
 
@@ -38,7 +41,7 @@ export const TILE_INDEX = {
 /** Number of slots in every tileset; all of them are solid. */
 export const TILE_COUNT = 9;
 
-export type DecorKind = 'seaweed' | 'seafan' | 'lantern' | 'gate' | 'palm' | 'umbrella' | 'market-gate';
+export type DecorKind = 'seaweed' | 'seafan' | 'lantern' | 'gate' | 'palm' | 'umbrella' | 'market-gate' | 'cinema';
 
 export interface Spot {
   col: number;
@@ -69,7 +72,7 @@ export interface ParsedLevel {
 const PICKUPS: Record<string, PickupKind> = { o: 'plankton', O: 'pearl', A: 'anemone' };
 const ENEMIES: Record<string, EnemyKind> = { c: 'crab', f: 'puffer', t: 'triggerfish', j: 'jellyfish', G: 'seagull', k: 'cat' };
 const CURRENTS: Record<string, CurrentKind> = { '^': 'up', '>': 'right', '<': 'left' };
-const DECOR: Record<string, DecorKind> = { w: 'seaweed', g: 'seafan', L: 'lantern', T: 'gate', Y: 'palm', U: 'umbrella', M: 'market-gate' };
+const DECOR: Record<string, DecorKind> = { w: 'seaweed', g: 'seafan', L: 'lantern', T: 'gate', Y: 'palm', U: 'umbrella', M: 'market-gate', V: 'cinema' };
 const KNOWN = new Set(['.', 'P', 'E', 'S', '~', 'z', ...SOLID_CHARS, ...Object.keys(PICKUPS), ...Object.keys(ENEMIES), ...Object.keys(CURRENTS), ...Object.keys(DECOR)]);
 
 function spot(col: number, row: number): Spot {

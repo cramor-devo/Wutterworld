@@ -229,5 +229,24 @@ function drawPanel(scene: Phaser.Scene, c: Phaser.GameObjects.Container, art: Pa
       img(x + 36, y + h - 18, 'cucumber', 2);
       break;
     }
+    case 'typhoon-clouds': {
+      // A dark, churning sky over a choppy sea: a typhoon spiralling in, with rain slanting down.
+      bands([0x1a1e2e, 0x252a3e, 0x30364c, 0x3c4258], y, 70);
+      g.fillStyle(0x2a3a52).fillRect(x, y + 70, w, h - 70);
+      for (let r = 46; r > 6; r -= 10) {
+        g.lineStyle(4, r % 20 === 6 ? 0x5a6278 : 0x4a5068).strokeCircle(cx + 40, y + 34, r);
+      }
+      g.fillStyle(0x1a1e2e).fillCircle(cx + 40, y + 34, 6);
+      g.lineStyle(1, 0x9ab0c8, 0.6);
+      for (let i = 0; i < 26; i++) {
+        const rx = x + ((i * 37) % w);
+        const ry = y + ((i * 23) % 60);
+        g.lineBetween(rx, ry, rx - 6, ry + 14);
+      }
+      g.fillStyle(0xd8e4f0, 0.7);
+      for (let i = 0; i < 8; i++) g.fillTriangle(x + i * 30, y + 74, x + i * 30 + 10, y + 68, x + i * 30 + 20, y + 74);
+      img(x + 40, y + h - 18, 'cucumber', 2);
+      break;
+    }
   }
 }

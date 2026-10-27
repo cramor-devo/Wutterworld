@@ -1,7 +1,7 @@
 import type { NextStep } from './levels';
 
 /** Which illustration the story scene draws behind the text. */
-export type PanelArt = 'reef-night' | 'surface-lights' | 'hungry-mouths' | 'threads' | 'tide-pool' | 'beach-ahead' | 'market-lights' | 'jiufen-hills';
+export type PanelArt = 'reef-night' | 'surface-lights' | 'hungry-mouths' | 'threads' | 'tide-pool' | 'beach-ahead' | 'market-lights' | 'jiufen-hills' | 'typhoon-clouds';
 
 export interface StoryPanel {
   art: PanelArt;
@@ -47,8 +47,17 @@ export const STORIES: Record<string, Story> = {
     id: 'chapter-3-end',
     panels: [
       { art: 'market-lights', text: 'WUTTER SPLASHED BACK INTO ITS BUCKET, FULL OF LANTERN LIGHT AND STINKY TOFU SMELLS.' },
-      { art: 'jiufen-hills', text: 'AT DAWN A BUS RUMBLED OFF TO JIUFEN, A MISTY MOUNTAIN TOWN OF TEA HOUSES AND RED LANTERNS.' },
-      { art: 'jiufen-hills', text: 'TO BE CONTINUED IN JIUFEN... THANK YOU FOR PLAYING!' },
+      { art: 'jiufen-hills', text: 'THE NEXT DAY A BUS WOUND UP TO JIUFEN, A MISTY MOUNTAIN TOWN OF TEA HOUSES AND RED LANTERNS.' },
+      { art: 'jiufen-hills', text: 'AS DUSK FELL, THE LANTERNS CAME ON ONE BY ONE. CHAPTER 4: LANTERN HILL!' },
+    ],
+    next: { type: 'level', id: 'jiufen' },
+  },
+  'chapter-4-end': {
+    id: 'chapter-4-end',
+    panels: [
+      { art: 'jiufen-hills', text: 'AT THE BOTTOM OF THE HILL, WUTTER WAVED GOODBYE TO A QUIET MASKED FRIEND WITH A RED LANTERN.' },
+      { art: 'typhoon-clouds', text: 'BUT OUT AT SEA, DARK CLOUDS WERE SPINNING. THE RADIO CRACKLED: TYPHOON SIGNAL NO. 8!' },
+      { art: 'typhoon-clouds', text: 'TO BE CONTINUED ON THE NORTHEAST COAST... THANK YOU FOR PLAYING!' },
     ],
     next: { type: 'title' },
   },

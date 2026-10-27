@@ -21,10 +21,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - **Street cats** that crouch and wiggle, then pounce at where Wutter was. Stomp them or stun them with threads.
   - Seagulls, a lively new chiptune song, and extra cats and seagulls on Hard.
   - `?level=night-market` URL shortcut and level characters `b`, `B`, `z`, `k` and `M`.
-- New story panels after the night market that tease Jiufen, thank you for playing and return to the title screen.
+- **Lantern Hill**, the fourth level, in Jiufen ([#15](https://github.com/cramor-devo/Wutterworld/issues/15)):
+  - Part 1, **Jishan Street**: a darker covered street with warm stall lights and signs in Traditional Chinese
+    (芋圓 taro balls, 魚丸湯 fish ball soup, 香腸 sausage, 花生捲冰淇淋 peanut ice cream roll), a 鳳梨酥 pineapple
+    cake shop, a 茶 tea shop and a 九份 board.
+  - Part 2, **Shuqi Road**: a steep stone stairway with lantern-covered teahouses, the old cinema, and a dusk view of
+    the mountain, the sea and Keelung Islet.
+  - The street goes up and down stairs, always within the screen. Souvenirs are the platforms: pineapple cake boxes,
+    nougat boxes and tea tins.
+  - A strolling crowd, with our own masked spirit in a black robe hidden among them. It waves when Wutter comes near.
+  - Street cats, seagulls, murky puddles in the steps, a new chiptune song, and extra cats and seagulls on Hard.
+  - `?level=jiufen` URL shortcut and level character `V` (old cinema).
+- New story panels after Jiufen: goodbye to the masked friend, a tease of Typhoon Signal No. 8 on the Northeast
+  Coast, thank you for playing, then back to the title screen.
 
 ### Changed
 
+- The night market story now continues to Jiufen (chapter 4: Lantern Hill) instead of ending the game.
+- Roadmap: chapter 4 is now **Lantern Hill** in Jiufen, and chapter 5 (Signal No. 8) takes place on the Northeast
+  Coast.
 - The beach story now continues to the night market (chapter 3: Lanterns & Lines) instead of ending the game.
 - Coral Gardens: triggerfish swim 5% slower and can now be defeated by landing on them, also while they chase
   ([#13](https://github.com/cramor-devo/Wutterworld/issues/13)).

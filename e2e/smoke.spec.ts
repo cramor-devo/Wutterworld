@@ -140,6 +140,25 @@ test('level shortcut loads the Night Market and Wutter can walk (issue #14)', as
   expect(errors).toEqual([]);
 });
 
+test('level shortcut loads Jiufen and Wutter can walk up the street (issue #15)', async ({ page, isMobile }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('./?level=jiufen');
+  await waitForScene(page, 'Level');
+  expect((await hook(page))?.level).toBe('jiufen');
+  if (!isMobile) {
+    await page.waitForTimeout(600);
+    const startX = (await hook(page))?.player?.x ?? 0;
+    await page.keyboard.down('ArrowRight');
+    await page.waitForTimeout(800);
+    await page.keyboard.up('ArrowRight');
+    expect((await hook(page))?.player?.x ?? 0).toBeGreaterThan(startX + 20);
+  }
+  // Let the crowd and the masked spirit stroll for a moment.
+  await page.waitForTimeout(500);
+  expect(errors).toEqual([]);
+});
+
 /** View width the game should pick for a window size (mirrors viewWidthFor in src/config.ts). */
 const expectedViewWidth = (w: number, h: number) => Math.min(576, Math.max(256, Math.round((256 * (w / h)) / 2) * 2));
 

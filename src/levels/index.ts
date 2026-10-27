@@ -21,6 +21,8 @@ export interface LevelDef {
   signs: readonly string[];
   /** Extra enemies that only appear on hard difficulty (tile column/row, like the map). */
   hardEnemies?: readonly HardEnemy[];
+  /** Map columns under a roof (Jiufen's Jishan Street): the scene draws the roof, shop fronts and a darker lane. */
+  covered?: { from: number; to: number };
   next: NextStep;
 }
 
@@ -179,11 +181,55 @@ const NIGHT_MARKET: LevelDef = {
   next: { type: 'story', id: 'chapter-3-end' },
 };
 
+// Jiufen, chapter 4: up Jishan Street's covered, lamp-lit lane, then down Shuqi Road's steep stone stairs at dusk.
+// Souvenir boxes and tea tins are the platforms; street cats prowl and seagulls swoop in from the sea.
+const JIUFEN: LevelDef = {
+  id: 'jiufen',
+  name: 'LANTERN HILL',
+  place: 'JIUFEN, TAIWAN',
+  safe: false,
+  setting: 'jiufen',
+  music: 'jiufen',
+  signs: [
+    // Signs are read row by row (top first): the summit, Jishan Street, the spawn, then the cinema.
+    'THE TOP OF SHUQI ROAD! LANTERNS ON EVERY TEAHOUSE, AND THE SEA FAR BELOW. SEAGULLS LOVE IT HERE TOO.',
+    'JISHAN STREET IS COVERED AND DARK. PINEAPPLE CAKE BOXES AND TEA TINS MAKE GOOD STEPS. MIND THE CATS!',
+    'JIUFEN! AN OLD GOLD-MINING TOWN ON THE MOUNTAINSIDE. HOP UP THE STONE STEPS INTO JISHAN STREET.',
+    'THE OLD CINEMA! NO FILM TONIGHT. THE EXIT LIGHT WAITS AT THE BOTTOM OF THE HILL.',
+  ],
+  covered: { from: 18, to: 93 },
+  hardEnemies: [
+    { kind: 'cat', col: 57, row: 8 },
+    { kind: 'seagull', col: 60, row: 4 },
+    { kind: 'cat', col: 87, row: 8 },
+    { kind: 'seagull', col: 128, row: 3 },
+    { kind: 'cat', col: 143, row: 10 },
+  ],
+  map: [
+    '....................................................................................................................................................................................................',
+    '........................................................................................................G...........................................................................................',
+    '....................................................................................................................G...............................................................................',
+    '..............................................................O.....................................................................................................................................',
+    '................................................................................O................................Oo...........................G.......................G.............................',
+    '...........................o............o.......................................b................o.oS..o.Lo......b..........................................................................G.......',
+    '.........................oo.............o......................................bb........o.....o..===~======.ooLbb...L.o......o.....................................................................',
+    '.................o.......b..............B.........O...........B.......ook.....bbb.L......B......======================........B......................o..............................................',
+    '...............o....S...bb..L..oo.k.....B...ooL...........oo..B.L.o.========~=======oo..bB..o.==========================.o..L.B..k.L.o..........O..o........................O.......................',
+    '.............o..==============~=================.....oo.==================================================================~=========................==......................B.......................',
+    '..............======================================~=================================================================================.o.L.......o======.o.................bB.......................',
+    '.P.S.oo...L.================================================================================================================================~=============.LooS.k.......V.bbB..o..k..A.oo.....L.E.L.',
+    '=======~============================================================================================================================================================~=====================~=========',
+    '====================================================================================================================================================================================================',
+  ],
+  next: { type: 'story', id: 'chapter-4-end' },
+};
+
 export const LEVELS: Record<string, LevelDef> = {
   [HOME_REEF.id]: HOME_REEF,
   [CORAL_GARDENS.id]: CORAL_GARDENS,
   [BEACH.id]: BEACH,
   [NIGHT_MARKET.id]: NIGHT_MARKET,
+  [JIUFEN.id]: JIUFEN,
 };
 export const FIRST_LEVEL_ID = HOME_REEF.id;
 

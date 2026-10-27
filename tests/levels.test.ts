@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { SONGS } from '../src/audio/music';
 import { GROUND_FILL_ROWS, LEVEL_ROWS, PHYSICS, PHYSICS_DRY, TILE } from '../src/config';
 import { CHAPTERS, nextChapter } from '../src/levels/chapters';
 import { FIRST_LEVEL_ID, getLevel, hasLevel, LEVELS, loadLevel } from '../src/levels';
@@ -7,6 +8,7 @@ import { canMountPuffer, levelBouncers, pufferArcCells, pufferTargets } from '..
 import { canReachExit, reachableCells, unreachableThings } from '../src/levels/reachability';
 import { effectiveHaze, isLandSetting, type LevelSetting, SETTINGS } from '../src/levels/settings';
 import { jumpApexHeight } from '../src/logic/movement';
+import { floorRows } from '../src/logic/strollers';
 import { STORIES } from '../src/story';
 
 const REACH = { up: Math.floor(jumpApexHeight() / TILE), across: 3 };
@@ -168,6 +170,7 @@ describe('game levels', () => {
     expect([...kinds('coral-gardens')].sort()).toEqual(['crab', 'puffer', 'triggerfish']);
     expect([...kinds('beach')].sort()).toEqual(['crab', 'jellyfish', 'seagull']);
     expect([...kinds('night-market')].sort()).toEqual(['cat', 'seagull']);
+    expect([...kinds('jiufen')].sort()).toEqual(['cat', 'seagull']);
   });
 
   it('the night market is a dangerous market level with stinky tofu', () => {
@@ -186,25 +189,35 @@ describe('game levels', () => {
     expect(STORIES.intro.next).toEqual({ type: 'level', id: FIRST_LEVEL_ID });
   });
 
-  it('chapter 1 leads to the beach, the beach to the night market, and the market ends on the thank-you story', () => {
+  it('chapter 1 leads to the beach, the beach to the night market, the market to Jiufen, and Jiufen ends on the thank-you story', () => {
     expect(STORIES['chapter-1-end'].next).toEqual({ type: 'level', id: 'beach' });
     expect(LEVELS.beach.next).toEqual({ type: 'story', id: 'chapter-2-end' });
     expect(STORIES['chapter-2-end'].next).toEqual({ type: 'level', id: 'night-market' });
     expect(STORIES['chapter-2-end'].panels.at(-1)?.text).toContain('LANTERNS & LINES');
     expect(LEVELS['night-market'].next).toEqual({ type: 'story', id: 'chapter-3-end' });
-    expect(STORIES['chapter-3-end'].next).toEqual({ type: 'title' });
-    expect(STORIES['chapter-3-end'].panels.at(-1)?.text).toContain('JIUFEN');
-    expect(STORIES['chapter-3-end'].panels.at(-1)?.text).toContain('THANK YOU FOR PLAYING');
+    expect(STORIES['chapter-3-end'].next).toEqual({ type: 'level', id: 'jiufen' });
+    expect(STORIES['chapter-3-end'].panels.at(-1)?.text).toContain('LANTERN HILL');
+    expect(LEVELS.jiufen.next).toEqual({ type: 'story', id: 'chapter-4-end' });
+    expect(STORIES['chapter-4-end'].next).toEqual({ type: 'title' });
+    expect(STORIES['chapter-4-end'].panels.some((p) => p.text.includes('TYPHOON'))).toBe(true);
+    expect(STORIES['chapter-4-end'].panels.at(-1)?.text).toContain('THANK YOU FOR PLAYING');
   });
 });
 
 describe('chapters', () => {
   it('follows the PO-approved path and ends with the festive home reef', () => {
     expect(CHAPTERS.map((c) => c.id)).toEqual([
-      'reef-tutorial', 'coral-gardens', 'beach', 'night-market', 'temple', 'typhoon', 'abyss', 'festive-reef',
+      'reef-tutorial', 'coral-gardens', 'beach', 'night-market', 'jiufen', 'typhoon', 'abyss', 'festive-reef',
     ]);
+    expect(nextChapter('night-market')?.id).toBe('jiufen');
     expect(nextChapter('abyss')?.id).toBe('festive-reef');
     expect(nextChapter('festive-reef')).toBeUndefined();
+  });
+
+  it('chapter 4 is Lantern Hill in Jiufen, and the typhoon hits the Northeast Coast (issue #15)', () => {
+    const byId = (id: string) => CHAPTERS.find((c) => c.id === id);
+    expect(byId('jiufen')).toMatchObject({ title: 'Lantern Hill', place: 'Jiufen', playable: true });
+    expect(byId('typhoon')).toMatchObject({ title: 'Signal No. 8', place: 'Northeast Coast' });
   });
 
   it('every playable chapter has a level', () => {
@@ -307,14 +320,14 @@ describe('everything can be reached', () => {
 
 describe('hard mode (issue #4)', () => {
   it('adds extra enemies to Coral Gardens, the beach and the night market, not the tutorial', () => {
-    for (const id of ['coral-gardens', 'beach', 'night-market']) {
+    for (const id of ['coral-gardens', 'beach', 'night-market', 'jiufen']) {
       const base = loadLevel(id).parsed.enemies.length;
       expect(loadLevel(id, { extraEnemies: true }).parsed.enemies.length).toBeGreaterThan(base);
     }
     expect(loadLevel('reef-tutorial', { extraEnemies: true }).parsed.enemies).toEqual(loadLevel('reef-tutorial').parsed.enemies);
   });
 
-  it.each(['coral-gardens', 'beach', 'night-market'])('places extra enemies in %s in open space, with crabs and cats standing on the ground', (id) => {
+  it.each(['coral-gardens', 'beach', 'night-market', 'jiufen'])('places extra enemies in %s in open space, with crabs and cats standing on the ground', (id) => {
     const lvl = loadLevel(id, { extraEnemies: true }).parsed;
     for (const e of LEVELS[id].hardEnemies ?? []) {
       expect(lvl.solid[e.row][e.col], `${e.kind} at ${e.col},${e.row}`).toBe(false);
@@ -323,11 +336,88 @@ describe('hard mode (issue #4)', () => {
   });
 });
 
+describe('Jiufen (issue #15)', () => {
+  const jiufen = (extraEnemies = false) => loadLevel('jiufen', { extraEnemies }).parsed;
+  const surface = () => floorRows(LEVELS.jiufen.map);
+
+  it('is a dangerous dry-land level with its own song', () => {
+    const def = LEVELS.jiufen;
+    expect(def.setting).toBe('jiufen');
+    expect(isLandSetting(def.setting)).toBe(true);
+    expect(def.safe).toBe(false);
+    expect(def.music).toBe('jiufen');
+    expect(SONGS.jiufen).toBeDefined();
+  });
+
+  it.each([false, true])('the exit can be reached with dry jumps only (hard extras: %s)', (extra) => {
+    expect(canReachExit(jiufen(extra), DRY_REACH)).toBe(true);
+  });
+
+  it('has a wet-only ledge: some pickups need water', () => {
+    expect(unreachableThings(jiufen(), DRY_REACH).length).toBeGreaterThan(0);
+  });
+
+  it('goes up and down stone stairs within the screen, one step at a time', () => {
+    const floor = surface();
+    expect(LEVELS.jiufen.map).toHaveLength(LEVEL_ROWS);
+    expect(Math.max(...floor) - Math.min(...floor)).toBeGreaterThanOrEqual(5);
+    for (let c = 1; c < floor.length; c++) expect(Math.abs(floor[c] - floor[c - 1]), `step at column ${c}`).toBeLessThanOrEqual(DRY_REACH.up);
+    // Up to the top of Shuqi Road and back down again.
+    const top = floor.indexOf(Math.min(...floor));
+    expect(top).toBeGreaterThan(floor.length / 4);
+    expect(top).toBeLessThan((floor.length * 3) / 4);
+    expect(floor[0]).toBeGreaterThan(floor[top]);
+    expect(floor.at(-1)).toBeGreaterThan(floor[top]);
+  });
+
+  it('puddles sit in the steps, at most 25 tiles apart, starting near the spawn, and every one can be reached', () => {
+    const lvl = jiufen();
+    const cols = lvl.puddles.map((p) => p.col).sort((a, b) => a - b);
+    const floor = surface();
+    expect(cols.length).toBeGreaterThanOrEqual(6);
+    for (const p of lvl.puddles) {
+      expect(p.row, `puddle at ${p.col}`).toBe(floor[p.col]);
+      expect(lvl.solid[p.row + 1][p.col]).toBe(true);
+    }
+    expect(cols[0] - lvl.spawn.col).toBeLessThanOrEqual(15);
+    for (let i = 1; i < cols.length; i++) expect(cols[i] - cols[i - 1]).toBeLessThanOrEqual(25);
+    const cells = reachableCells(lvl, DRY_REACH);
+    for (const p of lvl.puddles) expect(cells.has(`${p.col},${p.row}`), `puddle at ${p.col}`).toBe(true);
+  });
+
+  it('uses souvenir boxes and tea tins as platforms', () => {
+    const tiles = new Set(jiufen().tiles.flat());
+    for (const t of [TILE_INDEX.box, TILE_INDEX.boxAlt, TILE_INDEX.oilBody, TILE_INDEX.oilTop]) expect(tiles.has(t), `tile ${t}`).toBe(true);
+    expect(SETTINGS.jiufen.tileset).toBe('tiles-jiufen');
+  });
+
+  it('has a covered Jishan Street, the old cinema and signs for both parts', () => {
+    const def = LEVELS.jiufen;
+    const lvl = jiufen();
+    expect(def.covered).toBeDefined();
+    expect(def.covered!.from).toBeGreaterThan(lvl.spawn.col);
+    expect(def.covered!.to).toBeLessThan(lvl.exit.col);
+    expect(lvl.decor.filter((d) => d.kind === 'cinema')).toHaveLength(1);
+    expect(def.signs.some((s) => s.includes('JISHAN'))).toBe(true);
+    expect(def.signs.some((s) => s.includes('SHUQI'))).toBe(true);
+  });
+
+  it('each sign describes where it stands', () => {
+    const signs = [...jiufen().signs].sort((a, b) => a.col - b.col);
+    const floor = surface();
+    expect(signs[0].text).toContain('HOP UP THE STONE STEPS');
+    expect(signs[1].text).toContain('JISHAN STREET');
+    expect(signs[2].text).toContain('THE TOP OF SHUQI ROAD');
+    expect(floor[signs[2].col]).toBe(Math.min(...floor));
+    expect(signs[3].text).toContain('CINEMA');
+  });
+});
+
 describe('level settings (issue #14)', () => {
   const all = Object.keys(SETTINGS) as LevelSetting[];
 
-  it('the reef is underwater; the beach and the night market are dry land', () => {
-    expect(all.filter(isLandSetting).sort()).toEqual(['beach', 'market']);
+  it('the reef is underwater; the beach, the night market and Jiufen are dry land', () => {
+    expect(all.filter(isLandSetting).sort()).toEqual(['beach', 'jiufen', 'market']);
   });
 
   it('every setting has its own level-clear banner', () => {

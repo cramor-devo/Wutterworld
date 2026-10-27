@@ -1,8 +1,8 @@
 /**
  * Where a level takes place. The reef is underwater; every other setting is dry land, where Wutter carries a water
- * tank and refills it in puddles. New land settings (Jiufen, the typhoon) only need a row in `SETTINGS`.
+ * tank and refills it in puddles. New land settings (the typhoon) only need a row in `SETTINGS`.
  */
-export type LevelSetting = 'reef' | 'beach' | 'market';
+export type LevelSetting = 'reef' | 'beach' | 'market' | 'jiufen';
 
 export interface BackdropKeys {
   base: string;
@@ -98,7 +98,21 @@ export const SETTINGS: Record<LevelSetting, SettingStyle> = {
       haze: { color: 0x1a1c48, far: 0.12, mid: 0.1, near: 0.12 },
     },
   },
-};
+      jiufen: {
+        land: true,
+        bubbles: false,
+        clearBanner: 'JIUFEN CLEAR!',
+        // Stone stairs; the boxes are pineapple cakes and nougat, the cans are tea tins.
+        tileset: 'tiles-jiufen',
+        puddle: 'puddle-jiufen',
+        gate: 'gate-clean',
+        lantern: 'market-lantern',
+        lanternGlow: { dx: 5, dy: -27 },
+        // Blue hour: the mountain and the sea far away, the lantern-lit teahouses on the hillside closer by. Tall
+        // layers, because the stairs raise the ground and hide the bottom of the backdrop.
+        backdrop: { base: 'bg-dusk', far: 'bg-jiufen-far', mid: 'bg-jiufen-mid', farH: 200, midH: 150, haze: { color: 0x2a2f6a, far: 0.2, mid: 0.1 } },
+      },
+    };
 
 export function isLandSetting(setting: LevelSetting): boolean {
   return SETTINGS[setting].land;
