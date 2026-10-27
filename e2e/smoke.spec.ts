@@ -181,6 +181,26 @@ test('level shortcut loads the Typhoon, Wutter can walk in the calm and the wind
   await expect.poll(async () => (await hook(page))?.wind, { timeout: 5_000 }).toBe('gust');
   expect(errors).toEqual([]);
 });
+
+test('level shortcut loads the Midnight Zone and Wutter can swim through the deep sea (issue #17)', async ({ page, isMobile }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('./?level=abyss');
+  await waitForScene(page, 'Level');
+  const start = await hook(page);
+  expect(start?.level).toBe('abyss');
+  if (!isMobile) {
+    await page.waitForTimeout(400);
+    const startX = (await hook(page))?.player?.x ?? 0;
+    await page.keyboard.down('ArrowRight');
+    await page.waitForTimeout(800);
+    await page.keyboard.up('ArrowRight');
+    expect((await hook(page))?.player?.x ?? 0).toBeGreaterThan(startX + 20);
+  }
+  // Let the squids and anglerfish run their AI for a moment: no errors.
+  await page.waitForTimeout(1500);
+  expect(errors).toEqual([]);
+});
 /** View width the game should pick for a window size (mirrors viewWidthFor in src/config.ts). */
 const expectedViewWidth = (w: number, h: number) => Math.min(576, Math.max(256, Math.round((256 * (w / h)) / 2) * 2));
 
