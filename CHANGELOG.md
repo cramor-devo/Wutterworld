@@ -45,10 +45,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - The rain slowly refills the water tank (harder during a gust), so there are only a few puddles.
   - Sandbags and bollards as platforms, a new stormy chiptune song, and extra crabs and seagulls on Hard.
   - `?level=typhoon` URL shortcut.
-- New story panels after the typhoon: a huge wave sweeps Wutter into the deep sea, to be continued in the Midnight
-  Zone, then back to the title screen.
+- New story panels after the typhoon: a huge wave sweeps Wutter down into the deep sea, where something is glowing.
+- **The Midnight Zone**, the sixth level, in the Abyssal Sea off Taiwan ([#17](https://github.com/cramor-devo/Wutterworld/issues/17)):
+  - Underwater again, with the same swimming as the reef. A dark black-blue palette with glowing creatures in the
+    background (jellyfish, schools of lanternfish, tube worms and falling marine snow) and a sunken shipwreck. The
+    play layer stays fully lit and readable.
+  - Dark silt, basalt with glowing algae, bubblegum coral and shipwreck planks as platforms.
+  - **Giant squids** drift and bob in open water. When Wutter comes close, their eyes light up and they rumble, then
+    they lunge straight at where Wutter was (in any direction) and glide back home. Stomp them or stun them with
+    threads.
+  - **Anglerfish** patrol slowly with a softly pulsing lure. When Wutter swims right in front of one, the lure
+    flashes and pings, then it dashes a short way straight ahead and rests. Stomp them or stun them with threads.
+  - A slow, eerie but friendly chiptune song, and extra squids and anglerfish on Hard.
+  - `?level=abyss` URL shortcut and level characters `Q` (squid) and `n` (anglerfish).
+- New story panels after the Midnight Zone: Wutter follows the glowing creatures up toward the lantern lights of
+  Kenting, to be continued, thank you for playing, then back to the title screen.
 
 ### Changed
+
+- The typhoon story now continues to the deep sea (chapter 6: The Midnight Zone) instead of ending the game.
 
 - The Jiufen story now continues to the typhoon (chapter 5: Signal No. 8) instead of ending the game.
 - The night market story now continues to Jiufen (chapter 4: Lantern Hill) instead of ending the game.
