@@ -265,6 +265,47 @@ const TYPHOON: LevelDef = {
   ],
   next: { type: 'story', id: 'chapter-5-end' },
 };
+
+// The Midnight Zone: the big wave swept Wutter down into the deep sea. Underwater again, in the dark, where only
+// living things glow: giant squids lunge out of the black and anglerfish dangle their lures.
+const ABYSS: LevelDef = {
+  id: 'abyss',
+  name: 'THE MIDNIGHT ZONE',
+  place: 'ABYSSAL SEA, OFF TAIWAN',
+  safe: false,
+  setting: 'abyss',
+  music: 'abyss',
+  signs: [
+    'THE MIDNIGHT ZONE. NO SUNLIGHT REACHES THIS DEEP, BUT LOTS OF THINGS GLOW. A LIGHT IN THE DARK IS NOT ALWAYS A FRIEND!',
+    "WHEN A GIANT SQUID'S EYES LIGHT UP, IT IS ABOUT TO LUNGE AT YOU. SWIM ASIDE, THEN LAND ON ITS HEAD WHILE IT GLIDES HOME.",
+    'A SUNKEN SHIP! WHEN AN ANGLERFISH FLASHES ITS LURE, IT DASHES STRAIGHT AHEAD. JUMP OVER IT OR STOMP IT.',
+    'LOOK UP! THE JELLYFISH ARE ALL DRIFTING UPWARD. RIDE THE CURRENT AND FOLLOW THEM HOME!',
+  ],
+  hardEnemies: [
+    { kind: 'anglerfish', col: 40, row: 11 },
+    { kind: 'squid', col: 68, row: 7 },
+    { kind: 'squid', col: 84, row: 6 },
+    { kind: 'anglerfish', col: 108, row: 11 },
+  ],
+  map: [
+    '....................................................................................................................................',
+    '....................................................................................................................................',
+    '....................................................................................................................................',
+    '..........................................................ooo.O.n...................................................................',
+    '........................................................^^RRRRRRRR......................................O...........................',
+    '..................................O.....................^^....................................................................o.E...',
+    '........................................................^^.................................................................^^#######',
+    '.............................oo.......Q.................^^..................S.O...............Q.........##..........Q......^^.......',
+    '............................####..............oo........^^................RRRRRR....................oo..##.....o...........^^.......',
+    '......................ooo...####..............CC........^^...............oRRRRRR....................##..##....CCC..........^^.......',
+    '......................###...####..............CC........^^..............RRRRRRRR....................##..##....CCC..........^^.......',
+    '.P.S..o.o.o......n....###...####.....o..o..o..CC..S.....^^..o..o..o.....RRRRRRRR...o..n..o..........##..##....CCC.o...o.S..^^.......',
+    '====================================================================================================================================',
+    '====================================================================================================================================',
+  ],
+  next: { type: 'story', id: 'chapter-6-end' },
+};
+
 export const LEVELS: Record<string, LevelDef> = {
   [HOME_REEF.id]: HOME_REEF,
   [CORAL_GARDENS.id]: CORAL_GARDENS,
@@ -272,6 +313,7 @@ export const LEVELS: Record<string, LevelDef> = {
   [NIGHT_MARKET.id]: NIGHT_MARKET,
   [JIUFEN.id]: JIUFEN,
   [TYPHOON.id]: TYPHOON,
+  [ABYSS.id]: ABYSS,
 };
 export const FIRST_LEVEL_ID = HOME_REEF.id;
 
