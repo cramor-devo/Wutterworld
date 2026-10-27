@@ -28,6 +28,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The beach story now continues to the night market (chapter 3: Lanterns & Lines) instead of ending the game.
 - Coral Gardens: triggerfish swim 5% slower and can now be defeated by landing on them, also while they chase
   ([#13](https://github.com/cramor-devo/Wutterworld/issues/13)).
+- Puddles on the beach and in the night market are shallow, rounded bowls with a wet rim instead of square pits
+  ([#23](https://github.com/cramor-devo/Wutterworld/issues/23)).
 
 ## [0.3.0] - 2026-10-26
 

@@ -1,18 +1,25 @@
 import type Phaser from 'phaser';
 import { canvasTexture, mulberry32, px } from './canvas';
+import { drawPuddle } from './puddle';
 
 /** Taipei night market: murky puddles, lanterns, the gate and the night backdrop. */
 export function marketTextures(scene: Phaser.Scene): void {
   // A murky rain puddle in the asphalt, brown-green with an oily shimmer. It still refills the water tank.
-  canvasTexture(scene, 'puddle-market', 16, 16, 1, (ctx) => {
-    px(ctx, '#2b2d33', 0, 0, 16, 16);
-    px(ctx, '#5b6a3c', 1, 5, 14, 11);
-    px(ctx, '#46512e', 1, 11, 14, 5);
-    px(ctx, '#8f9a6a', 2, 5, 12, 1);
-    px(ctx, '#a07ad0', 4, 7, 3, 1);
-    px(ctx, '#5fb0b8', 7, 7, 2, 1);
-    px(ctx, '#c9c08a', 10, 9, 2, 1);
-  });
+  canvasTexture(scene, 'puddle-market', 16, 16, 1, (ctx) =>
+    drawPuddle(ctx, {
+      ground: '#2b2d33',
+      edge: '#4a4d55',
+      rim: '#1c1d22',
+      water: '#5b6a3c',
+      deep: '#46512e',
+      shine: '#8f9a6a',
+      glints: [
+        ['#a07ad0', 4, 3, 3],
+        ['#5fb0b8', 7, 3, 2],
+        ['#c9c08a', 10, 5, 2],
+      ],
+    }),
+  );
 
   // Stinky tofu: fuzzy with springy mould hairs (0), thinning after a bounce (1), bald and glossy-sticky (2).
   canvasTexture(scene, 'tofu', 16, 16, 3, (ctx, f) => stinkyTofu(ctx, f));

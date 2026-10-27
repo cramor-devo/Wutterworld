@@ -133,7 +133,8 @@ export function parseLevel(map: readonly string[], signTexts: readonly string[] 
           tileRow.push(TILE_INDEX.rock);
           break;
         case '=':
-          tileRow.push(isSolidChar(above) ? TILE_INDEX.sand : TILE_INDEX.sandTop);
+          // Under a puddle the ground continues; the puddle tile already draws the surface.
+          tileRow.push(isSolidChar(above) || above === '~' ? TILE_INDEX.sand : TILE_INDEX.sandTop);
           break;
         case 'C':
           tileRow.push(TILE_INDEX.coral);

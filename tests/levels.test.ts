@@ -37,7 +37,7 @@ describe('parser', () => {
     expect(lvl.decor.map((d) => d.kind)).toEqual(['palm', 'umbrella']);
     expect(lvl.puddles).toEqual([expect.objectContaining({ col: 2, row: 12 })]);
     expect(lvl.solid[12][2]).toBe(false);
-    expect(lvl.tiles[13][2]).toBe(TILE_INDEX.sandTop);
+    expect(lvl.tiles[13][2]).toBe(TILE_INDEX.sand);
   });
 
   it('parses market platforms: cardboard boxes and stacked oil cans with a cap on top', () => {
