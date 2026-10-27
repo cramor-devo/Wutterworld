@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_HEIGHT, GAME_WIDTH, viewWidthFor } from '../config';
+import { FIXED_LAYOUT_TOP, GAME_HEIGHT, GAME_WIDTH, viewWidthFor } from '../config';
 import type { LevelSetting } from '../levels';
 
 /** State exposed for the Playwright smoke test and for debugging in the browser console. */
@@ -42,13 +42,16 @@ const BACKDROP_KEYS: Record<LevelSetting, { base: string; far: string; mid: stri
   beach: { base: 'bg-sky', far: 'bg-beach-far', mid: 'bg-beach-mid' },
 };
 
-/** Underwater (or sunny beach) backdrop with two parallax layers, fixed to the camera. */
-export function addBackdrop(scene: Phaser.Scene, setting: LevelSetting = 'reef'): Backdrop {
+/**
+ * Underwater (or sunny beach) backdrop with two parallax layers, fixed to the camera. The layers stand on
+ * `bottom`: in levels that is the top of the extra ground rows, so the scenery is not hidden behind them.
+ */
+export function addBackdrop(scene: Phaser.Scene, setting: LevelSetting = 'reef', bottom = GAME_HEIGHT): Backdrop {
   const w = scene.scale.width;
   const keys = BACKDROP_KEYS[setting];
   const base = scene.add.image(0, 0, keys.base).setOrigin(0).setScrollFactor(0).setDepth(-30).setDisplaySize(w, GAME_HEIGHT);
-  const far = scene.add.tileSprite(0, GAME_HEIGHT - 120, w, 120, keys.far).setOrigin(0).setScrollFactor(0).setDepth(-20);
-  const mid = scene.add.tileSprite(0, GAME_HEIGHT - 90, w, 90, keys.mid).setOrigin(0).setScrollFactor(0).setDepth(-15);
+  const far = scene.add.tileSprite(0, bottom - 120, w, 120, keys.far).setOrigin(0).setScrollFactor(0).setDepth(-20);
+  const mid = scene.add.tileSprite(0, bottom - 90, w, 90, keys.mid).setOrigin(0).setScrollFactor(0).setDepth(-15);
   return {
     far,
     mid,
@@ -149,6 +152,6 @@ export function watchViewSize(game: Phaser.Game, settleMs = 150): void {
 /** Centres a fixed 256-wide layout (title, story) in a wider view by shifting the camera. */
 export function centreFixedLayout(scene: Phaser.Scene): number {
   const offset = Math.floor((scene.scale.width - GAME_WIDTH) / 2);
-  scene.cameras.main.setScroll(-offset, 0);
+  scene.cameras.main.setScroll(-offset, -FIXED_LAYOUT_TOP);
   return offset;
 }

@@ -124,7 +124,7 @@ test('level shortcut loads Beach Escape and Wutter can walk (issue #7)', async (
 });
 
 /** View width the game should pick for a window size (mirrors viewWidthFor in src/config.ts). */
-const expectedViewWidth = (w: number, h: number) => Math.min(512, Math.max(256, Math.round((224 * (w / h)) / 2) * 2));
+const expectedViewWidth = (w: number, h: number) => Math.min(576, Math.max(256, Math.round((256 * (w / h)) / 2) * 2));
 
 test('full-screen button shows on phones only, and tapping it does not start the game', async ({ page, isMobile }) => {
   const errors: string[] = [];

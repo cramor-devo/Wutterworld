@@ -43,6 +43,9 @@ sideloading. It works on Android, iPhone/iPad, Chromebooks, Windows, macOS and L
 The tutorial signs name the buttons of the device you play on: keys such as SPACE and X on a PC, A and B on
 the touch screen or a gamepad.
 
+On a phone the on-screen buttons sit on a strip of extra ground at the bottom of each level, away from the
+screen edges, so your thumbs don't cover the action or trigger Android's "back" swipe gesture.
+
 ### Difficulty
 
 Pick a mode on the title screen. The game remembers your choice.

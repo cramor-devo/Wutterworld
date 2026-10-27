@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { pixelText, setPixelText } from '../art/text';
 import { audio } from '../audio/chiptune';
-import { GAME_HEIGHT, GAME_WIDTH } from '../config';
+import { FIXED_LAYOUT_HEIGHT, FIXED_LAYOUT_TOP, GAME_WIDTH } from '../config';
 import { cycleDifficulty, type Difficulty, DIFFICULTIES, DIFFICULTY_ORDER, isDifficulty, loadDifficulty, saveDifficulty } from '../logic/difficulty';
 import { addBackdrop, addBubbles, addBrandLogo, centreFixedLayout, fadeTo, onViewResize, setHook } from './common';
 
@@ -60,8 +60,8 @@ export class TitleScene extends Phaser.Scene {
     const prompt = pixelText(this, GAME_WIDTH / 2, 138, 'TAP OR PRESS SPACE TO START', { originX: 0.5 });
     this.tweens.add({ targets: prompt, alpha: 0.2, duration: 600, yoyo: true, repeat: -1 });
     this.logo = addBrandLogo(this, GAME_WIDTH / 2, 184);
-    pixelText(this, -offset + 4, GAME_HEIGHT - 10, `V${APP_VERSION}`, { color: 0x7fb8d0, shadow: null });
-    pixelText(this, GAME_WIDTH + offset - 4, GAME_HEIGHT - 10, 'M: MUTE', { color: 0x7fb8d0, shadow: null, originX: 1 });
+    pixelText(this, -offset + 4, FIXED_LAYOUT_HEIGHT + FIXED_LAYOUT_TOP - 10, `V${APP_VERSION}`, { color: 0x7fb8d0, shadow: null });
+    pixelText(this, GAME_WIDTH + offset - 4, FIXED_LAYOUT_HEIGHT + FIXED_LAYOUT_TOP - 10, 'M: MUTE', { color: 0x7fb8d0, shadow: null, originX: 1 });
 
     // Tapping a mode picks it and starts; tapping anywhere else starts with the highlighted mode.
     this.input.on('pointerup', (p: Phaser.Input.Pointer) => {

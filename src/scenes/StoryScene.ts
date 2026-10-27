@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { pixelText, setPixelText } from '../art/text';
 import { audio } from '../audio/chiptune';
-import { GAME_HEIGHT, GAME_WIDTH } from '../config';
+import { FIXED_LAYOUT_HEIGHT, FIXED_LAYOUT_TOP, GAME_HEIGHT, GAME_WIDTH } from '../config';
 import { getStory, type PanelArt, type Story, wrapText } from '../story';
 import { centreFixedLayout, fadeTo, onViewResize, setHook } from './common';
 
@@ -42,9 +42,9 @@ export class StoryScene extends Phaser.Scene {
     this.art.setMask(mask);
 
     for (let i = 0; i < 4; i++) this.lines.push(pixelText(this, 16, TEXT_Y + i * 10, ''));
-    const next = pixelText(this, GAME_WIDTH + offset - 14, GAME_HEIGHT - 12, 'TAP >', { color: 0xffd25e, originX: 1 });
+    const next = pixelText(this, GAME_WIDTH + offset - 14, FIXED_LAYOUT_HEIGHT + FIXED_LAYOUT_TOP - 12, 'TAP >', { color: 0xffd25e, originX: 1 });
     this.tweens.add({ targets: next, alpha: 0.2, duration: 500, yoyo: true, repeat: -1 });
-    const skip = pixelText(this, -offset + 14, GAME_HEIGHT - 12, 'SKIP: ESC', { color: 0x5f7790, shadow: null });
+    const skip = pixelText(this, -offset + 14, FIXED_LAYOUT_HEIGHT + FIXED_LAYOUT_TOP - 12, 'SKIP: ESC', { color: 0x5f7790, shadow: null });
     // Re-centre after a rotation without losing the current panel.
     onViewResize(this, (width) => {
       const o = centreFixedLayout(this);
