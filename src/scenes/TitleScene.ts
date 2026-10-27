@@ -6,7 +6,7 @@ import { titleTagline } from '../levels/chapters';
 import { cycleDifficulty, type Difficulty, DIFFICULTIES, DIFFICULTY_ORDER, isDifficulty, loadDifficulty, saveDifficulty } from '../logic/difficulty';
 import { addBackdrop, addBubbles, addBrandLogo, centreFixedLayout, fadeTo, onViewResize, setHook } from './common';
 
-export const APP_VERSION = '0.2.1';
+export const APP_VERSION = '1.0.0';
 
 const MODE_Y = 117;
 const MODE_GAP = 12;
