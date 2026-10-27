@@ -55,7 +55,7 @@ Pick a mode on the title screen. The game remembers your choice.
 | **Scenic** | 5, never lost (you cannot die) | none, hits only push you back | calm: they never chase, puff up or hurt |
 | **Easy** | 10 | 40% less (0.6 heart) | normal |
 | **Normal** (default) | 5 | 1 heart | normal |
-| **Hard** | 5 | 1 heart | extra crabs and triggerfish in Coral Gardens, extra crabs and seagulls on the beach, extra cats and seagulls in the night market and Jiufen |
+| **Hard** | 5 | 1 heart | extra crabs and triggerfish in Coral Gardens, extra crabs and seagulls on the beach, extra cats and seagulls in the night market and Jiufen, extra crabs and seagulls on the typhoon coast |
 
 ### Puffer fish
 
@@ -99,6 +99,18 @@ balls, 魚丸湯 fish ball soup, 香腸 sausage, 花生捲冰淇淋 peanut ice c
 - Murky puddles in the steps refill the water tank. Street cats and seagulls are the enemies.
 - A crowd strolls along the street. Look for a quiet **masked spirit** in a black robe: walk up to it and it waves.
 
+### The typhoon: wind, rain and rocks to hide behind
+
+Signal No. 8 on the Northeast Coast is dry land in a storm, with the lights of Jiufen glowing on the mountain behind
+you. The **wind** is the main threat. It follows a fixed rhythm: calm for about 4.5 seconds, then a **warning** (wind
+streaks, the windsock top right starts flapping, a "WIND!" label and a siren), then a **gust** of about 2 seconds that
+pushes Wutter back toward the land, away from the sea and the exit. Keep walking and you still move forward, slowly.
+
+- **Hide behind a rock**: a wall or rock up to two tiles to your right blocks the gust.
+- **Crabs and seagulls** are blown around by the gusts too (seagulls more than crabs).
+- The **rain** slowly refills the water tank (harder during a gust), so there are only a few puddles.
+- Gusts are gentler on Scenic and Easy, and a bit stronger on Hard.
+
 ### What is playable now (v0.3.0)
 
 1. **Story intro**: four illustrated panels.
@@ -114,9 +126,12 @@ balls, 魚丸湯 fish ball soup, 香腸 sausage, 花生捲冰淇淋 peanut ice c
 8. **Chapter end** story panels: a bus winds up the mountain to Jiufen.
 9. **Lantern Hill**, Jiufen: the covered Jishan Street and the stairs of Shuqi Road, souvenir platforms, a strolling
    crowd with a masked spirit, street cats and seagulls.
-10. **Thank-you** story panels (a typhoon is coming to the Northeast Coast), then back to the title screen.
+10. **Chapter end** story panels: Typhoon Signal No. 8 is coming; Wutter hurries to the coast.
+11. **Signal No. 8**, Northeast Coast: storm sky and rain, wind gusts with a warning, rocks to shelter behind, crabs
+    and seagulls blown about by the wind.
+12. **Thank-you** story panels (a huge wave sweeps Wutter into the deep sea), then back to the title screen.
 
-Planned route for v1.0.0: Typhoon → The Midnight Zone (deep sea) → a festive
+Planned route for v1.0.0: The Midnight Zone (deep sea) → a festive
 **Home Reef** finale (issues #14 to #18).
 
 ## Development
@@ -142,7 +157,7 @@ The scripts live in `.github/scripts/dev.ps1`.
 
 **Handy URL options:**
 
-- `?level=coral-gardens` (or `?level=reef-tutorial`, `?level=beach`, `?level=night-market`, `?level=jiufen`)
+- `?level=coral-gardens` (or `?level=reef-tutorial`, `?level=beach`, `?level=night-market`, `?level=jiufen`, `?level=typhoon`)
   jumps straight into a level.
 - `?difficulty=scenic` (or `easy`, `normal`, `hard`) plays with that difficulty without changing the saved
   choice. Combine options with `&`, for example `?level=coral-gardens&difficulty=hard`.
@@ -177,8 +192,8 @@ Levels are ASCII maps in `src/levels/index.ts`. Every map is 14 rows of 16 px ti
 | `^` `>` `<` | water currents | `S` | tutorial sign |
 | `w` `g` `L` `T` | seaweed, sea fan, stone lantern, paifang gate (decoration) | `.` | water (air on the beach) |
 | `Y` `U` | palm tree, beach umbrella (decoration) | `j` `G` | beached jellyfish, seagull |
-| `~` | puddle (refills the water tank; murky in the market and Jiufen) | `M` | night market gate (decoration) |
-| `b` `B` | cardboard box, soybean oil can (solid; stack `B` for a tall can); in Jiufen pineapple cake or nougat box, tea tin | `z` `k` | stinky tofu, street cat |
+| `~` | puddle (refills the water tank; murky in the market and Jiufen, rain-filled on the typhoon coast) | `M` | night market gate (decoration) |
+| `b` `B` | cardboard box, soybean oil can (solid; stack `B` for a tall can); in Jiufen pineapple cake or nougat box, tea tin; on the typhoon coast sandbags and a bollard | `z` `k` | stinky tofu, street cat |
 | `V` | old cinema (decoration, Jiufen) | | |
 
 The unit tests check that every level parses and that its exit can be reached.
