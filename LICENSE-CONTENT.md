@@ -12,7 +12,8 @@ to copy, modify, distribute or create derivative works of them, except:
 
 ## Covered files
 
-The following paths contain the creative content. Everything else in the repository is code under the MIT license.
+The following paths contain the creative content. Everything else, including the parts of these files not named
+below, is code under the MIT license.
 
 <!-- Keep this list up to date: tests/license.test.ts checks that every path exists. -->
 
@@ -22,6 +23,8 @@ The following paths contain the creative content. Everything else in the reposit
 - `src/audio/music.ts`: the melodies
 - `src/art/**`: the characters, sprites, backdrops, font and other art, except the generic drawing helpers
   `src/art/canvas.ts` and `src/art/text.ts` (MIT)
+- `src/scenes/StoryScene.ts`: the story-panel illustrations in the functions `drawPanel()` and `partyDecor()`; the
+  rest of the scene-control code in this file stays MIT
 - `public/icons/**`: the app icons
 
 ## Earlier versions
