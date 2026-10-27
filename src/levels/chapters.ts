@@ -15,7 +15,7 @@ export const CHAPTERS: readonly Chapter[] = [
   { id: 'beach', title: 'Beach Escape', place: 'Kenting Beach', playable: true },
   { id: 'night-market', title: 'Lanterns & Lines', place: 'Taipei Night Market', playable: true },
   { id: 'jiufen', title: 'Lantern Hill', place: 'Jiufen', playable: true },
-  { id: 'typhoon', title: 'Signal No. 8', place: 'Northeast Coast', playable: false },
+  { id: 'typhoon', title: 'Signal No. 8', place: 'Northeast Coast', playable: true },
   { id: 'abyss', title: 'The Midnight Zone', place: 'Abyssal Sea', playable: false },
   // Finale: the home reef again, decorated festively to celebrate a safe return.
   { id: 'festive-reef', title: 'Festive Home Reef', place: 'Kenting', playable: false },
