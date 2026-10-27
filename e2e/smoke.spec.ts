@@ -182,6 +182,26 @@ test('level shortcut loads the Typhoon, Wutter can walk in the calm and the wind
   expect(errors).toEqual([]);
 });
 
+test('level shortcut loads the Midnight Zone and Wutter can swim through the deep sea (issue #17)', async ({ page, isMobile }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('./?level=abyss');
+  await waitForScene(page, 'Level');
+  const start = await hook(page);
+  expect(start?.level).toBe('abyss');
+  if (!isMobile) {
+    await page.waitForTimeout(400);
+    const startX = (await hook(page))?.player?.x ?? 0;
+    await page.keyboard.down('ArrowRight');
+    await page.waitForTimeout(800);
+    await page.keyboard.up('ArrowRight');
+    expect((await hook(page))?.player?.x ?? 0).toBeGreaterThan(startX + 20);
+  }
+  // Let the squids and anglerfish run their AI for a moment: no errors.
+  await page.waitForTimeout(1500);
+  expect(errors).toEqual([]);
+});
+
 test('leaving a scene with an empty gamepad slot still starts the next scene (issue #31)', async ({ page, isMobile }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));

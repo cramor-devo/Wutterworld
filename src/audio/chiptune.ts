@@ -1,6 +1,6 @@
 import { midiToFrequency, parsePattern, SONGS, type SongId } from './music';
 
-export type Sfx = 'jump' | 'pickup' | 'pearl' | 'hit' | 'thread' | 'stomp' | 'shield' | 'clear' | 'squawk' | 'splash' | 'meow' | 'siren' | 'gust';
+export type Sfx = 'jump' | 'pickup' | 'pearl' | 'hit' | 'thread' | 'stomp' | 'shield' | 'clear' | 'squawk' | 'splash' | 'meow' | 'siren' | 'gust' | 'squid' | 'lure';
 
 const MUTE_KEY = 'wutter-muted';
 
@@ -175,6 +175,14 @@ export class Chiptune {
       case 'gust':
         // A low whoosh as the gust hits.
         return sweep(180, 60, 0.9, 'sawtooth', 0.25);
+      case 'squid':
+        // A low, wobbly rumble as the giant squid's eyes light up.
+        sweep(140, 220, 0.25, 'triangle', 0.6);
+        return sweep(220, 110, 0.35, 'triangle', 0.6, 0.25);
+      case 'lure':
+        // Two soft pings as the anglerfish's lure flashes.
+        sweep(1400, 1500, 0.08, 'sine', 0.35);
+        return sweep(1400, 1500, 0.08, 'sine', 0.35, 0.18);
     }
   }
 }

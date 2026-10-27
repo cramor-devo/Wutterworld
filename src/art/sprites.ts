@@ -410,6 +410,117 @@ export const STONE_LANTERN: SpriteDef = {
   ],
 };
 
+const SQUID_MANTLE = [
+  '.......kk.......',
+  '......kppk......',
+  '.....kpppPk.....',
+  '....kpprppPk....',
+  '...kkppppPPkk...',
+  '..kpkppprpPkPk..',
+  '...kkppppPPkk...',
+  '....kprpppPk....',
+  '....kppppppk....',
+];
+
+// Giant squid of the Midnight Zone, mantle up: swim (0-1), glowing eyes before a lunge (2), lunge (3).
+export const GIANT_SQUID: SpriteDef = {
+  palette: { k: OUTLINE, i: OUTLINE, p: '#d65a84', P: '#8e2f5a', r: '#ffa6cf', e: '#ffffff', y: '#fff27a', Y: '#ff8a2a' },
+  frames: [
+    [
+      ...SQUID_MANTLE,
+      '...kpeippiepk...',
+      '...kppppppppk...',
+      '....kpkppkpk....',
+      '...kpkpkkpkpk...',
+      '..kp.kp..pk.pk..',
+      '..kp.kp..pk.pk..',
+      '.kp..kp..pk..pk.',
+      '.kp...kppk...pk.',
+      'kp.....kk.....pk',
+      'k..............k',
+      '................',
+    ],
+    [
+      ...SQUID_MANTLE,
+      '...kpeippiepk...',
+      '...kppppppppk...',
+      '....kpkppkpk....',
+      '...kpkpkkpkpk...',
+      '...kp.kpkp.pk...',
+      '..kp..kppk..pk..',
+      '..kp..kppk..pk..',
+      '.kp..kp..pk..pk.',
+      '.kp.kp....pk.pk.',
+      'kp..k......k..pk',
+      'k..............k',
+    ],
+    [
+      ...SQUID_MANTLE,
+      '...kpyYppYypk...',
+      '...kppppppppk...',
+      '....kpkppkpk....',
+      '...kpkpkkpkpk...',
+      '..kp.kp..pk.pk..',
+      '..kp.kp..pk.pk..',
+      '.kp..kp..pk..pk.',
+      '.kp...kppk...pk.',
+      'kp.....kk.....pk',
+      'k..............k',
+      '................',
+    ],
+    [
+      ...SQUID_MANTLE,
+      '...kpyYppYypk...',
+      '...kppppppppk...',
+      '....kppppppk....',
+      '.....kppppk.....',
+      '.....kpkkpk.....',
+      '.....kp..pk.....',
+      '....kp....pk....',
+      '....kp....pk....',
+      '...kp......pk...',
+      '...k........k...',
+      '................',
+    ],
+  ],
+};
+
+const ANGLER_TOP = [
+  '.ll.............',
+  'lLls............',
+  '.ll.s...........',
+  '.....skkkkk.....',
+  '....kbbbbbbkk..k',
+  '...kbbbbbbbbbkkB',
+  '..keibbbbbbbbbBk',
+  '.kbbbbbbbbbbbbBk',
+];
+
+// Deep-sea anglerfish, facing left, its lure dangling in front: mouth shut (0) and gaping before a dash (1).
+export const ANGLERFISH: SpriteDef = {
+  palette: { k: OUTLINE, i: OUTLINE, e: '#e8f0ff', b: '#7183ad', B: '#43507a', w: '#f4f0e0', l: '#bfffe8', L: '#ffffff', s: '#9aaccc', m: '#7a1a2a' },
+  frames: [
+    [
+      ...ANGLER_TOP,
+      'kwkwkwbbbbbbbkkB',
+      'kkkkkkbbbbbbbk.k',
+      '.kwkwkbbbbbbk...',
+      '..kkkkbbbbbk....',
+      '......kkkkk.....',
+      '................',
+    ],
+    [
+      ...ANGLER_TOP,
+      'kwkwkwbbbbbbbkkB',
+      'kmmmmmbbbbbbbk.k',
+      'kwkwkwbbbbbbk...',
+      '.kkkkkbbbbbk....',
+      '......kkkkk.....',
+      '................',
+    ],
+  ],
+};
+
 export const ALL_SPRITES: Record<string, SpriteDef> = {
   cucumber: SEA_CUCUMBER,
   crab: CRAB,
@@ -418,6 +529,8 @@ export const ALL_SPRITES: Record<string, SpriteDef> = {
   triggerfish: TRIGGERFISH,
   seagull: SEAGULL,
   cat: CAT,
+  squid: GIANT_SQUID,
+  anglerfish: ANGLERFISH,
   jellyfish: JELLYFISH,
   'jellyfish-sting': JELLYFISH_STING,
   'drop-icon': DROP_ICON,

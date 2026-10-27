@@ -1,7 +1,7 @@
 import type { NextStep } from './levels';
 
 /** Which illustration the story scene draws behind the text. */
-export type PanelArt = 'reef-night' | 'surface-lights' | 'hungry-mouths' | 'threads' | 'tide-pool' | 'beach-ahead' | 'market-lights' | 'jiufen-hills' | 'typhoon-clouds' | 'big-wave' | 'deep-sea';
+export type PanelArt = 'reef-night' | 'surface-lights' | 'hungry-mouths' | 'threads' | 'tide-pool' | 'beach-ahead' | 'market-lights' | 'jiufen-hills' | 'typhoon-clouds' | 'big-wave' | 'deep-sea' | 'glow-ascent';
 
 export interface StoryPanel {
   art: PanelArt;
@@ -66,7 +66,17 @@ export const STORIES: Record<string, Story> = {
     panels: [
       { art: 'typhoon-clouds', text: 'AT LAST, THE SEA! WUTTER CRAWLED TO THE EDGE OF THE ROCKS, SOAKED AND HAPPY.' },
       { art: 'big-wave', text: 'THEN A HUGE WAVE ROSE OUT OF THE STORM... AND SWEPT WUTTER FAR OUT INTO THE DEEP, DARK SEA!' },
-      { art: 'deep-sea', text: 'DOWN, DOWN, DOWN... TO WHERE THE SUN NEVER SHINES. TO BE CONTINUED... THANK YOU FOR PLAYING!' },
+      { art: 'deep-sea', text: 'DOWN, DOWN, DOWN... TO WHERE THE SUN NEVER SHINES. BUT SOMETHING DOWN HERE IS GLOWING...' },
+      { art: 'deep-sea', text: 'WUTTER WAS NOT SCARED. IT TOOK A DEEP BREATH OF COLD WATER. CHAPTER 6: THE MIDNIGHT ZONE!' },
+    ],
+    next: { type: 'level', id: 'abyss' },
+  },
+  'chapter-6-end': {
+    id: 'chapter-6-end',
+    panels: [
+      { art: 'deep-sea', text: 'THE GLOWING JELLYFISH ROSE IN A SLOW, SHINING CLOUD, AND WUTTER FLOATED UP WITH THEM.' },
+      { art: 'glow-ascent', text: 'UP AND UP, THE WATER TURNED FROM BLACK TO BLUE. FAR ABOVE, FAMILIAR LIGHTS WERE DANCING.' },
+      { art: 'surface-lights', text: 'THE LANTERN LIGHTS OF KENTING! HOME AT LAST... TO BE CONTINUED. THANK YOU FOR PLAYING!' },
     ],
     next: { type: 'title' },
   },

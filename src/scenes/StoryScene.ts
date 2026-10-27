@@ -281,5 +281,21 @@ function drawPanel(scene: Phaser.Scene, c: Phaser.GameObjects.Container, art: Pa
       img(cx, y + 66, 'cucumber', 2).setAngle(160);
       break;
     }
+    case 'glow-ascent': {
+      // Rising out of the dark with the glowing jellyfish: black water below, blue water and lights above.
+      bands([0x1a4a80, 0x123a6b, 0x0c2852, 0x081936, 0x050f22, 0x030814]);
+      g.fillStyle(0xffd27a, 0.7);
+      for (let i = 0; i < 7; i++) g.fillRect(x + 14 + i * 34, y + 3 + ((i * 3) % 4), 6, 2);
+      g.fillStyle(0x88c8ff, 0.15).fillTriangle(cx - 40, y, cx + 60, y, cx + 10, y + 70);
+      const jellies: [number, number, number][] = [[-70, 70, 0xc89aff], [-36, 44, 0x7ad8ff], [40, 58, 0xc89aff], [74, 30, 0x7ad8ff], [-90, 24, 0x7ad8ff]];
+      for (const [dx, dy, col] of jellies) {
+        g.fillStyle(col, 0.2).fillCircle(cx + dx, y + dy, 11);
+        g.fillStyle(col).fillEllipse(cx + dx, y + dy, 12, 7);
+        for (let t = 0; t < 4; t++) g.fillRect(cx + dx - 5 + t * 3, y + dy + 3, 1, 8);
+      }
+      for (let i = 0; i < 4; i++) img(cx + 14 + i * 3, y + 34 + i * 12, 'bubble', 1);
+      img(cx + 4, y + 70, 'cucumber', 2).setAngle(-90);
+      break;
+    }
   }
 }

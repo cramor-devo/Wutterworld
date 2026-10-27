@@ -7,6 +7,7 @@ import {
   isBouncer,
   isGroundWalker,
   JELLYFISH_CYCLE_MS,
+  lureGlow,
   PUFFER_CYCLE_MS,
   pounceVelocity,
   pufferPhaseForColumn,
@@ -267,6 +268,167 @@ describe('seagull', () => {
     b.state = 'dive';
     expect(stepEnemy(b, ctx({ y: 120, passive: true })).dangerous).toBe(false);
     expect(b.state).toBe('climb');
+  });
+});
+
+describe('giant squid (issue #17)', () => {
+  const T = ENEMY_TUNING.squid;
+  const near = { playerX: 130, playerY: 150 };
+
+  it('floats in open water like a fish and ignores a player who is far away', () => {
+    expect(isGroundWalker('squid')).toBe(false);
+    expect(isBouncer('squid')).toBe(false);
+    const b = createBrain('squid', 100, 100);
+    const i = stepEnemy(b, ctx({ dtMs: T.cooldownMs }));
+    expect(b.state).toBe('patrol');
+    expect(i.dangerous).toBe(true);
+    expect(i.stompable).toBe(true);
+  });
+
+  it('lights its eyes, lunges at where the player was in any direction, then glides home', () => {
+    const b = createBrain('squid', 100, 100);
+    stepEnemy(b, ctx(near));
+    expect(b.state).toBe('warning');
+    const warn = stepEnemy(b, ctx({ ...near, dtMs: 10 }));
+    expect([warn.vx, warn.vy]).toEqual([0, 0]);
+    stepEnemy(b, ctx({ ...near, dtMs: T.warnMs }));
+    expect(b.state).toBe('lunge');
+    expect([b.targetX, b.targetY]).toEqual([130, 150]);
+    // The lunge keeps its aim even if the player moves away.
+    const lunge = stepEnemy(b, ctx({ playerX: 0, playerY: 0 }));
+    expect(lunge.vx).toBeGreaterThan(0);
+    expect(lunge.vy).toBeGreaterThan(0);
+    expect(Math.hypot(lunge.vx, lunge.vy)).toBeCloseTo(T.lungeSpeed);
+    stepEnemy(b, ctx({ x: 129, y: 149 }));
+    expect(b.state).toBe('return');
+    const back = stepEnemy(b, ctx({ x: 130, y: 150 }));
+    expect(back.vx).toBeLessThan(0);
+    expect(back.vy).toBeLessThan(0);
+    stepEnemy(b, ctx({ x: 101, y: 101 }));
+    expect(b.state).toBe('patrol');
+    // Cooldown: no second lunge straight away.
+    stepEnemy(b, ctx(near));
+    expect(b.state).toBe('patrol');
+    stepEnemy(b, ctx({ ...near, dtMs: T.cooldownMs }));
+    expect(b.state).toBe('warning');
+  });
+
+  it('also lunges upward at a player swimming above it', () => {
+    const b = createBrain('squid', 100, 100);
+    stepEnemy(b, ctx({ playerX: 100, playerY: 40 }));
+    stepEnemy(b, ctx({ playerX: 100, playerY: 40, dtMs: T.warnMs }));
+    expect(stepEnemy(b, ctx()).vy).toBeLessThan(0);
+  });
+
+  it('gives up a lunge after a timeout or when it hits a wall', () => {
+    const b = createBrain('squid', 100, 100);
+    b.state = 'lunge';
+    b.timer = T.maxLungeMs;
+    b.targetX = 500;
+    stepEnemy(b, ctx({ blocked: true }));
+    expect(b.state).toBe('return');
+    b.state = 'lunge';
+    b.timer = T.maxLungeMs;
+    stepEnemy(b, ctx({ dtMs: T.maxLungeMs }));
+    expect(b.state).toBe('return');
+    // Lunging up into the underside of the wreck ends the lunge at once.
+    b.state = 'lunge';
+    b.timer = T.maxLungeMs;
+    b.targetX = 100;
+    b.targetY = 0;
+    stepEnemy(b, ctx({ blockedVertical: true }));
+    expect(b.state).toBe('return');
+  });
+
+  it('can be stomped or stunned, and sinks while stunned', () => {
+    const b = createBrain('squid', 100, 100);
+    stunEnemy(b);
+    expect(stepEnemy(b, ctx()).vy).toBeGreaterThan(0);
+    defeatEnemy(b);
+    expect(stepEnemy(b, ctx(near)).dangerous).toBe(false);
+  });
+
+  it('never lunges in scenic mode and goes home if it was lunging', () => {
+    const b = createBrain('squid', 100, 100);
+    for (let i = 0; i < 10; i++) stepEnemy(b, ctx({ ...near, dtMs: 500, passive: true }));
+    expect(b.state).toBe('patrol');
+    b.state = 'lunge';
+    expect(stepEnemy(b, ctx({ x: 130, y: 150, passive: true })).dangerous).toBe(false);
+    expect(b.state).toBe('return');
+  });
+});
+
+describe('anglerfish (issue #17)', () => {
+  const T = ENEMY_TUNING.anglerfish;
+  // Anglerfish start facing left, so "ahead" is to the left of x = 100.
+  const ahead = { playerX: 60, playerY: 104 };
+
+  it('patrols slowly, hurts on touch and can be stomped', () => {
+    const b = createBrain('anglerfish', 100, 100);
+    const i = stepEnemy(b, ctx());
+    expect(b.state).toBe('patrol');
+    expect(Math.abs(i.vx)).toBe(T.speed);
+    expect(i.dangerous).toBe(true);
+    expect(i.stompable).toBe(true);
+  });
+
+  it('flashes its lure, dashes straight ahead, then rests', () => {
+    const b = createBrain('anglerfish', 100, 100);
+    stepEnemy(b, ctx(ahead));
+    expect(b.state).toBe('warning');
+    expect(stepEnemy(b, ctx({ ...ahead, dtMs: 10 })).vx).toBe(0);
+    stepEnemy(b, ctx({ ...ahead, dtMs: T.warnMs }));
+    expect(b.state).toBe('dash');
+    const dash = stepEnemy(b, ctx({ playerX: 500 }));
+    expect(dash.vx).toBe(-T.dashSpeed);
+    expect(dash.vy).toBe(0);
+    stepEnemy(b, ctx({ dtMs: T.dashMs }));
+    expect(b.state).toBe('rest');
+    // Resting: it does not notice the player again until the rest is over.
+    expect(stepEnemy(b, ctx(ahead)).vx).toBe(0);
+    expect(b.state).toBe('rest');
+    stepEnemy(b, ctx({ dtMs: T.restMs }));
+    expect(b.state).toBe('patrol');
+  });
+
+  it('ignores a player behind it or far above or below', () => {
+    const b = createBrain('anglerfish', 100, 100);
+    stepEnemy(b, ctx({ playerX: 140, playerY: 100 }));
+    expect(b.state).toBe('patrol');
+    stepEnemy(b, ctx({ playerX: 60, playerY: 100 + T.verticalSight + 10 }));
+    expect(b.state).toBe('patrol');
+    stepEnemy(b, ctx({ playerX: 100 - T.noticeX - 10, playerY: 100 }));
+    expect(b.state).toBe('patrol');
+  });
+
+  it('stops a dash at a wall', () => {
+    const b = createBrain('anglerfish', 100, 100);
+    b.state = 'dash';
+    b.timer = T.dashMs;
+    stepEnemy(b, ctx({ blocked: true }));
+    expect(b.state).toBe('rest');
+  });
+
+  it('its lure pulses gently while it patrols and flashes as a warning', () => {
+    const b = createBrain('anglerfish', 100, 100);
+    const glows = Array.from({ length: 20 }, () => {
+      stepEnemy(b, ctx({ dtMs: T.lureMs / 20 }));
+      return lureGlow(b);
+    });
+    expect(Math.min(...glows)).toBeGreaterThan(0.15);
+    expect(Math.max(...glows)).toBeLessThanOrEqual(1);
+    expect(Math.max(...glows) - Math.min(...glows)).toBeGreaterThan(0.5);
+    stepEnemy(b, ctx(ahead));
+    const flashes = new Set(Array.from({ length: 6 }, () => (stepEnemy(b, ctx({ ...ahead, dtMs: 90 })), lureGlow(b))));
+    expect(flashes).toEqual(new Set([1, 0.35]));
+    defeatEnemy(b);
+    expect(lureGlow(b)).toBe(0);
+  });
+
+  it('never dashes in scenic mode', () => {
+    const b = createBrain('anglerfish', 100, 100);
+    for (let i = 0; i < 10; i++) stepEnemy(b, ctx({ ...ahead, dtMs: 500, passive: true }));
+    expect(b.state).toBe('patrol');
   });
 });
 

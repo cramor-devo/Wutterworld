@@ -22,6 +22,8 @@ import type { PickupKind } from '../logic/score';
  * Jiufen (stone stairs are '=' columns of different heights; 'b' and 'B' are drawn as souvenirs by its tileset):
  *   b  pineapple-cake or nougat gift box   B  tea tin (stack them for a tall tin; the top one gets the lid)
  *   V  the old cinema (decor, after Shengping Theatre)
+ * Midnight Zone (deep sea, underwater like the reef):
+ *   Q  giant squid (eyes glow, then it lunges)   n  anglerfish (lure flashes, then a short dash)
  */
 export const SOLID_CHARS = ['#', '=', 'C', 'R', 'b', 'B'] as const;
 
@@ -70,7 +72,7 @@ export interface ParsedLevel {
 }
 
 const PICKUPS: Record<string, PickupKind> = { o: 'plankton', O: 'pearl', A: 'anemone' };
-const ENEMIES: Record<string, EnemyKind> = { c: 'crab', f: 'puffer', t: 'triggerfish', j: 'jellyfish', G: 'seagull', k: 'cat' };
+const ENEMIES: Record<string, EnemyKind> = { c: 'crab', f: 'puffer', t: 'triggerfish', j: 'jellyfish', G: 'seagull', k: 'cat', Q: 'squid', n: 'anglerfish' };
 const CURRENTS: Record<string, CurrentKind> = { '^': 'up', '>': 'right', '<': 'left' };
 const DECOR: Record<string, DecorKind> = { w: 'seaweed', g: 'seafan', L: 'lantern', T: 'gate', Y: 'palm', U: 'umbrella', M: 'market-gate', V: 'cinema' };
 const KNOWN = new Set(['.', 'P', 'E', 'S', '~', 'z', ...SOLID_CHARS, ...Object.keys(PICKUPS), ...Object.keys(ENEMIES), ...Object.keys(CURRENTS), ...Object.keys(DECOR)]);

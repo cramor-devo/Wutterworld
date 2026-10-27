@@ -55,7 +55,7 @@ Pick a mode on the title screen. The game remembers your choice.
 | **Scenic** | 5, never lost (you cannot die) | none, hits only push you back | calm: they never chase, puff up or hurt |
 | **Easy** | 10 | 40% less (0.6 heart) | normal |
 | **Normal** (default) | 5 | 1 heart | normal |
-| **Hard** | 5 | 1 heart | extra crabs and triggerfish in Coral Gardens, extra crabs and seagulls on the beach, extra cats and seagulls in the night market and Jiufen, extra crabs and seagulls on the typhoon coast |
+| **Hard** | 5 | 1 heart | extra crabs and triggerfish in Coral Gardens, extra crabs and seagulls on the beach, extra cats and seagulls in the night market and Jiufen, extra crabs and seagulls on the typhoon coast, extra squids and anglerfish in the Midnight Zone |
 
 ### Puffer fish
 
@@ -111,6 +111,18 @@ pushes Wutter back toward the land, away from the sea and the exit. Keep walking
 - The **rain** slowly refills the water tank (harder during a gust), so there are only a few puddles.
 - Gusts are gentler on Scenic and Easy, and a bit stronger on Hard.
 
+### The Midnight Zone: giant squids and anglerfish
+
+The Abyssal Sea off Taiwan is underwater again: Wutter swims just like on the reef. It is dark down here, but the
+creatures glow, so the level itself is always easy to see.
+
+- **Giant squids** drift in open water. When Wutter comes close, their eyes light up and they rumble. Then they
+  lunge straight at where Wutter was (up, down or sideways) and glide back home. Swim away from the spot during the
+  warning, then stomp them or stun them with threads.
+- **Anglerfish** patrol slowly with a softly glowing lure. If Wutter swims right in front of one, the lure flashes,
+  then it dashes a short way ahead and rests. Stay above or below it, or stomp it.
+- Ride the up-currents to the old shipwreck and, at the end, up to the exit.
+
 ### What is playable now (v0.3.0)
 
 1. **Story intro**: four illustrated panels.
@@ -129,10 +141,12 @@ pushes Wutter back toward the land, away from the sea and the exit. Keep walking
 10. **Chapter end** story panels: Typhoon Signal No. 8 is coming; Wutter hurries to the coast.
 11. **Signal No. 8**, Northeast Coast: storm sky and rain, wind gusts with a warning, rocks to shelter behind, crabs
     and seagulls blown about by the wind.
-12. **Thank-you** story panels (a huge wave sweeps Wutter into the deep sea), then back to the title screen.
+12. **Chapter end** story panels: a huge wave sweeps Wutter into the deep sea, where something is glowing.
+13. **The Midnight Zone**, Abyssal Sea: dark water with glowing creatures, giant squids that warn and lunge, and
+    anglerfish with a glowing lure.
+14. **Thank-you** story panels (Wutter rises toward the lantern lights of Kenting), then back to the title screen.
 
-Planned route for v1.0.0: The Midnight Zone (deep sea) → a festive
-**Home Reef** finale (issues #14 to #18).
+Planned route for v1.0.0: a festive **Home Reef** finale (issue #18).
 
 ## Development
 
@@ -157,7 +171,8 @@ The scripts live in `.github/scripts/dev.ps1`.
 
 **Handy URL options:**
 
-- `?level=coral-gardens` (or `?level=reef-tutorial`, `?level=beach`, `?level=night-market`, `?level=jiufen`, `?level=typhoon`)
+- `?level=coral-gardens` (or `?level=reef-tutorial`, `?level=beach`, `?level=night-market`, `?level=jiufen`, `?level=typhoon`,
+  `?level=abyss`)
   jumps straight into a level.
 - `?difficulty=scenic` (or `easy`, `normal`, `hard`) plays with that difficulty without changing the saved
   choice. Combine options with `&`, for example `?level=coral-gardens&difficulty=hard`.
@@ -194,7 +209,7 @@ Levels are ASCII maps in `src/levels/index.ts`. Every map is 14 rows of 16 px ti
 | `Y` `U` | palm tree, beach umbrella (decoration) | `j` `G` | beached jellyfish, seagull |
 | `~` | puddle (refills the water tank; murky in the market and Jiufen, rain-filled on the typhoon coast) | `M` | night market gate (decoration) |
 | `b` `B` | cardboard box, soybean oil can (solid; stack `B` for a tall can); in Jiufen pineapple cake or nougat box, tea tin; on the typhoon coast sandbags and a bollard | `z` `k` | stinky tofu, street cat |
-| `V` | old cinema (decoration, Jiufen) | | |
+| `V` | old cinema (decoration, Jiufen) | `Q` `n` | giant squid, anglerfish |
 
 The unit tests check that every level parses and that its exit can be reached.
 

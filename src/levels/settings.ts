@@ -2,7 +2,7 @@
  * Where a level takes place. The reef is underwater; every other setting is dry land, where Wutter carries a water
  * tank and refills it in puddles. New land settings only need a row in `SETTINGS`.
  */
-export type LevelSetting = 'reef' | 'beach' | 'market' | 'jiufen' | 'typhoon';
+export type LevelSetting = 'reef' | 'beach' | 'market' | 'jiufen' | 'typhoon' | 'abyss';
 
 export interface BackdropKeys {
   base: string;
@@ -127,6 +127,18 @@ export const SETTINGS: Record<LevelSetting, SettingStyle> = {
     storm: true,
     // Storm sky with rain; the mountains with lit-up Jiufen far away, the windswept coast and bent palms closer by.
     backdrop: { base: 'bg-storm', far: 'bg-typhoon-far', mid: 'bg-typhoon-mid', farH: 170, midH: 110, haze: { color: 0x3a4456, far: 0.2, mid: 0.12 } },
+  },
+  abyss: {
+    land: false,
+    bubbles: true,
+    clearBanner: 'ABYSS CLEAR!',
+    // Dark silt and basalt, glowing coral and the planks of a wreck; only living things light up the deep.
+    tileset: 'tiles-abyss',
+    puddle: 'puddle',
+    gate: 'gate',
+    lantern: 'lantern',
+    // Black-blue water with marine snow; a seamount with lanternfish far away, glowing jellyfish over the floor closer by.
+    backdrop: { base: 'bg-abyss', far: 'bg-abyss-far', mid: 'bg-abyss-mid', farH: 160, midH: 110, haze: { color: 0x040a1c, far: 0.2, mid: 0.12 } },
   },
 };
 
