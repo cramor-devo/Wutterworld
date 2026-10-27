@@ -34,6 +34,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   phones now fill the screen up to 576 px wide (was 512) ([#21](https://github.com/cramor-devo/Wutterworld/issues/21)).
 - The on-screen buttons sit a little higher and further from the screen edges, so pressing them no longer
   triggers the Android "back" swipe gesture ([#21](https://github.com/cramor-devo/Wutterworld/issues/21)).
+- Background layers are slightly hazed, more with distance, so Wutter and the enemies stand out and the scenery
+  has more depth ([#25](https://github.com/cramor-devo/Wutterworld/issues/25)).
 
 ## [0.3.0] - 2026-10-26
 
