@@ -80,6 +80,16 @@ export const SONGS = {
       'D3 . A3 . | D3 . A3 . | B2 . F#3 . | B2 . F#3 . | G2 . D3 . | G2 . D3 . | A2 . E3 . | A2 . E3 . | ' +
       'D3 . A3 . | B2 . F#3 . | G2 . D3 . | A2 . E3 . | B2 . F#3 . | G2 . D3 . | A2 . E3 . | D3 . A3 D3',
   },
+  // Nostalgic and unhurried for Jiufen at dusk: A minor pentatonic over a slow, swaying bass.
+  jiufen: {
+    bpm: 96,
+    lead:
+      'E5 - D5 C5 | A4 - G4 A4 | C5 - D5 E5 | D5 - - . | E5 - G5 A5 | G5 - E5 D5 | E5 - D5 C5 | A4 - - . | ' +
+      'A5 - G5 E5 | G5 - E5 D5 | C5 - D5 E5 | G5 - - . | A5 G5 E5 D5 | C5 - A4 C5 | D5 - E5 D5 | A4 - - .',
+    bass:
+      'A2 - E3 - | F2 - C3 - | C3 - G3 - | G2 - D3 - | A2 - E3 - | E2 - B2 - | F2 - C3 - | E2 - B2 - | ' +
+      'F2 - C3 - | C3 - G3 - | A2 - E3 - | G2 - D3 - | F2 - C3 - | A2 - E3 - | G2 - D3 - | A2 - E3 -',
+  },
 } satisfies Record<string, Song>;
 
 export type SongId = keyof typeof SONGS;

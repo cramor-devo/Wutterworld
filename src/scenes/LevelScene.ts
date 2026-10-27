@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { SHOP_FRAMES, SHOP_H, SHOP_W, SPIRIT_H, STROLLER_LOOKS } from '../art/jiufen';
 import { pixelText, setPixelText } from '../art/text';
 import { audio } from '../audio/chiptune';
 import { LEVEL_ROWS, type Physics, PHYSICS, PHYSICS_DRY, TILE } from '../config';
@@ -25,6 +26,7 @@ import { Health } from '../logic/health';
 import { clampFall, currentAcceleration, type CurrentKind, JumpController, stepHorizontal } from '../logic/movement';
 import { formatScore, LEVEL_CLEAR_BONUS, type PickupKind, Score } from '../logic/score';
 import { THREAD_SPEED, ThreadAbility, threadLifetimeMs } from '../logic/threads';
+import { easeY, flatSpans, floorRows, floorY, makeCrowd, spiritWaves, type Stroller, stepStroller } from '../logic/strollers';
 import { StickyFeet, StinkyTofu, TofuContact } from '../logic/tofu';
 import { WaterTank } from '../logic/water';
 import { wrapText } from '../story';
@@ -38,6 +40,16 @@ interface Enemy {
   sprite: ArcadeSprite;
   brain: EnemyBrain;
   intent: EnemyIntent;
+}
+
+/** Someone strolling through Jiufen (decor only: no body, never in Wutter's way). */
+interface Walker {
+  logic: Stroller;
+  sprite: Phaser.GameObjects.Sprite;
+  /** First frame of the walker's look in its texture (two walk frames per look). */
+  frame0: number;
+  /** Distance walked, to swap the legs every few px. */
+  walked: number;
 }
 
 interface Tofu {
@@ -78,6 +90,11 @@ export class LevelScene extends Phaser.Scene {
   private threadsGroup!: Phaser.Physics.Arcade.Group;
   private currents = new Map<string, CurrentKind>();
   private tofus: Tofu[] = [];
+  /** Jiufen's strolling crowd; the masked spirit (if any) is the last walker. */
+  private crowd: Walker[] = [];
+  private spirit: Walker | null = null;
+  /** Ground surface row per map column, for walkers following the steps. */
+  private floor: number[] = [];
   private tofuGroup!: Phaser.Physics.Arcade.StaticGroup;
   private sticky = new StickyFeet();
   /** Arcade physics steps run so far; tofu contact is tracked per step, not per millisecond. */
@@ -142,6 +159,8 @@ export class LevelScene extends Phaser.Scene {
     this.backdrop = addBackdrop(this, this.def.setting, LEVEL_ROWS * TILE);
     if (this.style.bubbles) addBubbles(this);
     this.buildDecor();
+    this.buildCovered();
+    this.buildCrowd();
     this.buildTiles();
     this.buildPuddles();
     this.buildCurrents();
@@ -171,6 +190,8 @@ export class LevelScene extends Phaser.Scene {
   private resetState(): void {
     this.enemies = [];
     this.tofus = [];
+    this.crowd = [];
+    this.spirit = null;
     this.sticky = new StickyFeet();
     this.physicsStep = 0;
     this.currents.clear();
@@ -213,6 +234,7 @@ export class LevelScene extends Phaser.Scene {
       else if (d.kind === 'lantern') this.addLantern(d.x, bottom);
       else if (d.kind === 'palm' || d.kind === 'umbrella') this.add.image(d.x, bottom, d.kind).setOrigin(0.5, 1).setDepth(-2);
       else if (d.kind === 'market-gate') this.addMarketGate(d.x, bottom);
+      else if (d.kind === 'cinema') this.addCinema(d.x, bottom);
       else this.add.image(d.x, bottom, this.style.gate).setOrigin(0.5, 1).setDepth(-3);
     }
     this.level.signs.forEach((s, i) => {
@@ -246,8 +268,80 @@ export class LevelScene extends Phaser.Scene {
     }
   }
 
-  private puddleGroup: Phaser.GameObjects.Zone[] = [];
+  /** Jiufen's old cinema (96x88 texture), its red sign glowing softly. */
+  private addCinema(x: number, bottom: number): void {
+    this.add.image(x, bottom, 'cinema').setOrigin(0.5, 1).setDepth(-3);
+    const halo = this.add.image(x, bottom - 65, 'glow').setTint(0xff6a4a).setScale(1.6).setAlpha(0.6).setDepth(-3).setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({ targets: halo, alpha: 0.35, duration: 1300, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+  }
 
+  /**
+   * A covered street (Jiufen's Jishan Street): a roof over the columns, a darker lane under it and shop fronts with
+   * warm, breathing lights on every flat stretch of floor.
+   */
+  private buildCovered(): void {
+    const covered = this.def.covered;
+    if (!covered) return;
+    this.floor = floorRows(this.def.map);
+    const left = covered.from * TILE;
+    const width = (covered.to - covered.from + 1) * TILE;
+    const bottom = LEVEL_ROWS * TILE;
+    this.add.rectangle(left, 0, width, bottom, 0x0c0a18, 0.55).setOrigin(0).setDepth(-11);
+    this.add.tileSprite(left, 0, width, 40, 'jiufen-roof').setOrigin(0).setDepth(-9);
+    this.add.image(left + 24, 36, 'jiufen-board').setOrigin(0.5, 0).setDepth(-8);
+    const shopCols = SHOP_W / TILE;
+    let frame = 0;
+    for (const span of flatSpans(this.floor, covered.from, covered.to, shopCols)) {
+      for (let c = span.from; c + shopCols - 1 <= span.to; c += shopCols + 1) {
+        const x = c * TILE + SHOP_W / 2;
+        const y = span.row * TILE;
+        this.add.image(x, y, 'jiufen-shop', frame % SHOP_FRAMES).setOrigin(0.5, 1).setDepth(-10);
+        const halo = this.add.image(x, y - SHOP_H + 34, 'glow').setTint(0xffb84a).setScale(2.4, 1.2).setAlpha(0.5).setDepth(-10).setBlendMode(Phaser.BlendModes.ADD);
+        this.tweens.add({ targets: halo, alpha: 0.3, duration: 1100 + (c % 5) * 90, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+        frame++;
+      }
+    }
+  }
+
+  /** Jiufen's strolling crowd, and our own masked spirit on Shuqi Road who waves when Wutter comes close. */
+  private buildCrowd(): void {
+    if (this.def.setting !== 'jiufen') return;
+    if (this.floor.length === 0) this.floor = floorRows(this.def.map);
+    const cols = this.floor.length;
+    const walker = (logic: Stroller, key: string, frame0: number): Walker => {
+      const sprite = this.add.sprite(logic.x, floorY(this.floor, logic.x), key, frame0).setOrigin(0.5, 1).setDepth(-4);
+      return { logic, sprite, frame0, walked: 0 };
+    };
+    this.crowd = makeCrowd(cols, 10).map((s, i) => {
+      const w = walker(s, 'stroller', (i % STROLLER_LOOKS) * 2);
+      w.sprite.setTint(0xb8b0c8);
+      return w;
+    });
+    // The spirit drifts slowly to and fro on the landing halfway down Shuqi Road.
+    this.spirit = walker({ x: 125 * TILE, dir: -1, speed: 6, min: 120 * TILE, max: 131 * TILE }, 'spirit', 0);
+    this.crowd.push(this.spirit);
+  }
+
+  private updateCrowd(dtMs: number): void {
+    for (const w of this.crowd) {
+      const waving = w === this.spirit && spiritWaves(w.sprite.x, w.sprite.y - SPIRIT_H / 2, this.player.x, this.player.y);
+      if (waving) {
+        // Stops, turns to Wutter and waves.
+        w.sprite.setFlipX(this.player.x < w.sprite.x);
+        w.sprite.setFrame(2 + (Math.floor(this.time.now / 250) % 2));
+        continue;
+      }
+      const before = w.logic.x;
+      w.logic = stepStroller(w.logic, dtMs);
+      w.walked += Math.abs(w.logic.x - before);
+      w.sprite.x = w.logic.x;
+      w.sprite.y = easeY(w.sprite.y, floorY(this.floor, w.logic.x), dtMs);
+      w.sprite.setFlipX(w.logic.dir < 0);
+      w.sprite.setFrame(w.frame0 + (Math.floor(w.walked / 6) % 2));
+    }
+  }
+
+  private puddleGroup: Phaser.GameObjects.Zone[] = [];
   /** Puddles sunk into the ground (seawater on the beach, murky rain water in the market); they refill the tank. */
   private buildPuddles(): void {
     this.puddleGroup = [];
@@ -507,6 +601,7 @@ export class LevelScene extends Phaser.Scene {
     this.threads.update(dtMs);
     this.updateEnemies(dtMs);
     this.updateTofu(dtMs);
+    this.updateCrowd(dtMs);
     setHook({ player: { x: Math.round(this.player.x), y: Math.round(this.player.y) }, score: this.score.value, hearts: this.health.hearts });
 
     if (this.finished) return;
