@@ -248,5 +248,38 @@ function drawPanel(scene: Phaser.Scene, c: Phaser.GameObjects.Container, art: Pa
       img(x + 40, y + h - 18, 'cucumber', 2);
       break;
     }
+    case 'big-wave': {
+      // A towering wave curling over the rocky shore, with Wutter tumbling in its crest.
+      bands([0x1a1e2e, 0x252a3e, 0x30364c], y, 60);
+      g.fillStyle(0x3a4250).fillRect(x, y + h - 16, w, 16);
+      g.fillStyle(0x1e4a6a).fillTriangle(x + 20, y + h - 10, x + 150, y + 6, x + w, y + h - 10);
+      g.fillStyle(0x1e4a6a).fillRect(x + 150, y + 6, w - 150, h - 16);
+      g.fillStyle(0x2a6a8a).fillCircle(x + 140, y + 30, 24);
+      g.fillStyle(0x1a1e2e).fillCircle(x + 128, y + 44, 16);
+      // Foam along the lip and spray flying off it.
+      g.fillStyle(0xe8f4ff);
+      for (let i = 0; i < 9; i++) g.fillCircle(x + 120 + i * 12, y + 8 + ((i * 5) % 7), 4);
+      g.fillStyle(0xe8f4ff, 0.6);
+      for (let i = 0; i < 14; i++) g.fillRect(x + 100 + ((i * 29) % 120), y + 2 + ((i * 11) % 20), 2, 2);
+      img(x + 132, y + 28, 'cucumber', 2).setAngle(-120);
+      g.lineStyle(1, 0x9ab0c8, 0.5);
+      for (let i = 0; i < 18; i++) {
+        const rx = x + ((i * 41) % w);
+        const ry = y + ((i * 19) % 50);
+        g.lineBetween(rx, ry, rx - 6, ry + 14);
+      }
+      break;
+    }
+    case 'deep-sea': {
+      // Sinking into the midnight zone: the light fades to black, with a few glowing specks.
+      bands([0x0f3a5a, 0x0a2840, 0x061a2c, 0x030e1a, 0x01060c]);
+      g.fillStyle(0x88c8ff, 0.12).fillTriangle(cx - 10, y, cx + 50, y, cx + 20, y + 80);
+      for (let i = 0; i < 16; i++) {
+        g.fillStyle(i % 3 === 0 ? 0x7af0ff : 0xbff4ff, 0.7).fillRect(x + ((i * 53) % w), y + 50 + ((i * 31) % 66), 1, 1);
+      }
+      for (let i = 0; i < 5; i++) img(cx - 8 + i * 4, y + 20 + i * 12, 'bubble', 1);
+      img(cx, y + 66, 'cucumber', 2).setAngle(160);
+      break;
+    }
   }
 }
