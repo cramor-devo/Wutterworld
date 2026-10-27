@@ -259,8 +259,9 @@ export class LevelScene extends Phaser.Scene {
     const map = this.make.tilemap({ data: this.level.tiles, tileWidth: TILE, tileHeight: TILE });
     const tileset = map.addTilesetImage('tiles', this.style.tileset, TILE, TILE, 0, 0);
     if (!tileset) throw new Error('tileset missing');
-    const layer = map.createLayer(0, tileset, 0, 0);
-    if (!layer) throw new Error('tile layer missing');
+    // Without the `gpu` flag Phaser 4 always builds a plain TilemapLayer, which arcade collision needs.
+    const layer = map.createLayer(0, tileset, 0, 0, false);
+    if (!(layer instanceof Phaser.Tilemaps.TilemapLayer)) throw new Error('tile layer missing');
     this.layer = layer.setCollisionBetween(0, TILE_COUNT - 1).setDepth(0);
   }
 
