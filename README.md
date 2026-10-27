@@ -164,7 +164,7 @@ and back home to the Festive Home Reef finale.
 
 Stack: [Phaser 3](https://phaser.io/) + TypeScript, built with [Vite](https://vite.dev/), tested with
 [Vitest](https://vitest.dev/) (logic and level data) and [Playwright](https://playwright.dev/) (desktop and mobile
-smoke tests). All game art and music are made in code at start-up. The only image files are the home-screen icons
+smoke tests, including one that plays the whole story from the title to the finale). All game art and music are made in code at start-up. The only image files are the home-screen icons
 and the pixelated Devoteam badge in `public/brand/` (128 × 128, shown as an overlay on the title screen).
 
 Requirements: [Node.js](https://nodejs.org/) 22.13 or newer (current LTS).
