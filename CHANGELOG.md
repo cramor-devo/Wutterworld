@@ -103,6 +103,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Firefox desktop: finishing a level no longer leaves a black screen with the music still playing. A Phaser 3.90
   bug crashed every scene change when the browser reported a gamepad with an empty slot before it; the game now
   skips empty slots ([#31](https://github.com/cramor-devo/Wutterworld/issues/31)).
+- All browsers (seen in Chrome and Edge): finishing a level no longer leaves a black screen. Leaving a level
+  crashed while cleaning up its physics listener, so the next story or level never started. A new end-to-end
+  test plays the whole story, from the title through all eight levels and the finale back to the title, and the
+  walking tests now wait for Wutter to move instead of using a fixed delay, so they no longer fail on slow CI
+  runners ([#37](https://github.com/cramor-devo/Wutterworld/issues/37)).
 
 ## [0.3.0] - 2026-10-26
 
