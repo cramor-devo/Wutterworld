@@ -10,6 +10,7 @@ import { ALL_SPRITES, type SpriteDef, spriteSize } from './sprites';
 import { BACKDROP_BASE_HEIGHT, BEACH_SEA_TOP } from '../scenes/backdropLayout';
 import { typhoonTextures } from './typhoon';
 import { abyssTextures } from './abyss';
+import { festiveTextures } from './festive';
 
 export { mulberry32 } from './canvas';
 
@@ -534,6 +535,7 @@ export function generateTextures(scene: Phaser.Scene): void {
   jiufenTextures(scene);
   typhoonTextures(scene);
   abyssTextures(scene);
+  festiveTextures(scene);
   decorTextures(scene);
 }
 

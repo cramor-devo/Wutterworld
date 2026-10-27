@@ -24,6 +24,9 @@ import type { PickupKind } from '../logic/score';
  *   V  the old cinema (decor, after Shengping Theatre)
  * Midnight Zone (deep sea, underwater like the reef):
  *   Q  giant squid (eyes glow, then it lunges)   n  anglerfish (lure flashes, then a short dash)
+ * Festive home reef (decor only, nothing here is dangerous):
+ *   F  festoon of bunting and a lantern, hung from the top of the tile
+ *   H  party guest: a reef dweller in a party hat (sea star, shrimp, crab, urchin or sea cucumber, by column)
  */
 export const SOLID_CHARS = ['#', '=', 'C', 'R', 'b', 'B'] as const;
 
@@ -43,7 +46,7 @@ export const TILE_INDEX = {
 /** Number of slots in every tileset; all of them are solid. */
 export const TILE_COUNT = 9;
 
-export type DecorKind = 'seaweed' | 'seafan' | 'lantern' | 'gate' | 'palm' | 'umbrella' | 'market-gate' | 'cinema';
+export type DecorKind = 'seaweed' | 'seafan' | 'lantern' | 'gate' | 'palm' | 'umbrella' | 'market-gate' | 'cinema' | 'festoon' | 'guest';
 
 export interface Spot {
   col: number;
@@ -74,7 +77,7 @@ export interface ParsedLevel {
 const PICKUPS: Record<string, PickupKind> = { o: 'plankton', O: 'pearl', A: 'anemone' };
 const ENEMIES: Record<string, EnemyKind> = { c: 'crab', f: 'puffer', t: 'triggerfish', j: 'jellyfish', G: 'seagull', k: 'cat', Q: 'squid', n: 'anglerfish' };
 const CURRENTS: Record<string, CurrentKind> = { '^': 'up', '>': 'right', '<': 'left' };
-const DECOR: Record<string, DecorKind> = { w: 'seaweed', g: 'seafan', L: 'lantern', T: 'gate', Y: 'palm', U: 'umbrella', M: 'market-gate', V: 'cinema' };
+const DECOR: Record<string, DecorKind> = { w: 'seaweed', g: 'seafan', L: 'lantern', T: 'gate', Y: 'palm', U: 'umbrella', M: 'market-gate', V: 'cinema', F: 'festoon', H: 'guest' };
 const KNOWN = new Set(['.', 'P', 'E', 'S', '~', 'z', ...SOLID_CHARS, ...Object.keys(PICKUPS), ...Object.keys(ENEMIES), ...Object.keys(CURRENTS), ...Object.keys(DECOR)]);
 
 function spot(col: number, row: number): Spot {

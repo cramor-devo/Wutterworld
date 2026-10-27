@@ -21,6 +21,9 @@ export class BootScene extends Phaser.Scene {
     this.anims.create({ key: 'squid-swim', frames: this.anims.generateFrameNumbers('squid', { start: 0, end: 1 }), frameRate: 3, repeat: -1 });
     this.anims.create({ key: 'plankton-twinkle', frames: this.anims.generateFrameNumbers('plankton', { start: 0, end: 1 }), frameRate: 3, repeat: -1 });
     this.anims.create({ key: 'seaweed-sway', frames: this.anims.generateFrameNumbers('seaweed', { start: 0, end: 1 }), frameRate: 2, repeat: -1 });
+    this.anims.create({ key: 'seastar-dance', frames: this.anims.generateFrameNumbers('seastar', { start: 0, end: 1 }), frameRate: 4, repeat: -1 });
+    this.anims.create({ key: 'shrimp-flick', frames: this.anims.generateFrameNumbers('shrimp', { start: 0, end: 1 }), frameRate: 5, repeat: -1 });
+    this.anims.create({ key: 'urchin-twinkle', frames: this.anims.generateFrameNumbers('urchin', { start: 0, end: 1 }), frameRate: 3, repeat: -1 });
 
     // Developer/PO shortcuts: ?level=coral-gardens jumps straight into a level, ?difficulty=hard picks a mode
     // for this visit without changing the saved choice.
